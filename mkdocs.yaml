@@ -1,0 +1,71 @@
+site_name: natto_library
+site_url: https://github.com/NITIC-Robot-Club/natto_library
+repo_url: https://github.com/NITIC-Robot-Club/natto_library
+edit_uri: https://github.com/NITIC-Robot-Club/natto_library
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  language: ja
+  palette:
+    - scheme: slate  # ダークテーマ
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: ライトモードに切り替え
+
+    - scheme: default  # ライトテーマ
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: ダークモードに切り替え
+
+# README.md をトップページとして使う場合
+docs_dir: docs
+
+
+plugins:
+  - awesome-pages
+  - same-dir
+  - search
+
+markdown_extensions:
+  - admonition             # !!! note などでアラートブロック
+  - codehilite             # コードハイライト
+  - toc:                   # 目次の自動生成（右サイド）
+      permalink: true
+  - tables                 # 表の拡張
+  - footnotes              # 脚注機能
+  - abbr                   # 略語の補足
+  - def_list               # 定義リスト（: を使うやつ）
+  - attr_list              # HTML属性をマークダウン内で使用可能
+
+  # pymdownx 拡張（Materialテーマ推奨）
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:       # タブ表示の強化
+      alternate_style: true
+  - pymdownx.details       # 折りたたみ詳細ブロック
+  - pymdownx.emoji         # :smile: のような絵文字
+  - pymdownx.tasklist      # チェックボックスリスト
+  - pymdownx.highlight     # ハイライト強化
+  - pymdownx.inlinehilite  # インラインハイライト
+  - pymdownx.magiclink     # URLを自動リンク化
+  - pymdownx.caret         # ^上付き文字^
+  - pymdownx.mark          # ==マーク==（蛍光ペン風）
+  - pymdownx.tilde         # ~~取り消し線~~
