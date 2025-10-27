@@ -10,9 +10,9 @@ jobs:
       contents: write
       packages: read
     
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/nitic-robot-club/natto_library:latest
-    runs-on: ubuntu-22.04
 
     steps:
       - name: Fetch origin
