@@ -1,0 +1,46 @@
+Language: Cpp                               # C++
+BasedOnStyle: Google                        # Googleの思想
+ColumnLimit: 250                            # 1行の最大文字数
+IndentWidth: 4                              # インデント幅
+
+SpaceBeforeParens: Always                   # () の前にスペース
+AlignAfterOpenBracket: AlwaysBreak          # 引数リストのカンマを改行する
+AlignArrayOfStructures: Right               # 構造体の配列を右揃え
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true          # 連続する宣言を揃える
+AlignEscapedNewlines: Left                  # エスケープされた改行を左揃え
+AlignTrailingComments: true                 # コメントを揃える
+AllowShortEnumsOnASingleLine: false         # enumを改行
+AllowShortFunctionsOnASingleLine: Empty     # 短い関数を一行にしない
+BreakBeforeBraces: Attach                   # {}を改行しない
+PointerAlignment: Right                     # ポインターの"*"、"&"は変数宣言の左に記述する
+AllowShortCaseLabelsOnASingleLine: false    # case文を改行
+
+IncludeCategories:
+  # C++ system headers
+  - Regex: <[a-z_]*>
+    Priority: 6
+    CaseSensitive: true
+  # C system headers
+  - Regex: <.*\.h>
+    Priority: 5
+    CaseSensitive: true
+  # Boost headers
+  - Regex: boost/.*
+    Priority: 4
+    CaseSensitive: true
+  # Message headers
+  - Regex: .*_msgs/.*
+    Priority: 3
+    CaseSensitive: true
+  - Regex: .*_srvs/.*
+    Priority: 3
+    CaseSensitive: true
+  # Other Package headers
+  - Regex: <.*>
+    Priority: 2
+    CaseSensitive: true
+  # Local package headers
+  - Regex: '".*"'
+    Priority: 1
+    CaseSensitive: true
