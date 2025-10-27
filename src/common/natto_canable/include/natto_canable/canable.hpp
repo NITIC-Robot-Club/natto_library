@@ -20,17 +20,19 @@ class canable : public rclcpp::Node {
     ~canable ();
 
    private:
-    int                                                   init_can_socket ();                                    // Initialize CAN socket
-    void                                                  read_can_socket ();                                    // Read messages from CAN socket
-    void                                                  write_can_socket (const natto_msgs::msg::Can &frame);  // Write messages to CAN socket
-    bool                                                  retry_open_can        = true;
-    bool                                                  retry_write_can       = true;
-    int                                                   retry_write_count     = 0;
-    int                                                   max_retry_write_count = 5;
-    std::string                                           can_interface;
-    int                                                   can_socket_;
-    struct sockaddr_can                                   addr_;
-    struct ifreq                                          ifr_;
+    int  init_can_socket ();                                    // Initialize CAN socket
+    void read_can_socket ();                                    // Read messages from CAN socket
+    void write_can_socket (const natto_msgs::msg::Can &frame);  // Write messages to CAN socket
+    bool retry_open_can        = true;
+    bool retry_write_can       = true;
+    int  retry_write_count     = 0;
+    int  max_retry_write_count = 5;
+    int  can_socket_;
+
+    std::string         can_interface;
+    struct sockaddr_can addr_;
+    struct ifreq        ifr_;
+
     rclcpp::Publisher<natto_msgs::msg::Can>::SharedPtr    canable_pub_;
     rclcpp::Subscription<natto_msgs::msg::Can>::SharedPtr canable_sub_;
 };

@@ -64,7 +64,7 @@ int canable::init_can_socket () {
 }
 
 void canable::read_can_socket () {
-    struct can_frame frame {};
+    struct can_frame frame{};
     while (rclcpp::ok ()) {
         int nbytes = read (can_socket_, &frame, sizeof (frame));
         if (nbytes <= 0) continue;
@@ -78,7 +78,7 @@ void canable::read_can_socket () {
 }
 
 void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
-    struct can_frame frame {};
+    struct can_frame frame{};
     frame.can_id  = msg.id;
     frame.can_dlc = msg.dlc;
     std::copy (msg.data.begin (), msg.data.begin () + msg.dlc, frame.data);
