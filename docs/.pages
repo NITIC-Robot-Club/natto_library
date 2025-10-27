@@ -1,0 +1,3 @@
+nav:
+  - ホーム: index.md
+  - 開発者ガイド: develop.md
