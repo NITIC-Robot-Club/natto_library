@@ -1,2 +1,45 @@
 # Natto Library
 このライブラリは茨城高専ロボット部でROS 2を使って自動運転やCAN通信などを行う際に便利なパッケージをまとめたものです。
+
+## 目次
+- [インストール方法](#インストール方法)
+- [パッケージ一覧](#パッケージ一覧)
+- [追加予定](#追加予定)
+
+## インストール方法
+1. リポジトリをクローンします。
+   ```bash
+   git clone git@github.com:NITIC-Robot-Club/natto_library.git
+   ```
+
+2. ワークスペースをビルドします。
+   ```bash
+   cd natto_library
+   colcon build --symlink-install
+   ```
+3. 環境をセットアップします。
+   ```bash
+   source install/setup.bash
+   ```
+   ~/.bashrcに追加しておくと便利です。
+   ```bash
+   echo "source ~/natto_library/install/setup.bash" >> ~/.bashrc
+   ```
+
+## パッケージ一覧
+
+## 追加予定
+- natto_msgs : 共通で使うメッセージ定義
+- natto_can : CAN通信を扱うパッケージ
+- natto_lidar_merger : 複数のLiDARデータを統合するパッケージ
+- natto_pointcloud2_utils : PointCloud2を扱うユーティリティ
+- natto_ransac : RANSACアルゴリズムを実装したパッケージ
+- natto_wheel_odometry : 車輪オドメトリを計算するパッケージ
+- natto_mcl : Monte Carlo Localizationを実装したパッケージ
+- natto_ekf_localizer : 拡張カルマンフィルタを用いた自己位置推定パッケージ
+- natto_astar_planner : A*アルゴリズムを用いた経路計画パッケージ
+- natto_speed_planner : 速度計画を行うパッケージ
+- natto_pure_pursuit : Pure Pursuitアルゴリズムを用いた追従制御パッケージ
+- natto_pid_controller : PID制御で速度追従を行うパッケージ
+- natto_map_visualizer : 地図データを可視化するパッケージ
+- natto_map_utils : 地図データを扱うユーティリティ
