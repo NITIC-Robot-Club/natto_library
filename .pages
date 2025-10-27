@@ -1,2 +1,0 @@
-nav:
-  - Home: index.md
