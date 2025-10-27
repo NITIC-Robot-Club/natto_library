@@ -27,5 +27,9 @@ jobs:
         run: |
           pip install mkdocs mkdocs-material pymdown-extensions mkdocs-awesome-pages-plugin mkdocs-same-dir
 
+      - name: Copy README.md to docs/index.md
+        run: |
+          cp README.md docs/index.md
+
       - name: Deploy to GitHub Pages
         run: mkdocs gh-deploy --force
