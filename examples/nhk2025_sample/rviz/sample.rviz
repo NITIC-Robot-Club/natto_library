@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /Grid1/Offset1
+        - /Common1
+        - /Swerve1
       Splitter Ratio: 0.5
     Tree Height: 817
   - Class: rviz_common/Selection
@@ -48,18 +50,38 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz_default_plugins/MarkerArray
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Map
+          Namespaces:
+            "": true
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /visualization/map
+          Value: true
       Enabled: true
-      Name: MarkerArray
-      Namespaces:
-        "": true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /visualization/map
-      Value: true
+      Name: Common
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Command
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /visualization/swerve/command
+          Value: true
+      Enabled: true
+      Name: Swerve
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
