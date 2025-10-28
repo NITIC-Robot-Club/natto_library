@@ -42,5 +42,3 @@
 - natto_speed_planner : 速度計画を行うパッケージ
 - natto_pure_pursuit : Pure Pursuitアルゴリズムを用いた追従制御パッケージ
 - natto_pid_controller : PID制御で速度追従を行うパッケージ
-- natto_map_visualizer : 地図データを可視化するパッケージ
-- natto_map_utils : 地図データを扱うユーティリティ
