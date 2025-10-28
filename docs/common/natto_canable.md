@@ -26,7 +26,7 @@ CANAbleをSocketCANインターフェースとして使用するためのパッ�
 | - | - | - |
 | /can/transmit | natto_msgs/msg/Can | 送信する CAN フレーム |
 
-## 使用手順 (candlightの場合)
+## 事前準備 (candlightの場合)
 Classic CAN ~1Mbpsの場合
 
 ### ファームウェアの書き込み
@@ -39,7 +39,7 @@ Classic CAN ~1Mbpsの場合
     の場合は `/dev/bus/usb/001/002` です
 3. 権限を設定します
     ```
-    $ sudo chmod 666 /dev/bus/usb/001/002
+    $ sudo chmod 0666 /dev/bus/usb/001/002
     ```
 4. [公式サイト](https://canable.io/updater/canable2.html) にアクセスし、`candlelight`を選択し書き込みます
 
@@ -81,7 +81,7 @@ Classic CAN ~1Mbpsの場合
     link/can 
     ```
 
-## 使用手順 (slcanの場合)
+## 事前準備 (slcanの場合)
 FD CAN ~5Mbpsの場合やWindowsでデバッグしながら使いたい場合
 
 ### ファームウェアの書き込み
@@ -94,7 +94,7 @@ FD CAN ~5Mbpsの場合やWindowsでデバッグしながら使いたい場合
     の場合は `/dev/bus/usb/001/002` です
 3. 権限を設定します
     ```
-    $ sudo chmod 666 /dev/bus/usb/001/002
+    $ sudo chmod 0666 /dev/bus/usb/001/002
     ```
 4. [公式サイト](https://canable.io/updater/canable2.html) にアクセスし、`candlelight`を選択し書き込みます
 
@@ -111,4 +111,27 @@ FD CAN ~5Mbpsの場合やWindowsでデバッグしながら使いたい場合
     ```
     この場合`208338903136`がシリアル番号になります
 
-2. 
+2. ここから先はslcanでやるが、udevで自動化したら何故かうまく行かなかったのであとでやってみる
+    ```bash
+    slcand -o -c -s8 /dev/ttyACM0 can0
+    sudo ip link set can0 up
+    sudo ip link set can0 txqueuelen 1000
+    ```
+
+## 使用方法
+1. CANの接続を確認します
+    ```bash
+    candump can0
+    ```
+    大量の通信ログが流れてきたら成功です
+2. natto_canableノードを起動します
+    ```bash
+    ros2 run natto_canable canable
+    ```
+3. CANフレームの送受信を行います
+    ```bash
+    ros2 topic echo /can/receive
+    ```
+    ```bash
+    ros2 topic pub /can/transmit natto_msgs/msg/Can "{id: 0x123, dlc: 8, data: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]}"
+    ```
