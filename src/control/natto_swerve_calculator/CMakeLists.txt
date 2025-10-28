@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(natto_visualization_converter)
+project(natto_swerve_calculator)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
@@ -9,13 +9,8 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "visualize_map::visualize_map"
-    EXECUTABLE visualize_map
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "visualize_swerve::visualize_swerve"
-    EXECUTABLE visualize_swerve
+    PLUGIN "swerve_calculator::swerve_calculator"
+    EXECUTABLE swerve_calculator
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
