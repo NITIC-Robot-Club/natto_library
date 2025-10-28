@@ -1,26 +1,44 @@
 <launch>
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/">
+    <!-- コモンコンテナ -->
+        <!-- マップ読み込み -->
         <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader">
             <param name="line_segments_path" value="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
             <param name="circles_path" value="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
             <param name="publish_period_ms" value="1000"/>
         </composable_node>
     </node_container>
+
     <node_container pkg="rclcpp_components" exec="component_container" name="swerve_container" namespace="swerve">
-        <composable_node pkg="natto_swerve_calculator" plugin="swerve_calculator::swerve_calculator" name="swerve_calculator">
-            <param from="$(find-pkg-share nhk2025_sample)/config/params.yaml"/>
+    <!-- 独ステコンテナ -->
+        <!-- 独ステ目標計算 -->
+        <composable_node pkg="natto_swerve_calculator" plugin="swerve_calculator::swerve_calculator" name="calculator" namespace="swerve">
+            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
     </node_container>
+
     <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
-        <composable_node pkg="natto_visualization_converter" plugin="visualize_map::visualize_map" name="visualize_map">
+    <!-- 表示コンテナ -->
+        <!-- マップ表示 -->
+        <composable_node pkg="natto_visualization_converter" plugin="visualize_map::visualize_map" name="map" namespace="visualization">
             <param name="publish_period_ms" value="10"/>
             <remap from="map" to="/map"/>
             <remap from="marker_array" to="/visualization/map"/>
         </composable_node>
+
+        <!-- 独ステ表示 -->
+        <composable_node pkg="natto_visualization_converter" plugin="visualize_swerve::visualize_swerve" name="command" namespace="visualization/swerve">
+            <param name="publish_period_ms" value="10"/>
+            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
+            <remap from="swerve" to="/swerve/command"/>
+            <remap from="marker_array" to="/visualization/swerve/command"/>
+        </composable_node>
     </node_container>
+
+    <!-- RViz2 -->
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
         args="-d $(find-pkg-share nhk2025_sample)/rviz/sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
 </launch>

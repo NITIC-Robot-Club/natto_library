@@ -17,6 +17,14 @@ swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) :
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
+
+    RCLCPP_INFO (this->get_logger (), "swerve_calculator node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
+    for (int i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+    }
 }
 
 void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
