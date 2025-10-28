@@ -1,0 +1,12 @@
+<launch>
+    <node_container pkg="rclcpp_components" exec="component_container" name="sample_container" namespace="">
+        <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader">
+            <param name="line_segments_path" value="$(find-pkg-share nhk2025_sample)/config/line_segments.csv"/>
+            <param name="circles_path" value="$(find-pkg-share nhk2025_sample)/config/circles.csv"/>
+            <param name="publish_period_ms" value="1000"/>
+        </composable_node>
+        <composable_node pkg="natto_visualization_converter" plugin="visualize_map::visualize_map" name="visualize_map">
+            <param name="publish_period_ms" value="10"/>
+        </composable_node>
+    </node_container>
+</launch>
