@@ -33,3 +33,9 @@
 | - | - | - |
 | line_segments | natto_msgs/LineSegment[] | 複数の線分 |
 | circles | natto_msgs/Circle[] | 複数の円 |
+
+### Swerve.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| wheel_angle | float64[] | ホイール角度 |
+| wheel_speed | float64[] | ホイール速度(rps) |

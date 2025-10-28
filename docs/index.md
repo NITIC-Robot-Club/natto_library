@@ -10,6 +10,9 @@
 - [natto_canable](common/natto_canable) : CAN通信を扱う
 - [natto_map](common/natto_map) : 地図情報を扱う
 
+### control
+- [natto_swerve_calculator](control/natto_swerve_calculator) : N輪独立ステアリングのホイール指令を計算する
+
 ### message
 - [natto_msgs](message/natto_msgs) : 共通で使うメッセージ定義
 
