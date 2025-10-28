@@ -1,6 +1,8 @@
 # natto_canable
 CANAbleをSocketCANインターフェースとして使用するためのパッケージです。
 
+# canable
+canable ノードは、CANAble デバイスを使用して CAN 通信を行います。
 ## 機能
 - 指定した SocketCAN インターフェース（デフォルト: can0）へソケットを作成してバインド
 - 受信データを別スレッドで常時読み取り、natto_msgs::msg::Can 型でパブリッシュ
