@@ -5,8 +5,11 @@ namespace visualize_map {
 visualize_map::visualize_map (const rclcpp::NodeOptions &node_options) : Node ("visualize_map", node_options) {
     marker_publisher_     = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     map_subscription_     = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&visualize_map::map_callback, this, std::placeholders::_1));
-    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 1000);
+    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
     timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&visualize_map::timer_callback, this));
+
+    RCLCPP_INFO (this->get_logger (), "visualize_map node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "Publish period (ms): %d", publish_period_ms);
 }
 
 void visualize_map::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {

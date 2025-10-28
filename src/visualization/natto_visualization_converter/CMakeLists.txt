@@ -13,4 +13,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE visualize_map
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "visualize_swerve::visualize_swerve"
+    EXECUTABLE visualize_swerve
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
