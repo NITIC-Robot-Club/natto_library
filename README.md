@@ -1,5 +1,5 @@
 # Natto Library
-このライブラリは茨城高専ロボット部でROS 2を使って自動運転やCAN通信などを行う際に便利なパッケージをまとめたものです。
+このライブラリは茨城高専ロボット部でROS 2を使って自動運転やCAN通信などを行う際に便利なパッケージをまとめたものです
 
 [![auto fix and build full docker](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/autofix_build.yaml/badge.svg)](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/autofix_build.yaml)
 [![build docker image](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/docker_build.yaml/badge.svg)](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/docker_build.yaml)
@@ -9,25 +9,24 @@
 
 ## 目次
 - [インストール方法](#インストール方法)
-- [パッケージ一覧](#パッケージ一覧)
 - [追加予定](#追加予定)
 
 ## インストール方法
-1. リポジトリをクローンします。
+1. リポジトリをクローンします
    ```bash
    git clone git@github.com:NITIC-Robot-Club/natto_library.git
    ```
 
-2. ワークスペースをビルドします。
+2. ワークスペースをビルドします
    ```bash
    cd natto_library
    colcon build --symlink-install
    ```
-3. 環境をセットアップします。
+3. 環境をセットアップします
    ```bash
    source install/setup.bash
    ```
-   ~/.bashrcに追加しておくと便利です。
+   ~/.bashrcに追加しておくと便利です
    ```bash
    echo "source ~/natto_library/install/setup.bash" >> ~/.bashrc
    ```
