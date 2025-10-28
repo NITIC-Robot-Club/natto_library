@@ -19,12 +19,12 @@ CANAbleをSocketCANインターフェースとして使用するためのパッ�
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /can/receive | natto_msgs/msg/Can | 受信した CAN フレーム |
+| receive | natto_msgs/msg/Can | 受信した CAN フレーム |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /can/transmit | natto_msgs/msg/Can | 送信する CAN フレーム |
+| transmit | natto_msgs/msg/Can | 送信する CAN フレーム |
 
 ## 事前準備 (candlightの場合)
 Classic CAN ~1Mbpsの場合

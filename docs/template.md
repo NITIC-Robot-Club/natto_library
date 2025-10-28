@@ -48,6 +48,38 @@ ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
 </package>
 ```
 
+## hpp
+```cpp
+#ifndef __ヘッダー名_HPP__
+#define __ヘッダー名_HPP__
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "メッセージ型ヘッダー.hpp"
+
+namespace ネームスペース {
+class クラス名 : public rclcpp::Node {
+public:
+    クラス名 (const rclcpp::NodeOptions &node_options);
+    ~クラス名 ();
+
+private:
+    // パラメータ宣言例:
+    型 parameter_;
+
+    // コールバック関数宣言例:
+    void コールバック関数名(const メッセージ型::SharedPtr msg);
+    void タイマーコールバック関数名();
+
+    // メンバ変数宣言例:
+    rclcpp::Publisher<メッセージ型>::SharedPtr publisher_;
+    rclcpp::Subscription<メッセージ型>::SharedPtr subscriber_;
+    rclcpp::TimerBase::SharedPtr timer_;
+};
+}  // namespace ネームスペース
+
+#endif  // __ヘッダー名_HPP__
+```
 
 ## cpp
 ```cpp
@@ -92,37 +124,4 @@ msg->データメンバ名 でアクセス可能
 
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(ネームスペース::クラス名)
-```
-
-## hpp
-```cpp
-#ifndef __ヘッダー名_HPP__
-#define __ヘッダー名_HPP__
-
-#include "rclcpp/rclcpp.hpp"
-
-#include "メッセージ型ヘッダー.hpp"
-
-namespace ネームスペース {
-class クラス名 : public rclcpp::Node {
-public:
-    クラス名 (const rclcpp::NodeOptions &node_options);
-    ~クラス名 ();
-
-private:
-    // パラメータ宣言例:
-    型 parameter_;
-
-    // コールバック関数宣言例:
-    void コールバック関数名(const メッセージ型::SharedPtr msg);
-    void タイマーコールバック関数名();
-
-    // メンバ変数宣言例:
-    rclcpp::Publisher<メッセージ型>::SharedPtr publisher_;
-    rclcpp::Subscription<メッセージ型>::SharedPtr subscriber_;
-    rclcpp::TimerBase::SharedPtr timer_;
-};
-}  // namespace ネームスペース
-
-#endif  // __ヘッダー名_HPP__
 ```
