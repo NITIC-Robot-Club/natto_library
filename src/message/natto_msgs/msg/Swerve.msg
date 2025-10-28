@@ -1,2 +1,2 @@
-float64[4] wheel_angle
-float64[4] wheel_speed
+float64[] wheel_angle
+float64[] wheel_speed
