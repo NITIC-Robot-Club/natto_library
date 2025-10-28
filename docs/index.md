@@ -6,3 +6,8 @@
 [![Deploy MkDocs](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml/badge.svg)](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml)
 
 ## パッケージ一覧
+### common
+- [natto_can](docs/common/natto_can.md) : CAN通信を扱う
+
+### message
+- [natto_msgs](docs/message/natto_msgs.md) : 共通で使うメッセージ定義

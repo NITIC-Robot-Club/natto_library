@@ -32,11 +32,7 @@
    echo "source ~/natto_library/install/setup.bash" >> ~/.bashrc
    ```
 
-## パッケージ一覧
-
 ## 追加予定
-- natto_msgs : 共通で使うメッセージ定義
-- natto_can : CAN通信を扱うパッケージ
 - natto_lidar_merger : 複数のLiDARデータを統合するパッケージ
 - natto_pointcloud2_utils : PointCloud2を扱うユーティリティ
 - natto_ransac : RANSACアルゴリズムを実装したパッケージ
