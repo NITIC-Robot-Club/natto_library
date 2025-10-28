@@ -7,7 +7,7 @@
 
 ## パッケージ一覧
 ### common
-- [natto_can](docs/common/natto_can.md) : CAN通信を扱う
+- [natto_canable](common/natto_canable) : CAN通信を扱う
 
 ### message
-- [natto_msgs](docs/message/natto_msgs.md) : 共通で使うメッセージ定義
+- [natto_msgs](message/natto_msgs) : 共通で使うメッセージ定義
