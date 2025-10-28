@@ -58,7 +58,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /marker_array
+        Value: /visualization/map
       Value: true
   Enabled: true
   Global Options:
@@ -106,7 +106,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 19.173860549926758
+      Distance: 14.848237991333008
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -121,10 +121,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7597970962524414
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.9004015922546387
+      Yaw: 3.141592025756836
     Saved: ~
 Window Geometry:
   Displays:
