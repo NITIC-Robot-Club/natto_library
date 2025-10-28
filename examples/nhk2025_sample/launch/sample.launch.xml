@@ -9,4 +9,6 @@
             <param name="publish_period_ms" value="10"/>
         </composable_node>
     </node_container>
+    <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
+        args="-d $(find-pkg-share nhk2025_sample)/rviz/sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
 </launch>
