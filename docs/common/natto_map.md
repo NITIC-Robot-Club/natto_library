@@ -32,3 +32,6 @@ map_loader ノードは、CSVファイルから地図情報を読み込み、nat
 | 円弧の中心のx座標 (m) | 円弧の中心のy座標 (m) | 円弧の中心のz座標 (m) | 円弧の半径 (m) | 円弧の開始角度 (rad) | 円弧の終了角度 (rad) |
 
 - 角度はx軸正方向を0とし、反時計回りを正とします。
+
+## map creator
+[Google SpreadSheetのマップクリエイター](https://docs.google.com/spreadsheets/d/1a26aJcPwLCuzxXE9vYS8q0xv4El7dLMvVLak4jPUAQg/edit?usp=sharing)を使うとかんたんにcsvファイルを作成できます。
