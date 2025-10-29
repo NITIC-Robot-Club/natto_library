@@ -29,6 +29,8 @@ swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) :
 
 void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     natto_msgs::msg::Swerve swerve_msg;
+    swerve_msg.wheel_angle.resize (num_wheels_, 0.0);
+    swerve_msg.wheel_speed.resize (num_wheels_, 0.0);
 
     double x = msg->twist.linear.x;
     double y = msg->twist.linear.y;
@@ -53,6 +55,9 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
     }
     if (infinite_swerve_mode_) {
         for (int i = 0; i < num_wheels_; i++) {
+            if(swerve_result_.wheel_angle.size()!=num_wheels_ || swerve_result_.wheel_speed.size()!=num_wheels_){
+                continue;
+            }
             while (swerve_msg.wheel_angle[i] - swerve_result_.wheel_angle[i] > M_PI) {
                 swerve_msg.wheel_angle[i] -= 2.0 * M_PI;
             }

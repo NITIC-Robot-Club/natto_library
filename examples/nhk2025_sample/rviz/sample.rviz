@@ -4,11 +4,10 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /Status1
         - /Grid1/Offset1
         - /Common1
         - /Swerve1
+        - /Simulation1
       Splitter Ratio: 0.5
     Tree Height: 817
   - Class: rviz_common/Selection
@@ -80,8 +79,44 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /visualization/swerve/command
           Value: true
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Result
+          Namespaces:
+            swerve_wheel: true
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /visualization/swerve/result
+          Value: true
       Enabled: true
       Name: Swerve
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz_default_plugins/Pose
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.30000001192092896
+          Head Radius: 0.10000000149011612
+          Name: Pose
+          Shaft Length: 1
+          Shaft Radius: 0.05000000074505806
+          Shape: Arrow
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /simulation/current_pose
+          Value: true
+      Enabled: true
+      Name: Simulation
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -146,7 +181,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.141592025756836
+      Yaw: 3.1415927410125732
     Saved: ~
 Window Geometry:
   Displays:
