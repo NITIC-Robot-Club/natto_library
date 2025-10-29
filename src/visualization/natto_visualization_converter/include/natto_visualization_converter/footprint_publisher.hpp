@@ -7,17 +7,17 @@
 
 namespace footprint_publisher {
 class footprint_publisher : public rclcpp::Node {
-public:
+   public:
     footprint_publisher (const rclcpp::NodeOptions &node_options);
 
-private:
+   private:
     geometry_msgs::msg::PolygonStamped footprint_;
 
-    void timer_callback();
+    void timer_callback ();
 
     // メンバ変数宣言例:
     rclcpp::Publisher<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_publisher_;
-    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr                                     timer_;
 };
 }  // namespace footprint_publisher
 

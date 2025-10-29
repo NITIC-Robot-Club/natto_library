@@ -9,8 +9,8 @@
 #include "geometry_msgs/msg/polygon_stamped.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
-#include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
 namespace pointcloud2_merger {
 class pointcloud2_merger : public rclcpp::Node {
