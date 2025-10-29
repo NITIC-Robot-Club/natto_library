@@ -1,15 +1,15 @@
-#ifndef __VISUALIZE_MAP_HPP__
-#define __VISUALIZE_MAP_HPP__
+#ifndef __MAP_VISUALIZER_HPP__
+#define __MAP_VISUALIZER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 
 #include "natto_msgs/msg/map.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
-namespace visualize_map {
-class visualize_map : public rclcpp::Node {
+namespace map_visualizer {
+class map_visualizer : public rclcpp::Node {
    public:
-    visualize_map (const rclcpp::NodeOptions &node_options);
+    map_visualizer (const rclcpp::NodeOptions &node_options);
 
    private:
     visualization_msgs::msg::MarkerArray marker_array_;
@@ -21,6 +21,6 @@ class visualize_map : public rclcpp::Node {
     rclcpp::Subscription<natto_msgs::msg::Map>::SharedPtr              map_subscription_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
 };
-}  // namespace visualize_map
+}  // namespace map_visualizer
 
-#endif  // __MAP_LOADER_HPP__
+#endif  // __MAP_VISUALIZER_HPP__

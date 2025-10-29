@@ -41,6 +41,7 @@ ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
   <depend>rclcpp_components</depend>
   <!-- <depend>追加の依存関係</depend> -->
   <!-- <depend>natto_msgs</depend> -->
+  <!-- <depend>tf2</depend> -->
 
   <export>
     <build_type>ament_cmake</build_type>
@@ -54,6 +55,10 @@ ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
 #define __ヘッダー名_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+
+// クオータニオン変換が必要なときは追加
+// #include "tf2/LinearMath/Quaternion.hpp"
+// #include "tf2/utils.hpp"
 
 #include "メッセージ型ヘッダー.hpp"
 
@@ -111,12 +116,12 @@ namespace ネームスペース {
     // デストラクタ内容
 }
 
-クラス名::コールバック関数名(const メッセージ型::SharedPtr msg) {
+void クラス名::コールバック関数名(const メッセージ型::SharedPtr msg) {
     // 受信コールバック内容
 msg->データメンバ名 でアクセス可能
 }
 
-クラス名::タイマーコールバック関数名() {
+void クラス名::タイマーコールバック関数名() {
 // タイマーコールバック内容
 }
 

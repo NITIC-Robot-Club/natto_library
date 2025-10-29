@@ -9,6 +9,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Circle.msg"
   "msg/LineSegment.msg"
   "msg/Map.msg"
+  "msg/Swerve.msg"
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces
 )
 

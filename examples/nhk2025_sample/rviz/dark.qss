@@ -1,0 +1,28 @@
+QWidget {
+    background-color: #282C34;
+    color: #ABB2BF;
+}
+
+QMenuBar, QMenu {
+    background-color: #21252B;
+    color: #ABB2BF;
+}
+
+QMenu::item:selected {
+    background-color: #3E4451;
+}
+
+QStatusBar {
+    background-color: #21252B;
+    color: #ABB2BF;
+}
+
+QToolBar {
+    background-color: #21252B;
+    color: #ABB2BF;
+}
+
+QHeaderView::section {
+    background-color: #21252B;
+    color: #ABB2BF;
+}

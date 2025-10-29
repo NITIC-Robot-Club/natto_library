@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>natto_visualization_converter</name>
+  <name>natto_simple_simulation</name>
   <version>1.0.0</version>
-  <description>natto_msgsからvisualization_msgs</description>
+  <description>シンプルなシミュレーター</description>
   <maintainer email="kzs321kzs@gmail.com">Kazusa Hashimoto</maintainer>
   <license>Apache-2.0</license>
 
@@ -15,8 +15,10 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
   <depend>natto_msgs</depend>
-  <depend>visualization_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
