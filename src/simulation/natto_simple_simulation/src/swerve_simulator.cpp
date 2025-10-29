@@ -140,7 +140,7 @@ void swerve_simulator::timer_callback () {
     current_pose.pose.position.x += vx_world * period_ms / 1000.0;
     current_pose.pose.position.y += vy_world * period_ms / 1000.0;
     yaw += vz * period_ms / 1000.0;
-    
+
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
     current_pose.pose.orientation.x = q.x ();
