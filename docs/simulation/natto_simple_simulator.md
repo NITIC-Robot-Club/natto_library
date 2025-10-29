@@ -33,3 +33,35 @@ N輪独立ステアリングロボットの動作を模擬します。
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | /swerve_command | natto_msgs::msg::Swerve | ホイールの目標角度と速度 |
+
+# lidar_simulator
+2D LiDARセンサーの動作を模擬します。
+## 機能
+- ロボットの位置と姿勢に基づいてレーザースキャンデータを生成します。
+- 環境マップに基づいてレーザービームの衝突を計算します。
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| position_x | double | 0.0 | LiDARのx座標（m） |
+| position_y | double | 0.0 | LiDARのy座標（m） |
+| angle | double | 0.0 | LiDARの取り付け角度（rad） |
+| range_min | double | 0.0 | 最小測定距離（m） |
+| range_max | double | 35.0 | 最大測定距離（m） |
+| angle_min | double | -1.57 | 最小測定角度（rad） |
+| angle_max | double | 1.57 | 最大測定角度（rad） |
+| simulation_resolution | double | 0.01 | シミュレーションの解像度（m） |
+| point_rate | int | 43200 | 1秒あたりのポイント数 |
+| scan_frequency | int | 30 | スキャン周波数（Hz） |
+| frame_id | std::string | "laser_frame" | LiDARフレームのID |
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| /laser_scan | sensor_msgs::msg::LaserScan | シミュレートされたレーザースキャンデータ |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| /simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
+| /map | natto_msgs::msg::Map | 環境マップデータ |
