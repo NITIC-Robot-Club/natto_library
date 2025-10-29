@@ -32,8 +32,6 @@
    ```
 
 ## 追加予定
-- natto_lidar_merger : 複数のLiDARデータを統合するパッケージ
-- natto_pointcloud2_utils : PointCloud2を扱うユーティリティ
 - natto_ransac : RANSACアルゴリズムを実装したパッケージ
 - natto_wheel_odometry : 車輪オドメトリを計算するパッケージ
 - natto_mcl : Monte Carlo Localizationを実装したパッケージ
