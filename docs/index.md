@@ -16,6 +16,10 @@
 ### message
 - [natto_msgs](message/natto_msgs) : 共通で使うメッセージ定義
 
+### sensing
+- [natto_lidar_converter](sensing/natto_lidar_converter) : LiDARのデータ変換する
+- [natto_lidar_merger](sensing/natto_lidar_merger) : 複数のLiDARデータをマージする
+
 ### simulation
 - [natto_simple_simulator](simulation/natto_simple_simulator) : 簡易シミュレータ
 
