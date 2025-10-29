@@ -133,9 +133,10 @@ void simulate_swerve::timer_callback () {
     double vy = A[1][3];
     double vz = A[2][3];
 
-    current_pose.pose.position.x += vx * period_ms / 1000.0;
-    current_pose.pose.position.y += vy * period_ms / 1000.0;
-    double yaw = tf2::getYaw (current_pose.pose.orientation);
+    double yaw   = tf2::getYaw (current_pose.pose.orientation);
+    double speed = std::hypot (vx, vy);
+    current_pose.pose.position.x += speed * std::cos (yaw) * period_ms / 1000.0;
+    current_pose.pose.position.y += speed * std::sin (yaw) * period_ms / 1000.0;
     yaw += vz * period_ms / 1000.0;
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
