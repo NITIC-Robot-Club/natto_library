@@ -15,6 +15,10 @@
         <!-- 独ステシミュレーター -->
         <composable_node pkg="natto_simple_simulation" plugin="swerve_simulator::swerve_simulator" name="simulator" namespace="swerve">
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
+            <param name="angle_gain_p" value="300.0"/>
+            <param name="angle_gain_d" value="100.0"/>
+            <param name="speed_gain_p" value="300.0"/>
+            <param name="speed_gain_d" value="100.0"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
@@ -53,6 +57,12 @@
             <remap from="laserscan" to="/sensing/lidar/laser_scan/rear"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/rear"/>
         </composable_node>
+        <composable_node pkg="natto_lidar_merger" plugin="pointcloud2_merger::pointcloud2_merger" name="pointcloud2_merger" namespace="sensing/lidar">
+            <param name="frame_id" value="base_link"/>
+            <remap from="pointcloud2_first" to="/sensing/lidar/pointcloud2/front"/>
+            <remap from="pointcloud2_second" to="/sensing/lidar/pointcloud2/rear"/>
+            <remap from="merged_pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+        </composable_node>
     </node_container>
 
     <!-- コントロールコンテナ -->
@@ -62,7 +72,8 @@
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
-            <remap from="command_velocity" to="/control/command_velocity"/>
+            <!-- <remap from="command_velocity" to="/control/command_velocity"/> -->
+            <remap from="command_velocity" to="/controller/cmd_vel"/>
         </composable_node>
 
     </node_container>
