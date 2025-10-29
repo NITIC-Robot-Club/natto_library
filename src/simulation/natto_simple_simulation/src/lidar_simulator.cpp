@@ -32,6 +32,8 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
     RCLCPP_INFO (this->get_logger (), "Scan Frequency: %d Hz", scan_frequency_);
     RCLCPP_INFO (this->get_logger (), "Frame ID: %s", frame_id_.c_str ());
 
+    distribution_ = std::uniform_real_distribution<double> (-simulation_resolution_, simulation_resolution_);
+
     // タイマー宣言例:
     timer_ = this->create_wall_timer (std::chrono::milliseconds (1000 / scan_frequency_), std::bind (&lidar_simulator::timer_callback, this));
 }
@@ -118,7 +120,8 @@ void lidar_simulator::timer_callback () {
             check_t (t1);
             check_t (t2);
         }
-        scan.ranges[i] = closest_range;
+        scan.ranges[i] = closest_range + distribution_ (generator_);
+        ;
     }
     laser_publisher_->publish (scan);
 }

@@ -10,6 +10,8 @@
 #include "natto_msgs/msg/map.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
+#include <random>
+
 namespace lidar_simulator {
 class lidar_simulator : public rclcpp::Node {
    public:
@@ -22,6 +24,9 @@ class lidar_simulator : public rclcpp::Node {
 
     geometry_msgs::msg::PoseStamped::SharedPtr simulation_pose_;
     natto_msgs::msg::Map::SharedPtr            map_;
+
+    std::default_random_engine             generator_;
+    std::uniform_real_distribution<double> distribution_;
 
     void simulation_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void map_callback (const natto_msgs::msg::Map::SharedPtr msg);
