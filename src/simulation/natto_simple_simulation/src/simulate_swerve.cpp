@@ -80,10 +80,10 @@ void simulate_swerve::timer_callback () {
         result.wheel_angle[i] += angle_adjustment * period_ms / 1000.0;
         result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
 
-        if (abs (received_commands.back().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
+        if (abs (received_commands.back ().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
             // 誤差が小さいときは見た目のために一致させる
-            result.wheel_speed[i] = received_commands.back().wheel_speed[i];
+            result.wheel_speed[i] = received_commands.back ().wheel_speed[i];
         }
     }
     swerve_result_publisher_->publish (result);

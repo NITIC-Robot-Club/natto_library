@@ -55,7 +55,7 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
     }
     if (infinite_swerve_mode_) {
         for (int i = 0; i < num_wheels_; i++) {
-            if(swerve_result_.wheel_angle.size()!=num_wheels_ || swerve_result_.wheel_speed.size()!=num_wheels_){
+            if (swerve_result_.wheel_angle.size () != num_wheels_ || swerve_result_.wheel_speed.size () != num_wheels_) {
                 continue;
             }
             while (swerve_msg.wheel_angle[i] - swerve_result_.wheel_angle[i] > M_PI) {
