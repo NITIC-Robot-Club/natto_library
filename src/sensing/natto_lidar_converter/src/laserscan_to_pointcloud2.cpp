@@ -12,8 +12,8 @@ laserscan_to_pointcloud2::laserscan_to_pointcloud2 (const rclcpp::NodeOptions &n
 
     frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
 
-    RCLCPP_INFO(this->get_logger(), "laserscan_to_pointcloud2 node has been started.");
-    RCLCPP_INFO(this->get_logger(), "frame id: %s", frame_id_.c_str());
+    RCLCPP_INFO (this->get_logger (), "laserscan_to_pointcloud2 node has been started.");
+    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
 }
 
 void laserscan_to_pointcloud2::laser_scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
@@ -43,7 +43,7 @@ void laserscan_to_pointcloud2::laser_scan_callback (const sensor_msgs::msg::Lase
 
     try {
         geometry_msgs::msg::TransformStamped tf = tf_buffer_->lookupTransform (frame_id_, msg->header.frame_id, msg->header.stamp);
-        sensor_msgs::msg::PointCloud2 pointcloud2_transformed;
+        sensor_msgs::msg::PointCloud2        pointcloud2_transformed;
         tf2::doTransform (pointcloud2, pointcloud2_transformed, tf);
         pointcloud2_publisher_->publish (pointcloud2_transformed);
     } catch (tf2::TransformException &ex) {
