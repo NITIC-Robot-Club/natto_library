@@ -8,6 +8,9 @@
             <param name="circles_path" value="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
             <param name="publish_period_ms" value="1000"/>
         </composable_node>
+        <composable_node pkg="natto_visualization_converter" plugin="footprint_publisher::footprint_publisher" name="footprint_publisher">
+            <remap from="footprint" to="/robot/footprint"/>
+        </composable_node>
     </node_container>
 
     <!-- シミュレーションコンテナー -->
@@ -26,7 +29,7 @@
 
         <!-- LiDARシミュレーター -->
         <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_front" namespace="lidar">
-            <param name="position_x" value="0.5"/>
+            <param name="position_x" value="+0.4"/>
             <param name="position_y" value="0.0"/>
             <param name="angle" value="0.0"/>
             <param name="frame_id" value="lidar_front"/>
@@ -35,7 +38,7 @@
             <remap from="laser_scan" to="/sensing/lidar/laser_scan/front"/>
         </composable_node>
         <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_rear" namespace="lidar">
-            <param name="position_x" value="-0.5"/>
+            <param name="position_x" value="-0.4"/>
             <param name="position_y" value="0.0"/>
             <param name="angle" value="3.1415926"/>
             <param name="frame_id" value="lidar_rear"/>
@@ -57,11 +60,13 @@
             <remap from="laserscan" to="/sensing/lidar/laser_scan/rear"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/rear"/>
         </composable_node>
+
         <composable_node pkg="natto_lidar_merger" plugin="pointcloud2_merger::pointcloud2_merger" name="pointcloud2_merger" namespace="sensing/lidar">
             <param name="frame_id" value="base_link"/>
             <remap from="pointcloud2_first" to="/sensing/lidar/pointcloud2/front"/>
             <remap from="pointcloud2_second" to="/sensing/lidar/pointcloud2/rear"/>
             <remap from="merged_pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+            <remap from="footprint" to="/robot/footprint"/>
         </composable_node>
     </node_container>
 
@@ -114,9 +119,9 @@
 
     <!-- TF -->
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"
-        args="0.5 0 0 0 0 0 1 base_link lidar_front"/>
+        args="+0.4 0 0 0 0 0 1 base_link lidar_front"/>
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
-        args="-0.5 0 0 0 0 1 0 base_link lidar_rear"/>
+        args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
     
     <!-- 自己位置 -->
     <node pkg="tf2_ros" exec="static_transform_publisher" name="simulation_to_base_link" output="screen"

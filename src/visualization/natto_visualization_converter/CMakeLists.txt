@@ -18,4 +18,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE swerve_visualizer
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "footprint_publisher::footprint_publisher"
+    EXECUTABLE footprint_publisher
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

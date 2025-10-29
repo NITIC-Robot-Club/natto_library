@@ -66,7 +66,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
 
     if (!footprint_.polygon.points.empty ()) {
         try {
-            geometry_msgs::msg::TransformStamped tf_poly = tf_buffer_->lookupTransform (frame_id_, footprint_.header.frame_id, tf2::TimePointZero);
+            geometry_msgs::msg::TransformStamped tf_poly = tf_buffer_->lookupTransform (frame_id_, footprint_.header.frame_id, footprint_.header.stamp);
 
             for (const auto &pt : footprint_.polygon.points) {
                 geometry_msgs::msg::PointStamped p_in, p_out;
