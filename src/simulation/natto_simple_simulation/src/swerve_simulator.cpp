@@ -4,8 +4,9 @@ namespace swerve_simulator {
 
 swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : Node ("swerve_simulator", node_options) {
     swerve_result_publisher_   = this->create_publisher<natto_msgs::msg::Swerve> ("swerve_result", 10);
-    pose_publisher_            = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
+    tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     infinite_swerve_mode_        = this->declare_parameter<bool> ("infinite_swerve_mode", false);
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
@@ -133,11 +134,13 @@ void swerve_simulator::timer_callback () {
     double vy = A[1][3];
     double vz = A[2][3];
 
-    double yaw   = tf2::getYaw (current_pose.pose.orientation);
-    double speed = std::hypot (vx, vy);
-    current_pose.pose.position.x += speed * std::cos (yaw) * period_ms / 1000.0;
-    current_pose.pose.position.y += speed * std::sin (yaw) * period_ms / 1000.0;
+    double yaw      = tf2::getYaw (current_pose.pose.orientation);
+    double vx_world = vx * cos (yaw) - vy * sin (yaw);
+    double vy_world = vx * sin (yaw) + vy * cos (yaw);
+    current_pose.pose.position.x += vx_world * period_ms / 1000.0;
+    current_pose.pose.position.y += vy_world * period_ms / 1000.0;
     yaw += vz * period_ms / 1000.0;
+
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
     current_pose.pose.orientation.x = q.x ();
@@ -146,7 +149,18 @@ void swerve_simulator::timer_callback () {
     current_pose.pose.orientation.w = q.w ();
     current_pose.header.stamp       = this->now ();
     current_pose.header.frame_id    = "map";
-    pose_publisher_->publish (current_pose);
+    simulation_pose_publisher_->publish (current_pose);
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    tf_msg.header.stamp            = this->now ();
+    tf_msg.header.frame_id         = "map";
+    tf_msg.child_frame_id          = "simulation";
+    tf_msg.transform.translation.x = current_pose.pose.position.x;
+    tf_msg.transform.translation.y = current_pose.pose.position.y;
+    tf_msg.transform.translation.z = current_pose.pose.position.z;
+    tf_msg.transform.rotation      = current_pose.pose.orientation;
+
+    tf_broadcaster_->sendTransform (tf_msg);
 }
 
 }  // namespace swerve_simulator

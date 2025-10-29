@@ -1,6 +1,7 @@
+<!-- ros2 topic pub /control/command_velocity geometry_msgs/msg/TwistStamped "{twist: {linear: {x: 0.0, y: 0.0}, angular: {z: 0.0}}}" -r 100 -->
 <launch>
-    <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/">
     <!-- コモンコンテナ -->
+    <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/">
         <!-- マップ読み込み -->
         <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader">
             <param name="line_segments_path" value="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
@@ -9,8 +10,39 @@
         </composable_node>
     </node_container>
 
-    <node_container pkg="rclcpp_components" exec="component_container" name="swerve_container" namespace="swerve">
-    <!-- 独ステコンテナ -->
+    <!-- シミュレーションコンテナー -->
+    <node_container pkg="rclcpp_components" exec="component_container" name="simulation_container" namespace="control">
+        <!-- 独ステシミュレーター -->
+        <composable_node pkg="natto_simple_simulation" plugin="swerve_simulator::swerve_simulator" name="simulator" namespace="swerve">
+            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
+            <remap from="swerve_command" to="/swerve/command"/>
+            <remap from="swerve_result" to="/swerve/result"/>
+            <remap from="simulation_pose" to="/simulation/pose"/>
+        </composable_node>
+
+        <!-- LiDARシミュレーター -->
+        <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_front" namespace="lidar">
+            <param name="position_x" value="0.5"/>
+            <param name="position_y" value="0.0"/>
+            <param name="angle" value="0.0"/>
+            <param name="frame_id" value="lidar_front"/>
+            <remap from="simulation_pose" to="/simulation/pose"/>
+            <remap from="map" to="/map"/>
+            <remap from="laser_scan" to="/sensing/lidar/front"/>
+        </composable_node>
+        <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_rear" namespace="lidar">
+            <param name="position_x" value="-0.5"/>
+            <param name="position_y" value="0.0"/>
+            <param name="angle" value="3.1415926"/>
+            <param name="frame_id" value="lidar_rear"/>
+            <remap from="simulation_pose" to="/simulation/pose"/>
+            <remap from="map" to="/map"/>
+            <remap from="laser_scan" to="/sensing/lidar/rear"/>
+        </composable_node>
+    </node_container>
+
+    <!-- コントロールコンテナ -->
+    <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- 独ステ目標計算 -->
         <composable_node pkg="natto_swerve_calculator" plugin="swerve_calculator::swerve_calculator" name="calculator" namespace="swerve">
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
@@ -19,17 +51,10 @@
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
 
-        <!-- 独ステシミュレーター -->
-        <composable_node pkg="natto_simple_simulation" plugin="swerve_simulator::swerve_simulator" name="simulator" namespace="swerve">
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <remap from="swerve_command" to="/swerve/command"/>
-            <remap from="swerve_result" to="/swerve/result"/>
-            <remap from="pose" to="/simulation/current_pose"/>
-        </composable_node>
     </node_container>
 
-    <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
     <!-- 表示コンテナ -->
+    <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
         <!-- マップ表示 -->
         <composable_node pkg="natto_visualization_converter" plugin="map_visualizer::map_visualizer" name="map" namespace="visualization">
             <param name="publish_period_ms" value="10"/>
@@ -61,4 +86,14 @@
     <!-- RViz2 -->
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
         args="-d $(find-pkg-share nhk2025_sample)/rviz/sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
+
+    <!-- TF -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"
+        args="0.5 0 0 0 0 0 1 base_link lidar_front"/>
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
+        args="-0.5 0 0 0 0 1 0 base_link lidar_rear"/>
+    
+    <!-- 自己位置 -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="simulation_to_base_link" output="screen"
+        args="0 0 0 0 0 0 1 simulation base_link"/>
 </launch>

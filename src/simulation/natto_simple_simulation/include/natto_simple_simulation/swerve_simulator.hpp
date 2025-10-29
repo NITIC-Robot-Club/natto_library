@@ -7,7 +7,10 @@
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "natto_msgs/msg/swerve.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace swerve_simulator {
 class swerve_simulator : public rclcpp::Node {
@@ -33,9 +36,10 @@ class swerve_simulator : public rclcpp::Node {
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr         swerve_result_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr      swerve_command_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
 };
 }  // namespace swerve_simulator
 

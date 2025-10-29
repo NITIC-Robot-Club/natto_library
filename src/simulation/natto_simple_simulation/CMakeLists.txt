@@ -13,4 +13,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE swerve_simulator
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "lidar_simulator::lidar_simulator"
+    EXECUTABLE lidar_simulator
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

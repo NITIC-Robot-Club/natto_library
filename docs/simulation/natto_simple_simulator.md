@@ -27,7 +27,7 @@ N輪独立ステアリングロボットの動作を模擬します。
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | /swerve_result | natto_msgs::msg::Swerve | シミュレートされたホイールの角度と速度 |
-| /pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
+| /simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
