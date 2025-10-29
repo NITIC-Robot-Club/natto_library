@@ -1,5 +1,5 @@
-#ifndef __VISUALIZE_SWERVE_HPP__
-#define __VISUALIZE_SWERVE_HPP__
+#ifndef __SWERVE_VISUALIZER_HPP__
+#define __SWERVE_VISUALIZER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
@@ -7,10 +7,10 @@
 #include "natto_msgs/msg/swerve.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
-namespace visualize_swerve {
-class visualize_swerve : public rclcpp::Node {
+namespace swerve_visualizer {
+class swerve_visualizer : public rclcpp::Node {
    public:
-    visualize_swerve (const rclcpp::NodeOptions &node_options);
+    swerve_visualizer (const rclcpp::NodeOptions &node_options);
 
    private:
     visualization_msgs::msg::MarkerArray marker_array_;
@@ -28,6 +28,6 @@ class visualize_swerve : public rclcpp::Node {
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr           swerve_subscription_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
 };
-}  // namespace visualize_swerve
+}  // namespace swerve_visualizer
 
-#endif  // __VISUALIZE_SWERVE_HPP__
+#endif  // __SWERVE_VISUALIZER_HPP__

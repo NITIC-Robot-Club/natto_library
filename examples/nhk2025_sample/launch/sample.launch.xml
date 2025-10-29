@@ -20,7 +20,7 @@
         </composable_node>
 
         <!-- 独ステシミュレーター -->
-        <composable_node pkg="natto_simple_simulation" plugin="simulate_swerve::simulate_swerve" name="simulate" namespace="swerve">
+        <composable_node pkg="natto_simple_simulation" plugin="swerve_simulator::swerve_simulator" name="simulator" namespace="swerve">
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
@@ -31,21 +31,27 @@
     <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
     <!-- 表示コンテナ -->
         <!-- マップ表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="visualize_map::visualize_map" name="map" namespace="visualization">
+        <composable_node pkg="natto_visualization_converter" plugin="map_visualizer::map_visualizer" name="map" namespace="visualization">
             <param name="publish_period_ms" value="10"/>
             <remap from="map" to="/map"/>
             <remap from="marker_array" to="/visualization/map"/>
         </composable_node>
 
         <!-- 独ステ表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="visualize_swerve::visualize_swerve" name="command" namespace="visualization/swerve">
+        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="command" namespace="visualization/swerve">
+            <param name="arrow_r" value="0.0"/>
+            <param name="arrow_g" value="0.0"/>
+            <param name="arrow_b" value="1.0"/>
             <param name="publish_period_ms" value="10"/>
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve" to="/swerve/command"/>
             <remap from="marker_array" to="/visualization/swerve/command"/>
         </composable_node>
-        <composable_node pkg="natto_visualization_converter" plugin="visualize_swerve::visualize_swerve" name="result" namespace="visualization/swerve">
+        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="result" namespace="visualization/swerve">
             <param name="publish_period_ms" value="10"/>
+            <param name="arrow_r" value="1.0"/>
+            <param name="arrow_g" value="0.0"/>
+            <param name="arrow_b" value="0.0"/>
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve" to="/swerve/result"/>
             <remap from="marker_array" to="/visualization/swerve/result"/>

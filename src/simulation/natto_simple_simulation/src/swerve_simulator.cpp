@@ -1,11 +1,11 @@
-#include "natto_simple_simulation/simulate_swerve.hpp"
+#include "natto_simple_simulation/swerve_simulator.hpp"
 
-namespace simulate_swerve {
+namespace swerve_simulator {
 
-simulate_swerve::simulate_swerve (const rclcpp::NodeOptions &node_options) : Node ("simulate_swerve", node_options) {
+swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : Node ("swerve_simulator", node_options) {
     swerve_result_publisher_   = this->create_publisher<natto_msgs::msg::Swerve> ("swerve_result", 10);
     pose_publisher_            = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
-    swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&simulate_swerve::swerve_command_callback, this, std::placeholders::_1));
+    swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
 
     infinite_swerve_mode_        = this->declare_parameter<bool> ("infinite_swerve_mode", false);
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
@@ -25,7 +25,7 @@ simulate_swerve::simulate_swerve (const rclcpp::NodeOptions &node_options) : Nod
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
-    RCLCPP_INFO (this->get_logger (), "simulate_swerve node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "swerve_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
     RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
@@ -41,14 +41,14 @@ simulate_swerve::simulate_swerve (const rclcpp::NodeOptions &node_options) : Nod
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&simulate_swerve::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
 }
 
-void simulate_swerve::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
+void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     received_commands.push_back (*msg);
 }
 
-void simulate_swerve::timer_callback () {
+void swerve_simulator::timer_callback () {
     if (received_commands.empty ()) {
         received_commands.push_back (result);
     }
@@ -149,7 +149,7 @@ void simulate_swerve::timer_callback () {
     pose_publisher_->publish (current_pose);
 }
 
-}  // namespace simulate_swerve
+}  // namespace swerve_simulator
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (simulate_swerve::simulate_swerve)
+RCLCPP_COMPONENTS_REGISTER_NODE (swerve_simulator::swerve_simulator)

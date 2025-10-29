@@ -1,8 +1,8 @@
 # natto_visualization_converter
 natto_visualization_converter パッケージは、natto_msgs を可視化用のメッセージに変換してパブリッシュするノードを提供します。
 
-# visualize_map
-visualize_map ノードは、natto_msgs/msg/Map メッセージを受信し、可視化用の MarkerArray メッセージに変換してパブリッシュします。
+# map_visualizer
+map_visualizer ノードは、natto_msgs/msg/Map メッセージを受信し、可視化用の MarkerArray メッセージに変換してパブリッシュします。
 
 ## 機能
 - natto_msgs/msg/Map メッセージを受信
@@ -24,8 +24,8 @@ visualize_map ノードは、natto_msgs/msg/Map メッセージを受信し、�
 | - | - | - |
 | map | natto_msgs/msg/Map | 地図情報 |
 
-# visualize_swerve
-visualize_swerve ノードは、natto_msgs/msg/Swerve メッセージを受信し、可視化用の Marker メッセージに変換してパブリッシュします。
+# swerve_visualizer
+swerve_visualizer ノードは、natto_msgs/msg/Swerve メッセージを受信し、可視化用の Marker メッセージに変換してパブリッシュします。
 
 ## 機能
 - natto_msgs/msg/Swerve メッセージを受信

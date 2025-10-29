@@ -1,18 +1,18 @@
-#include "natto_visualization_converter/visualize_map.hpp"
+#include "natto_visualization_converter/map_visualizer.hpp"
 
-namespace visualize_map {
+namespace map_visualizer {
 
-visualize_map::visualize_map (const rclcpp::NodeOptions &node_options) : Node ("visualize_map", node_options) {
+map_visualizer::map_visualizer (const rclcpp::NodeOptions &node_options) : Node ("map_visualizer", node_options) {
     marker_publisher_     = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    map_subscription_     = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&visualize_map::map_callback, this, std::placeholders::_1));
+    map_subscription_     = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&map_visualizer::map_callback, this, std::placeholders::_1));
     int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
-    timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&visualize_map::timer_callback, this));
+    timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&map_visualizer::timer_callback, this));
 
-    RCLCPP_INFO (this->get_logger (), "visualize_map node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "map_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "Publish period (ms): %d", publish_period_ms);
 }
 
-void visualize_map::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
+void map_visualizer::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     int id = 0;
     marker_array_.markers.clear ();
     for (const auto &line_segment : msg->line_segments) {
@@ -57,11 +57,11 @@ void visualize_map::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     }
 }
 
-void visualize_map::timer_callback () {
+void map_visualizer::timer_callback () {
     marker_publisher_->publish (marker_array_);
 }
 
-}  // namespace visualize_map
+}  // namespace map_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (visualize_map::visualize_map)
+RCLCPP_COMPONENTS_REGISTER_NODE (map_visualizer::map_visualizer)

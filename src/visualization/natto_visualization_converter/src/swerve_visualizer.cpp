@@ -1,12 +1,12 @@
-#include "natto_visualization_converter/visualize_swerve.hpp"
+#include "natto_visualization_converter/swerve_visualizer.hpp"
 
-namespace visualize_swerve {
+namespace swerve_visualizer {
 
-visualize_swerve::visualize_swerve (const rclcpp::NodeOptions &node_options) : Node ("visualize_swerve", node_options) {
+swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) : Node ("swerve_visualizer", node_options) {
     marker_publisher_     = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    swerve_subscription_  = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&visualize_swerve::swerve_callback, this, std::placeholders::_1));
+    swerve_subscription_  = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_visualizer::swerve_callback, this, std::placeholders::_1));
     int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
-    timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&visualize_swerve::timer_callback, this));
+    timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&swerve_visualizer::timer_callback, this));
 
     arrow_r        = this->declare_parameter<double> ("arrow_r", 0.0);
     arrow_g        = this->declare_parameter<double> ("arrow_g", 1.0);
@@ -23,7 +23,7 @@ visualize_swerve::visualize_swerve (const rclcpp::NodeOptions &node_options) : N
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
-    RCLCPP_INFO (this->get_logger (), "visualize_swerve node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "Publish period (ms): %d", publish_period_ms);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "Arrow color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
@@ -33,7 +33,7 @@ visualize_swerve::visualize_swerve (const rclcpp::NodeOptions &node_options) : N
     }
 }
 
-void visualize_swerve::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
+void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     marker_array_.markers.clear ();
     for (int i = 0; i < num_wheels_; i++) {
         visualization_msgs::msg::Marker marker;
@@ -80,11 +80,11 @@ void visualize_swerve::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr
     }
 }
 
-void visualize_swerve::timer_callback () {
+void swerve_visualizer::timer_callback () {
     marker_publisher_->publish (marker_array_);
 }
 
-}  // namespace visualize_swerve
+}  // namespace swerve_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (visualize_swerve::visualize_swerve)
+RCLCPP_COMPONENTS_REGISTER_NODE (swerve_visualizer::swerve_visualizer)

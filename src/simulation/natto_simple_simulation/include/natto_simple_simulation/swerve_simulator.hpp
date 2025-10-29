@@ -1,5 +1,5 @@
-#ifndef __SIMULATE_SWERVE_HPP__
-#define __SIMULATE_SWERVE_HPP__
+#ifndef __SWERVE_SIMULATOR_HPP__
+#define __SWERVE_SIMULATOR_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
@@ -9,10 +9,10 @@
 #include "natto_msgs/msg/swerve.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-namespace simulate_swerve {
-class simulate_swerve : public rclcpp::Node {
+namespace swerve_simulator {
+class swerve_simulator : public rclcpp::Node {
    public:
-    simulate_swerve (const rclcpp::NodeOptions &node_options);
+    swerve_simulator (const rclcpp::NodeOptions &node_options);
 
    private:
     bool   infinite_swerve_mode_;
@@ -37,6 +37,6 @@ class simulate_swerve : public rclcpp::Node {
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr      swerve_command_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
 };
-}  // namespace simulate_swerve
+}  // namespace swerve_simulator
 
-#endif  // __SIMULATE_SWERVE_HPP__
+#endif  // __SWERVE_SIMULATOR_HPP__

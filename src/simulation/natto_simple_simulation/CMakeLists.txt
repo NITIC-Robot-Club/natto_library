@@ -9,13 +9,8 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "simulate_swerve::simulate_swerve"
-    EXECUTABLE simulate_swerve
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "simulate_lidar::simulate_lidar"
-    EXECUTABLE simulate_lidar
+    PLUGIN "swerve_simulator::swerve_simulator"
+    EXECUTABLE swerve_simulator
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

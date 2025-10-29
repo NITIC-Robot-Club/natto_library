@@ -9,13 +9,13 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "visualize_map::visualize_map"
-    EXECUTABLE visualize_map
+    PLUGIN "map_visualizer::map_visualizer"
+    EXECUTABLE map_visualizer
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "visualize_swerve::visualize_swerve"
-    EXECUTABLE visualize_swerve
+    PLUGIN "swerve_visualizer::swerve_visualizer"
+    EXECUTABLE swerve_visualizer
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
