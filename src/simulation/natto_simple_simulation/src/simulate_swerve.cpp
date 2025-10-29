@@ -11,11 +11,11 @@ simulate_swerve::simulate_swerve (const rclcpp::NodeOptions &node_options) : Nod
     wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x      = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y      = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    angle_gain_p_        = this->declare_parameter<double> ("angle_gain_p", 1.0);
-    angle_gain_d_        = this->declare_parameter<double> ("angle_gain_d", 0.0);
-    speed_gain_p_        = this->declare_parameter<double> ("speed_gain_p", 1.0);
-    speed_gain_d_        = this->declare_parameter<double> ("speed_gain_d", 0.0);
-    period_ms         = this->declare_parameter<int> ("simulation_period_ms", 1);
+    angle_gain_p_         = this->declare_parameter<double> ("angle_gain_p", 1.0);
+    angle_gain_d_         = this->declare_parameter<double> ("angle_gain_d", 0.0);
+    speed_gain_p_         = this->declare_parameter<double> ("speed_gain_p", 1.0);
+    speed_gain_d_         = this->declare_parameter<double> ("speed_gain_d", 0.0);
+    period_ms             = this->declare_parameter<int> ("simulation_period_ms", 1);
 
     num_wheels_ = wheel_position_x.size ();
     if (wheel_position_y.size () != num_wheels_) {
@@ -68,7 +68,6 @@ void simulate_swerve::timer_callback () {
         result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
     }
     swerve_result_publisher_->publish (result);
-
 
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
