@@ -29,7 +29,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     }
 
     for (const auto &circ : msg->circles) {
-        double r = circ.radius;
+        double r     = circ.radius;
         double start = circ.start_angle;
         double end   = circ.end_angle;
 
