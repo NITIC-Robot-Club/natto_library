@@ -13,4 +13,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE map_loader
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "map_converter::map_converter"
+    EXECUTABLE map_converter
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
