@@ -86,8 +86,9 @@
             <remap from="command_velocity" to="/control/cmd_vel"/>
         </composable_node>
 
+        <!-- 経路計算 -->
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="planning">
-            <remap from="map" to="/occupancy_grid"/>
+            <remap from="occupancy_grid" to="/occupancy_grid"/>
             <remap from="goal_pose" to="/goal_pose"/>
             <remap from="current_pose" to="/simulation/pose"/>
             <remap from="path" to="/planning/path"/>
@@ -95,9 +96,6 @@
             <param name="theta_resolution_deg" value="5"/>
             <param name="xy_inflation" value="0.5"/>
             <param name="xy_offset" value="0.5"/>
-            <param name="grad_alpha" value="1.0"/>
-            <param name="grad_beta" value="8.2"/>
-            <param name="grad_gamma" value="0.0"/>
         </composable_node>
     </node_container>
 

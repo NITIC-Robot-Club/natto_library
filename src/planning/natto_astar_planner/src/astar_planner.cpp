@@ -5,7 +5,7 @@ namespace astar_planner {
 astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("astar_planner", node_options) {
     path_publisher_              = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
     costmap_publisher_           = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", 10);
-    occupancy_grid_subscription_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("map", 10, std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
+    occupancy_grid_subscription_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", 10, std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
     goal_pose_subscription_      = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
     current_pose_subscription_   = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
     footprint_subscription_      = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
