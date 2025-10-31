@@ -9,6 +9,7 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
 
     position_x_            = this->declare_parameter<double> ("position_x", 0.0);
     position_y_            = this->declare_parameter<double> ("position_y", 0.0);
+    position_z_            = this->declare_parameter<double> ("position_z", 0.0);
     angle_                 = this->declare_parameter<double> ("angle", 0.0);
     range_min_             = this->declare_parameter<double> ("range_min", 0.0);
     range_max_             = this->declare_parameter<double> ("range_max", 35.0);
@@ -77,6 +78,7 @@ void lidar_simulator::timer_callback () {
         double closest_range = range_max_;
 
         for (const auto &seg : map_->line_segments) {
+            if(position_z_ < seg.start.z || position_z_ > seg.end.z) continue;
             double vx = seg.end.x - seg.start.x;
             double vy = seg.end.y - seg.start.y;
 
@@ -92,6 +94,7 @@ void lidar_simulator::timer_callback () {
         }
 
         for (const auto &circle : map_->circles) {
+            if (position_z_ < circle.center.z) continue;
             double fx = start_point.x - circle.center.x;
             double fy = start_point.y - circle.center.y;
 

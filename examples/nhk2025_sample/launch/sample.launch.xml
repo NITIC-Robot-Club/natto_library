@@ -11,7 +11,7 @@
         <composable_node pkg="natto_map" plugin="map_converter::map_converter" name="map_converter">
             <remap from="map" to="/map"/>
             <remap from="occupancy_grid" to="/occupancy_grid"/>
-            <param name="resolution" value="0.01"/>
+            <param name="resolution" value="0.05"/>
         </composable_node>
         <composable_node pkg="natto_visualization_converter" plugin="footprint_publisher::footprint_publisher" name="footprint_publisher">
             <remap from="footprint" to="/robot/footprint"/>
@@ -86,6 +86,18 @@
             <remap from="command_velocity" to="/control/cmd_vel"/>
         </composable_node>
 
+        <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="planning">
+            <remap from="map" to="/occupancy_grid"/>
+            <remap from="goal_pose" to="/goal_pose"/>
+            <remap from="current_pose" to="/simulation/pose"/>
+            <remap from="path" to="/planning/path"/>
+            <remap from="footprint" to="/robot/footprint"/>
+            <param name="theta_resolution_deg" value="15"/>
+            <param name="xy_inflation" value="0.7"/>
+            <param name="grad_alpha" value="1.0"/>
+            <param name="grad_beta" value="8.2"/>
+            <param name="grad_gamma" value="0.0"/>
+        </composable_node>
     </node_container>
 
     <!-- 表示コンテナ -->

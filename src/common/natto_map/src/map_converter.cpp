@@ -62,6 +62,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     };
 
     for (const auto &seg : msg->line_segments) {
+        if(seg.start.z != 0.0 && seg.end.z != 0.0) continue;
         int x0, y0, x1, y1;
         world_to_grid (seg.start.x, seg.start.y, x0, y0);
         world_to_grid (seg.end.x, seg.end.y, x1, y1);
@@ -90,6 +91,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     }
 
     for (const auto &circ : msg->circles) {
+        if(circ.center.z != 0.0) continue;
         int steps = std::max (10, static_cast<int> (circ.radius / resolution_ * 8));
 
         int gx_prev = 0, gy_prev = 0;

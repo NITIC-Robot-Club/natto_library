@@ -18,7 +18,7 @@ class lidar_simulator : public rclcpp::Node {
     lidar_simulator (const rclcpp::NodeOptions &node_options);
 
    private:
-    double      position_x_, position_y_, angle_, range_min_, range_max_, angle_min_, angle_max_, simulation_resolution_;
+    double      position_x_, position_y_, position_z_, angle_, range_min_, range_max_, angle_min_, angle_max_, simulation_resolution_;
     int         point_rate, scan_frequency_;
     std::string frame_id_;
 
