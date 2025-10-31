@@ -78,7 +78,7 @@ void lidar_simulator::timer_callback () {
         double closest_range = range_max_;
 
         for (const auto &seg : map_->line_segments) {
-            if(position_z_ < seg.start.z || position_z_ > seg.end.z) continue;
+            if (position_z_ < seg.start.z || position_z_ > seg.end.z) continue;
             double vx = seg.end.x - seg.start.x;
             double vy = seg.end.y - seg.start.y;
 
