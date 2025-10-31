@@ -16,6 +16,9 @@
 ### message
 - [natto_msgs](message/natto_msgs) : 共通で使うメッセージ定義
 
+## planning
+- [natto_astar_planner](planning/natto_astar_planner) : A*アルゴリズムを用いた経路計画を行う
+
 ### sensing
 - [natto_lidar_converter](sensing/natto_lidar_converter) : LiDARのデータ変換する
 - [natto_lidar_merger](sensing/natto_lidar_merger) : 複数のLiDARデータをマージする
