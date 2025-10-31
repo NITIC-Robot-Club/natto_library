@@ -103,7 +103,7 @@ Visualization Manager:
           Class: rviz_default_plugins/Map
           Color Scheme: map
           Draw Behind: false
-          Enabled: true
+          Enabled: false
           Name: OccupancyGrid
           Topic:
             Depth: 5
@@ -119,7 +119,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /occupancy_grid_updates
           Use Timestamp: false
-          Value: true
+          Value: false
         - Alpha: 1
           Class: rviz_default_plugins/Polygon
           Color: 25; 255; 0

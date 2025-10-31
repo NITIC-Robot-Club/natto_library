@@ -92,8 +92,9 @@
             <remap from="current_pose" to="/simulation/pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/robot/footprint"/>
-            <param name="theta_resolution_deg" value="15"/>
-            <param name="xy_inflation" value="0.7"/>
+            <param name="theta_resolution_deg" value="5"/>
+            <param name="xy_inflation" value="0.5"/>
+            <param name="xy_offset" value="0.5"/>
             <param name="grad_alpha" value="1.0"/>
             <param name="grad_beta" value="8.2"/>
             <param name="grad_gamma" value="0.0"/>

@@ -33,7 +33,6 @@ class astar_planner : public rclcpp::Node {
 
     nav_msgs::msg::OccupancyGrid       raw_map_;
     nav_msgs::msg::OccupancyGrid       costmap_;
-    nav_msgs::msg::OccupancyGrid       angular_debug_map_;
     geometry_msgs::msg::PoseStamped    goal_pose_;
     geometry_msgs::msg::PoseStamped    current_pose_;
     geometry_msgs::msg::PolygonStamped footprint_;
@@ -42,13 +41,12 @@ class astar_planner : public rclcpp::Node {
 
     int    footprint_mask_w_      = 0;
     int    footprint_mask_h_      = 0;
-    double footprint_mask_res_    = 0.05;  // m/pixel, 調整可
-    double footprint_mask_radius_ = 0.0;   // footprint最大半径キャッシュ
+    double footprint_mask_radius_ = 0.0;
 
-    void map_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-    void current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
+    void current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+    void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 
     void   create_path ();
     void   build_footprint_mask ();
@@ -69,8 +67,7 @@ class astar_planner : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr                   path_publisher_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr          costmap_publisher_;
-    rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr          debug_map_publisher_;
-    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr       map_subscription_;
+    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr       occupancy_grid_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;

@@ -3,13 +3,12 @@
 namespace astar_planner {
 
 astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("astar_planner", node_options) {
-    path_publisher_            = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
-    costmap_publisher_         = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", 1);
-    debug_map_publisher_       = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("angular_debug_map", 1);
-    map_subscription_          = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("map", 10, std::bind (&astar_planner::map_callback, this, std::placeholders::_1));
-    goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
-    current_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
-    footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
+    path_publisher_              = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
+    costmap_publisher_           = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", 10);
+    occupancy_grid_subscription_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("map", 10, std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
+    goal_pose_subscription_      = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
+    current_pose_subscription_   = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
+    footprint_subscription_      = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
 
     theta_resolution_deg_ = this->declare_parameter<int> ("theta_resolution_deg", 15);
     xy_inflation_         = this->declare_parameter<double> ("xy_inflation", 0.5);
@@ -19,9 +18,19 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     grad_beta_            = this->declare_parameter<double> ("grad_beta", 8.0);
     grad_gamma_           = this->declare_parameter<double> ("grad_gamma", 0.0);
     grad_step_size_       = this->declare_parameter<double> ("grad_step_size", 0.1);
+
+    RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "theta_resolution_deg: %d", theta_resolution_deg_);
+    RCLCPP_INFO (this->get_logger (), "xy_inflation: %.2f", xy_inflation_);
+    RCLCPP_INFO (this->get_logger (), "xy_offset: %.2f", xy_offset_);
+    RCLCPP_INFO (this->get_logger (), "yaw_offset: %.2f", yaw_offset_);
+    RCLCPP_INFO (this->get_logger (), "grad_alpha: %.2f", grad_alpha_);
+    RCLCPP_INFO (this->get_logger (), "grad_beta: %.2f", grad_beta_);
+    RCLCPP_INFO (this->get_logger (), "grad_gamma: %.2f", grad_gamma_);
+    RCLCPP_INFO (this->get_logger (), "grad_step_size: %.2f", grad_step_size_);
 }
 
-void astar_planner::map_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
     if (is_same_map (*msg)) return;
     raw_map_ = *msg;
     create_costmap ();
@@ -42,7 +51,6 @@ void astar_planner::footprint_callback (const geometry_msgs::msg::PolygonStamped
     footprint_ = *msg;
     RCLCPP_INFO (this->get_logger (), "build footprint mask");
     build_footprint_mask ();
-    RCLCPP_INFO (this->get_logger (), "build footprint mask done");
     if (!raw_map_.data.empty ()) {
         create_costmap ();
         create_path ();
@@ -54,74 +62,60 @@ void astar_planner::create_path () {
     if (goal_pose_.header.frame_id.empty ()) return;
     if (current_pose_.header.frame_id.empty ()) return;
 
-    RCLCPP_INFO (this->get_logger (), "find free space");
     auto start_pose = find_free_space_pose (current_pose_.pose);
     auto goal_pose  = find_free_space_pose (goal_pose_.pose);
 
-    // set corrected poses into class copies
     current_pose_.pose = start_pose;
     goal_pose_.pose    = goal_pose;
 
-    RCLCPP_INFO (this->get_logger (), "linear astar");
     auto linear_path = linear_astar ();
     if (linear_path.poses.empty ()) {
         RCLCPP_WARN (this->get_logger (), "linear_astar found no path");
         return;
     }
-    RCLCPP_INFO (this->get_logger (), "linear smoother");
     auto linear_smoothed_path = linear_smoother (linear_path);
 
-    RCLCPP_INFO (this->get_logger (), "angular astar");
     auto angular_path = angular_astar (linear_smoothed_path);
 
-    RCLCPP_INFO (this->get_logger (), "angular smoother");
     path_ = angular_smoother (angular_path);
-
-    RCLCPP_INFO (this->get_logger (), "publish path");
     path_publisher_->publish (path_);
     costmap_publisher_->publish (costmap_);
 }
 
 void astar_planner::create_costmap () {
     if (raw_map_.data.empty ()) return;
-
-    const int   width       = static_cast<int> (raw_map_.info.width);
-    const int   height      = static_cast<int> (raw_map_.info.height);
-    const float resolution  = static_cast<float> (raw_map_.info.resolution);
-    const float offset_m    = static_cast<float> (xy_offset_);
-    const float inflation_m = static_cast<float> (xy_inflation_);
-
-    const int max_radius_cell = static_cast<int> (std::ceil ((inflation_m + offset_m) / resolution));
+    const int   width           = static_cast<int> (raw_map_.info.width);
+    const int   height          = static_cast<int> (raw_map_.info.height);
+    const float resolution      = static_cast<float> (raw_map_.info.resolution);
+    const float offset_m        = static_cast<float> (xy_offset_);
+    const float inflation_m     = static_cast<float> (xy_inflation_);
+    const int   max_radius_cell = static_cast<int> (std::ceil ((inflation_m + offset_m) / resolution));
 
     costmap_ = raw_map_;
     costmap_.data.assign (width * height, 0);
 
-    // インフレーション
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            if (raw_map_.data[y * width + x] <= 50) continue;  // 障害物以外はスキップ
-
+            if (raw_map_.data[y * width + x] <= 50) continue;
             for (int dy = -max_radius_cell; dy <= max_radius_cell; ++dy) {
                 int ny = y + dy;
                 if (ny < 0 || ny >= height) continue;
-
                 for (int dx = -max_radius_cell; dx <= max_radius_cell; ++dx) {
                     int nx = x + dx;
                     if (nx < 0 || nx >= width) continue;
 
-                    float dist = std::hypotf (dx * resolution, dy * resolution);
-
+                    float dist  = std::hypotf (dx * resolution, dy * resolution);
                     float inner = inflation_m;
                     float outer = inner + offset_m;
 
                     int8_t new_cost = 0;
                     if (dist <= inflation_m) {
-                        new_cost = 100;  // 衝突領域
+                        new_cost = 100;
                     } else if (dist <= outer) {
                         float ratio = (outer - dist) / (outer - inner);
                         new_cost    = static_cast<int8_t> (ratio * 100.0f);
                     } else {
-                        continue;  // 安全圏外
+                        continue;
                     }
 
                     int idx = ny * width + nx;
@@ -130,13 +124,11 @@ void astar_planner::create_costmap () {
             }
         }
     }
-
     costmap_publisher_->publish (costmap_);
 }
 
 void astar_planner::build_footprint_mask () {
     if (footprint_.polygon.points.empty ()) return;
-
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (auto &p : footprint_.polygon.points) {
         minx = std::min (minx, (float)p.x);
@@ -144,11 +136,9 @@ void astar_planner::build_footprint_mask () {
         miny = std::min (miny, (float)p.y);
         maxy = std::max (maxy, (float)p.y);
     }
-
-    footprint_mask_w_ = static_cast<int> ((maxx - minx) / footprint_mask_res_) + 3;
-    footprint_mask_h_ = static_cast<int> ((maxy - miny) / footprint_mask_res_) + 3;
+    footprint_mask_w_ = static_cast<int> ((maxx - minx) / raw_map_.info.resolution) + 3;
+    footprint_mask_h_ = static_cast<int> ((maxy - miny) / raw_map_.info.resolution) + 3;
     footprint_mask_.assign (footprint_mask_w_ * footprint_mask_h_, 0);
-
     const size_t       N = footprint_.polygon.points.size ();
     std::vector<float> px (N), py (N);
     for (size_t i = 0; i < N; ++i) {
@@ -156,14 +146,12 @@ void astar_planner::build_footprint_mask () {
         py[i] = footprint_.polygon.points[i].y;
     }
 
-    // メモリを事前確保（再利用）し、ソートを除去
     std::vector<float> interx;
     interx.reserve (N);
 
     for (int y = 0; y < footprint_mask_h_; ++y) {
-        float wy = miny + (y + 0.5f) * footprint_mask_res_;
+        float wy = miny + (y + 0.5f) * raw_map_.info.resolution;
         interx.clear ();
-        // 交点計算
         for (size_t i = 0; i < N; ++i) {
             size_t j = (i + 1) % N;
             if ((py[i] <= wy && py[j] > wy) || (py[j] <= wy && py[i] > wy)) {
@@ -171,7 +159,6 @@ void astar_planner::build_footprint_mask () {
                 interx.push_back (px[i] + t * (px[j] - px[i]));
             }
         }
-        // 少ない交点なら insertion sort が最速
         for (size_t i = 1; i < interx.size (); ++i) {
             float  key = interx[i];
             size_t j   = i;
@@ -181,10 +168,9 @@ void astar_planner::build_footprint_mask () {
             }
             interx[j] = key;
         }
-
         for (size_t k = 0; k + 1 < interx.size (); k += 2) {
-            int x_start = static_cast<int> ((interx[k] - minx) / footprint_mask_res_);
-            int x_end   = static_cast<int> ((interx[k + 1] - minx) / footprint_mask_res_);
+            int x_start = static_cast<int> ((interx[k] - minx) / raw_map_.info.resolution);
+            int x_end   = static_cast<int> ((interx[k + 1] - minx) / raw_map_.info.resolution);
             x_start     = std::clamp (x_start, 0, footprint_mask_w_ - 1);
             x_end       = std::clamp (x_end, 0, footprint_mask_w_ - 1);
             for (int x = x_start; x <= x_end; ++x) footprint_mask_[y * footprint_mask_w_ + x] = 1;
@@ -223,7 +209,6 @@ bool astar_planner::point_in_polygon (double x, double y, geometry_msgs::msg::Po
 
 bool astar_planner::check_collision (geometry_msgs::msg::Pose pose) {
     if (footprint_mask_.empty ()) {
-        // fallback to old logic
         auto [gx, gy] = to_grid (pose.position.x, pose.position.y);
         if (gx < 0 || gy < 0 || gx >= static_cast<int> (raw_map_.info.width) || gy >= static_cast<int> (raw_map_.info.height)) return true;
         int idx = gy * raw_map_.info.width + gx;
@@ -240,29 +225,25 @@ bool astar_planner::check_collision (geometry_msgs::msg::Pose pose) {
     double cs  = std::cos (yaw);
     double sn  = std::sin (yaw);
 
-    // footprintの中心をマップグリッドに変換
     int cx = static_cast<int> ((pose.position.x - ox) / res);
     int cy = static_cast<int> ((pose.position.y - oy) / res);
 
-    // footprint mask の走査
     int hw = footprint_mask_w_ / 2;
     int hh = footprint_mask_h_ / 2;
     for (int my = 0; my < footprint_mask_h_; ++my) {
         for (int mx = 0; mx < footprint_mask_w_; ++mx) {
             if (footprint_mask_[my * footprint_mask_w_ + mx] == 0) continue;
-
-            // ローカル→ワールド変換
-            double lx = (mx - hw) * footprint_mask_res_;
-            double ly = (my - hh) * footprint_mask_res_;
+            double lx = (mx - hw) * raw_map_.info.resolution;
+            double ly = (my - hh) * raw_map_.info.resolution;
             double wx = pose.position.x + lx * cs - ly * sn;
             double wy = pose.position.y + lx * sn + ly * cs;
 
             int gx = static_cast<int> ((wx - ox) / res);
             int gy = static_cast<int> ((wy - oy) / res);
 
-            if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;  // out of map
+            if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
 
-            if (raw_map_.data[gy * width + gx] > 50) return true;  // occupied
+            if (raw_map_.data[gy * width + gx] > 50) return true;
         }
     }
     return false;
@@ -282,7 +263,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     auto idx = [&] (int x, int y) { return y * width + x; };
 
     if (sx < 0 || sy < 0 || gx < 0 || gy < 0 || sx >= width || sy >= height || gx >= width || gy >= height) return path;
-    if (costmap_.data[idx (gx, gy)] > 50) {
+    if (costmap_.data[idx (gx, gy)] == 100) {
         RCLCPP_WARN (this->get_logger (), "goal in occupied cell");
         return path;
     }
@@ -297,9 +278,10 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         }
     };
     std::priority_queue<Node, std::vector<Node>, Cmp> open;
-    std::vector<double>                               gscore (width * height, std::numeric_limits<double>::infinity ());
-    std::vector<int>                                  came_from (width * height, -1);
-    auto                                              heur = [&] (int x, int y) { return std::hypot (gx - x, gy - y); };
+
+    std::vector<double> gscore (width * height, std::numeric_limits<double>::infinity ());
+    std::vector<int>    came_from (width * height, -1);
+    auto                heur = [&] (int x, int y) { return std::hypot (gx - x, gy - y); };
 
     open.push ({sx, sy, 0.0, heur (sx, sy)});
     gscore[idx (sx, sy)] = 0.0;
@@ -324,15 +306,14 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         for (auto [dx, dy] : dirs) {
             int nx = cur.x + dx, ny = cur.y + dy;
             if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-            if (costmap_.data[idx (nx, ny)] > 50) continue;
+            if (costmap_.data[idx (nx, ny)] == 100) continue;
 
             double tentative = cur.g + std::hypot (dx, dy);
             if (tentative + 1e-9 < gscore[idx (nx, ny)]) {
-                // check footprint collision at cell center
                 geometry_msgs::msg::Pose probe;
                 probe.position.x  = ox + (nx + 0.5) * res;
                 probe.position.y  = oy + (ny + 0.5) * res;
-                probe.orientation = current_pose_.pose.orientation;  // use current yaw as approximation for linear planning
+                probe.orientation = current_pose_.pose.orientation;
                 if (check_collision (probe)) continue;
 
                 gscore[idx (nx, ny)]    = tentative;
@@ -342,10 +323,8 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         }
     }
 
-    // reconstruct
     int cur_idx = idx (gx, gy);
     if (came_from[cur_idx] == -1) {
-        // no path
         return path;
     }
     std::vector<std::pair<int, int>> rev;
@@ -361,13 +340,11 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     path.header.stamp    = this->now ();
     for (auto &p : rev) {
         geometry_msgs::msg::PoseStamped ps;
-        ps.pose.position.x = ox + (p.first + 0.5) * res;
-        ps.pose.position.y = oy + (p.second + 0.5) * res;
-        // orientation set toward next point if exists
+        ps.pose.position.x  = ox + (p.first + 0.5) * res;
+        ps.pose.position.y  = oy + (p.second + 0.5) * res;
         ps.pose.orientation = geometry_msgs::msg::Quaternion ();
         path.poses.push_back (ps);
     }
-    // set orientations along path
     for (size_t i = 0; i + 1 < path.poses.size (); ++i) {
         double dx                        = path.poses[i + 1].pose.position.x - path.poses[i].pose.position.x;
         double dy                        = path.poses[i + 1].pose.position.y - path.poses[i].pose.position.y;
@@ -375,7 +352,6 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         path.poses[i].pose.orientation.z = std::sin (yaw / 2.0);
         path.poses[i].pose.orientation.w = std::cos (yaw / 2.0);
     }
-    // last orientation = goal orientation
     double goal_yaw                       = tf2::getYaw (goal_pose_.pose.orientation);
     path.poses.back ().pose.orientation.z = std::sin (goal_yaw / 2.0);
     path.poses.back ().pose.orientation.w = std::cos (goal_yaw / 2.0);
@@ -385,9 +361,8 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
 
 nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_path) {
     if (linear_path.poses.size () < 3) return linear_path;
-    nav_msgs::msg::Path path = linear_path;
-    // build occupancy cost accessor from costmap_
-    auto get_cost = [&] (int gx, int gy) -> double {
+    nav_msgs::msg::Path path     = linear_path;
+    auto                get_cost = [&] (int gx, int gy) -> double {
         if (gx < 0 || gy < 0 || gx >= static_cast<int> (costmap_.info.width) || gy >= static_cast<int> (costmap_.info.height)) return 1.0;
         return static_cast<double> (costmap_.data[gy * costmap_.info.width + gx]) / 100.0;
     };
@@ -395,10 +370,10 @@ nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_p
         auto [gx, gy] = to_grid (x, y);
         double c_x    = get_cost (gx + 1, gy) - get_cost (gx - 1, gy);
         double c_y    = get_cost (gx, gy + 1) - get_cost (gx, gy - 1);
-        return {c_x / (2.0 * costmap_.info.resolution), c_y / (2.0 * costmap_.info.resolution)};
+        return {c_x / 2.0, c_y / 2.0};
     };
 
-    const int max_iter = 200;
+    const int max_iter = 300;
     for (int iter = 0; iter < max_iter; ++iter) {
         for (size_t i = 1; i + 1 < path.poses.size (); ++i) {
             auto &p_prev    = path.poses[i - 1].pose.position;
@@ -414,16 +389,13 @@ nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_p
             path.poses[i].pose.position.x -= total_x * grad_step_size_;
             path.poses[i].pose.position.y -= total_y * grad_step_size_;
 
-            // enforce collision-free: if collided, revert small step or project to nearest free
             geometry_msgs::msg::Pose probe = path.poses[i].pose;
             probe.orientation              = path.poses[i].pose.orientation;
             if (check_collision (probe)) {
-                // revert to original linear path point
                 path.poses[i].pose.position = linear_path.poses[i].pose.position;
             }
         }
     }
-    // recompute orientations
     for (size_t i = 0; i + 1 < path.poses.size (); ++i) {
         double dx                        = path.poses[i + 1].pose.position.x - path.poses[i].pose.position.x;
         double dy                        = path.poses[i + 1].pose.position.y - path.poses[i].pose.position.y;
@@ -445,7 +417,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
     const int N         = static_cast<int> (linear_smoothed_path.poses.size ());
     const int num_theta = std::max (1, 360 / theta_resolution_deg_);
 
-    // build angle collision map: angle_cost[i][theta] = 1 if collision else 0
     std::vector<std::vector<int8_t>> angle_cost (N, std::vector<int8_t> (num_theta, 0));
     for (int i = 0; i < N; ++i) {
         for (int t = 0; t < num_theta; ++t) {
@@ -460,19 +431,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
             }
         }
     }
-    // publish debug map optionally
-    angular_debug_map_.header.frame_id        = raw_map_.header.frame_id;
-    angular_debug_map_.info.width             = N;
-    angular_debug_map_.info.height            = num_theta;
-    angular_debug_map_.info.resolution        = 1.0;
-    angular_debug_map_.info.origin.position.x = 0.0;
-    angular_debug_map_.info.origin.position.y = 0.0;
-    angular_debug_map_.data.assign (N * num_theta, 0);
-    for (int i = 0; i < N; ++i)
-        for (int t = 0; t < num_theta; ++t) angular_debug_map_.data[t * N + i] = angle_cost[i][t];
-    if (debug_map_publisher_) debug_map_publisher_->publish (angular_debug_map_);
 
-    // A* on (index,theta)
     auto to_index = [&] (int ix, int th) { return th * N + ix; };
     struct Node {
         int    ix, th;
@@ -503,7 +462,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
     };
 
     std::vector<int> rotations;
-    for (int r = -2; r <= 2; ++r) rotations.push_back (r);  // allow small rotations per step
+    for (int r = -2; r <= 2; ++r) rotations.push_back (r);
 
     while (!open.empty ()) {
         Node cur = open.top ();
@@ -533,7 +492,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
         }
     }
 
-    // reconstruct path
     int cur = to_index (N - 1, goal_theta);
     if (came_from[cur] == -1) {
         RCLCPP_WARN (this->get_logger (), "angular_astar failed to find path");
@@ -550,7 +508,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
     seq.emplace_back (0, start_theta);
     std::reverse (seq.begin (), seq.end ());
 
-    // compose out path (pose + orientation)
     out.header.frame_id = linear_smoothed_path.header.frame_id;
     out.header.stamp    = this->now ();
     for (auto &p : seq) {
@@ -566,7 +523,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
 
 nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path angular_path) {
     if (angular_path.poses.size () < 3) return angular_path;
-    // convert to (index,theta) like representation then smooth angles
     int                 N         = angular_path.poses.size ();
     int                 num_theta = std::max (1, 360 / theta_resolution_deg_);
     std::vector<double> thetas (N);
@@ -578,25 +534,22 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path a
     const int max_iter = 50;
     for (int it = 0; it < max_iter; ++it) {
         for (int i = 1; i + 1 < N; ++i) {
-            double a = thetas[i - 1];
-            double b = thetas[i + 1];
-            // mid on unit circle
+            double a    = thetas[i - 1];
+            double b    = thetas[i + 1];
             double mx   = std::cos (a) + std::cos (b);
             double my   = std::sin (a) + std::sin (b);
             double mid  = std::atan2 (my, mx);
             double diff = thetas[i] - mid;
-            // wrap
+
             if (diff > M_PI) diff -= 2 * M_PI;
             if (diff < -M_PI) diff += 2 * M_PI;
-            thetas[i] -= diff * 0.5;  // smoothing factor
-            thetas[i] = wrap_to_2pi (thetas[i]);
-            // collision check: if new orientation collides, skip update
+            thetas[i] -= diff * 0.5;
+            thetas[i]                      = wrap_to_2pi (thetas[i]);
             geometry_msgs::msg::Pose probe = angular_path.poses[i].pose;
             probe.orientation.z            = std::sin (thetas[i] / 2.0);
             probe.orientation.w            = std::cos (thetas[i] / 2.0);
             if (check_collision (probe)) {
-                // revert to slightly towards previous angle
-                thetas[i] = angular_path.poses[i].pose.orientation.w;  // fallback (not perfect)
+                thetas[i] = angular_path.poses[i].pose.orientation.w;
             }
         }
     }
@@ -609,18 +562,20 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path a
 }
 
 geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg::Pose pose) {
-    const int                       width  = static_cast<int> (raw_map_.info.width);
-    const int                       height = static_cast<int> (raw_map_.info.height);
+    const int    width  = static_cast<int> (raw_map_.info.width);
+    const int    height = static_cast<int> (raw_map_.info.height);
+    const double res    = raw_map_.info.resolution;
+    const double ox     = raw_map_.info.origin.position.x;
+    const double oy     = raw_map_.info.origin.position.y;
+
+    if (raw_map_.data.empty ()) return pose;
+    auto [sx, sy] = to_grid (pose.position.x, pose.position.y);
+
+    sx = std::clamp (sx, 0, width - 1);
+    sy = std::clamp (sy, 0, height - 1);
+
     std::vector<std::vector<bool>>  visited (height, std::vector<bool> (width, false));
     std::queue<std::pair<int, int>> q;
-    auto [sx, sy] = to_grid (pose.position.x, pose.position.y);
-    if (sx < 0 || sy < 0 || sx >= width || sy >= height) {
-        // clamp into map center fallback
-        geometry_msgs::msg::Pose p = pose;
-        p.position.x               = raw_map_.info.origin.position.x + width * raw_map_.info.resolution * 0.5;
-        p.position.y               = raw_map_.info.origin.position.y + height * raw_map_.info.resolution * 0.5;
-        return p;
-    }
     q.push ({sx, sy});
     visited[sy][sx] = true;
 
@@ -634,23 +589,28 @@ geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg
         { 1, -1},
         {-1,  1}
     };
+
     while (!q.empty ()) {
-        auto cur = q.front ();
+        auto [cx, cy] = q.front ();
         q.pop ();
-        geometry_msgs::msg::Pose probe = pose;
-        probe.position.x               = raw_map_.info.origin.position.x + (cur.first + 0.5) * raw_map_.info.resolution;
-        probe.position.y               = raw_map_.info.origin.position.y + (cur.second + 0.5) * raw_map_.info.resolution;
-        if (!check_collision (probe)) return probe;
+        int idx = cy * width + cx;
+        if (idx < 0 || idx >= static_cast<int> (costmap_.data.size ())) continue;
+        if (costmap_.data[idx] < 100 && costmap_.data[idx] >= 0) {
+            geometry_msgs::msg::Pose free_pose = pose;
+            free_pose.position.x               = ox + (cx + 0.5) * res;
+            free_pose.position.y               = oy + (cy + 0.5) * res;
+            return free_pose;
+        }
         for (auto [dx, dy] : directions) {
-            int nx = cur.first + dx;
-            int ny = cur.second + dy;
-            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            int nx = cx + dx;
+            int ny = cy + dy;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
             if (visited[ny][nx]) continue;
             visited[ny][nx] = true;
             q.push ({nx, ny});
         }
     }
-    // no free cell found, return original
+    RCLCPP_WARN (this->get_logger (), "No free space found near the given pose.");
     return pose;
 }
 
