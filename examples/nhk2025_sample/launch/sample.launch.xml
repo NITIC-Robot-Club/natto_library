@@ -82,8 +82,7 @@
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
-            <!-- <remap from="command_velocity" to="/control/command_velocity"/> -->
-            <remap from="command_velocity" to="/control/cmd_vel"/>
+            <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
 
         <!-- 経路計算 -->
@@ -96,6 +95,13 @@
             <param name="theta_resolution_deg" value="5"/>
             <param name="xy_inflation" value="0.5"/>
             <param name="xy_offset" value="0.5"/>
+        </composable_node>
+
+        <!-- 経路追従 -->
+        <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
+            <param from="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
+            <remap from="current_pose" to="/simulation/pose"/>
+            <remap from="path" to="/planning/path"/>
         </composable_node>
     </node_container>
 

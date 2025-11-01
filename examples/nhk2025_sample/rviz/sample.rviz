@@ -7,11 +7,10 @@ Panels:
         - /Global Options1
         - /Grid1/Offset1
         - /Common1
+        - /Control1
         - /Swerve1
         - /Planning1
         - /Sensing1
-        - /Sensing1/LaserScan1
-        - /Sensing1/PointCloud21
         - /Simulation1
       Splitter Ratio: 0.626086950302124
     Tree Height: 817
@@ -137,8 +136,51 @@ Visualization Manager:
       Name: Common
     - Class: rviz_common/Group
       Displays:
-        - Class: rviz_default_plugins/MarkerArray
+        - Alpha: 1
+          Angular Arrow Scale: 1
+          Angular Color: 204; 204; 51
+          Arrow Width: 1
+          Class: rviz_default_plugins/TwistStamped
           Enabled: true
+          Hide Small Values: false
+          History Length: 1
+          Linear Arrow Scale: 1
+          Linear Color: 204; 51; 51
+          Name: CommandVelocity
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /control/command_velocity
+          Value: true
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz_default_plugins/Pose
+          Color: 255; 255; 0
+          Enabled: true
+          Head Length: 0.30000001192092896
+          Head Radius: 0.10000000149011612
+          Name: Lookahead
+          Shaft Length: 1
+          Shaft Radius: 0.05000000074505806
+          Shape: Arrow
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /control/lookahead
+          Value: true
+      Enabled: true
+      Name: Control
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: false
           Name: Command
           Namespaces:
             {}
@@ -148,7 +190,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /visualization/swerve/command
-          Value: true
+          Value: false
         - Class: rviz_default_plugins/MarkerArray
           Enabled: true
           Name: Result
@@ -483,10 +525,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1
+      Pitch: 1.0099999904632568
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.141592025756836
+      Yaw: 3.15659236907959
     Saved: ~
 Window Geometry:
   Displays:

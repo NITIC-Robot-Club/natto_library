@@ -1,0 +1,21 @@
+/**:
+  ros__parameters:
+    lookahead_time: 0.1
+    min_lookahead_distance: 0.05
+    max_lookahead_distance: 1.0
+    angle_speed_p: 1.0
+    curvature_decceleration_p: 0.3
+    min_curvature_speed_m_s: 0.0
+    angle_decceleration_p: 0.5
+    max_acceleration_xy_m_s2_: 10.0
+    max_speed_xy_m_s: 7.0
+    min_speed_xy_m_s: 0.2
+    max_speed_z_deg_s: 180.0
+    min_speed_z_deg_s: 70.0
+    max_acceleration_z_deg_s2: 1000.0
+    goal_deceleration_m_s2: 5.0
+    goal_deceleration_distance_p: 1.5
+    goal_position_tolerance_m: 0.05
+    goal_yaw_tolerance_deg: 5.0
+    goal_speed_tolerance_xy_m_s: 2.0
+    goal_speed_tolerance_z_deg_s: 60.0
