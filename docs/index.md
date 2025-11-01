@@ -11,6 +11,7 @@
 - [natto_map](common/natto_map) : 地図情報を扱う
 
 ### control
+- [natto_holonomic_pure_pursuit](control/natto_holonomic_pure_pursuit) : ホロノミックロボットのためのピュアパシュート制御を行う
 - [natto_swerve_calculator](control/natto_swerve_calculator) : N輪独立ステアリングのホイール指令を計算する
 
 ### message
