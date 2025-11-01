@@ -6,7 +6,7 @@ namespace laser_filter {
 
 laser_filter::laser_filter(const rclcpp::NodeOptions &node_options)
     : Node("laser_filter", node_options) {
-    threshold_ = this->declare_parameter<double>("threshold", 0.9);
+    threshold_ = this->declare_parameter<double>("threshold", 0.83);
 
     publisher_ = this->create_publisher<sensor_msgs::msg::LaserScan>("output", 10);
     subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
