@@ -75,7 +75,7 @@ void holonomic_pure_pursuit::timer_callback () {
     double position_error        = std::hypot (path_.poses.back ().pose.position.x - current_pose_.pose.position.x, path_.poses.back ().pose.position.y - current_pose_.pose.position.y);
     bool   goal_position_reached = (position_error < goal_position_tolerance_);
 
-    double yaw_error = tf2::getYaw(path_.poses.back ().pose.orientation) - tf2::getYaw(current_pose_.pose.orientation);
+    double yaw_error = tf2::getYaw (path_.poses.back ().pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
     while (yaw_error > +M_PI) yaw_error -= 2.0 * M_PI;
     while (yaw_error < -M_PI) yaw_error += 2.0 * M_PI;
     yaw_error             = std::abs (yaw_error);
