@@ -37,5 +37,4 @@
 - natto_mcl : Monte Carlo Localizationを実装したパッケージ
 - natto_ekf_localizer : 拡張カルマンフィルタを用いた自己位置推定パッケージ
 - natto_speed_planner : 速度計画を行うパッケージ
-- natto_pure_pursuit : Pure Pursuitアルゴリズムを用いた追従制御パッケージ
 - natto_pid_controller : PID制御で速度追従を行うパッケージ
