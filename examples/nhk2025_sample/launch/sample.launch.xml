@@ -154,11 +154,19 @@
             <remap from="marker_array" to="/visualization/swerve/result"/>
         </composable_node>
 
-        <!-- 直線表示(デバッグ) -->
-        <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="line" namespace="visualization/line">
+        <!-- 直線表示 -->
+        <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="lines" namespace="visualization/lines">
             <param name="publish_period_ms" value="10"/>
             <remap from="lines" to="/sensing/lidar/lines"/>
             <remap from="marker_array" to="/visualization/lines"/>
+            <param name="frame_id" value="base_link"/>
+        </composable_node>
+
+        <!-- 線分表示 -->
+        <composable_node pkg="natto_visualization_converter" plugin="line_segments_visualizer::line_segments_visualizer" name="line_segments" namespace="visualization/line_segments">
+            <param name="publish_period_ms" value="10"/>
+            <remap from="line_segments" to="/sensing/lidar/line_segments"/>
+            <remap from="marker_array" to="/visualization/line_segments"/>
             <param name="frame_id" value="base_link"/>
         </composable_node>
     </node_container>

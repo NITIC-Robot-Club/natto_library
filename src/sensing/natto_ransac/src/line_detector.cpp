@@ -202,17 +202,23 @@ void line_detector::calculate_line_segment () {
 
         if (inliers.size () < 2) continue;
 
-        // 射影値で範囲を求める
+        // 法線ベクトル n = (a, b)
+        // 方向ベクトル dir = (-b, a)
         double dir_x = -b;
         double dir_y = a;
         double norm  = std::sqrt (dir_x * dir_x + dir_y * dir_y);
         dir_x /= norm;
         dir_y /= norm;
 
+        // 線上の基準点（法線方向で原点からの最短点）
+        // ax + by + c = 0 → 最近点 = (-a*c, -b*c)
+        double base_x = -a * c;
+        double base_y = -b * c;
+
         std::vector<double> projections;
         projections.reserve (inliers.size ());
         for (auto &p : inliers) {
-            double t = p.first * dir_x + p.second * dir_y;
+            double t = (p.first - base_x) * dir_x + (p.second - base_y) * dir_y;
             projections.push_back (t);
         }
 
@@ -221,11 +227,11 @@ void line_detector::calculate_line_segment () {
         double t2     = *minmax.second;
 
         geometry_msgs::msg::Point start, end;
-        start.x = dir_x * t1;
-        start.y = dir_y * t1;
+        start.x = base_x + dir_x * t1;
+        start.y = base_y + dir_y * t1;
         start.z = 0.0;
-        end.x   = dir_x * t2;
-        end.y   = dir_y * t2;
+        end.x   = base_x + dir_x * t2;
+        end.y   = base_y + dir_y * t2;
         end.z   = 0.0;
 
         natto_msgs::msg::LineSegment seg;
