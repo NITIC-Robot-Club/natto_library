@@ -9,6 +9,21 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "footprint_publisher::footprint_publisher"
+    EXECUTABLE footprint_publisher
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "line_segments_visualizer::line_segments_visualizer"
+    EXECUTABLE line_segments_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "line_visualizer::line_visualizer"
+    EXECUTABLE line_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "map_visualizer::map_visualizer"
     EXECUTABLE map_visualizer
 )
@@ -16,11 +31,6 @@ rclcpp_components_register_node(${PROJECT_NAME}
 rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "swerve_visualizer::swerve_visualizer"
     EXECUTABLE swerve_visualizer
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "footprint_publisher::footprint_publisher"
-    EXECUTABLE footprint_publisher
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
