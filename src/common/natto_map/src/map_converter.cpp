@@ -35,14 +35,14 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     double min_y = std::numeric_limits<double>::max ();
     double max_y = std::numeric_limits<double>::lowest ();
 
-    for (const auto &seg : msg->line_segments) {
+    for (const auto &seg : msg->line_segments.line_segments) {
         min_x = std::min ({min_x, seg.start.x, seg.end.x});
         max_x = std::max ({max_x, seg.start.x, seg.end.x});
         min_y = std::min ({min_y, seg.start.y, seg.end.y});
         max_y = std::max ({max_y, seg.start.y, seg.end.y});
     }
 
-    for (const auto &circ : msg->circles) {
+    for (const auto &circ : msg->circles.circles) {
         double r     = circ.radius;
         double start = circ.start_angle;
         double end   = circ.end_angle;
@@ -75,7 +75,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
         }
     };
 
-    for (const auto &seg : msg->line_segments) {
+    for (const auto &seg : msg->line_segments.line_segments) {
         if (seg.start.z != 0.0 && seg.end.z != 0.0) continue;
         int x0, y0, x1, y1;
         world_to_grid (seg.start.x, seg.start.y, x0, y0);
@@ -104,7 +104,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
         }
     }
 
-    for (const auto &circ : msg->circles) {
+    for (const auto &circ : msg->circles.circles) {
         if (circ.center.z != 0.0) continue;
         int steps = std::max (10, static_cast<int> (circ.radius / resolution_ * 8));
 

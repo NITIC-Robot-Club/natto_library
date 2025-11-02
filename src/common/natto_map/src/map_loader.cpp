@@ -65,9 +65,9 @@ void map_loader::load_line_segments (const std::string &path) {
         std::getline (ss, val, ',');
         seg.end.z = std::stod (val);
 
-        map_.line_segments.push_back (seg);
+        map_.line_segments.line_segments.push_back (seg);
     }
-    RCLCPP_INFO (this->get_logger (), "Loaded %zu line segments from %s", map_.line_segments.size (), path.c_str ());
+    RCLCPP_INFO (this->get_logger (), "Loaded %zu line segments from %s", map_.line_segments.line_segments.size (), path.c_str ());
 }
 
 void map_loader::load_circles (const std::string &path) {
@@ -97,9 +97,9 @@ void map_loader::load_circles (const std::string &path) {
         c.start_angle = std::stod (val);
         std::getline (ss, val, ',');
         c.end_angle = std::stod (val);
-        map_.circles.push_back (c);
+        map_.circles.circles.push_back (c);
     }
-    RCLCPP_INFO (this->get_logger (), "Loaded %zu circles from %s", map_.circles.size (), path.c_str ());
+    RCLCPP_INFO (this->get_logger (), "Loaded %zu circles from %s", map_.circles.circles.size (), path.c_str ());
 }
 
 void map_loader::timer_callback () {
