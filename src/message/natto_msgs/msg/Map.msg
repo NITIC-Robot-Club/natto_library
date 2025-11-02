@@ -1,2 +1,2 @@
-natto_msgs/LineSegment[] line_segments
-natto_msgs/Circle[] circles
+natto_msgs/LineSegmentArray line_segments
+natto_msgs/CircleArray circles

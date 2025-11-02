@@ -7,7 +7,11 @@ ament_auto_find_build_dependencies()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Can.msg"
   "msg/Circle.msg"
+  "msg/CircleArray.msg"
+  "msg/Line.msg"
+  "msg/LineArray.msg"
   "msg/LineSegment.msg"
+  "msg/LineSegmentArray.msg"
   "msg/Map.msg"
   "msg/Swerve.msg"
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces

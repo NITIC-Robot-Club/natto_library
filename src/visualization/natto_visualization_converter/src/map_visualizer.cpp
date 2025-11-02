@@ -29,7 +29,7 @@ map_visualizer::map_visualizer (const rclcpp::NodeOptions &node_options) : Node 
 void map_visualizer::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     int id = 0;
     marker_array_.markers.clear ();
-    for (const auto &line_segment : msg->line_segments) {
+    for (const auto &line_segment : msg->line_segments.line_segments) {
         visualization_msgs::msg::Marker marker;
         marker.id              = id++;
         marker.header.frame_id = "map";
@@ -55,7 +55,7 @@ void map_visualizer::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
         marker_array_.markers.push_back (marker);
     }
 
-    for (const auto &circle : msg->circles) {
+    for (const auto &circle : msg->circles.circles) {
         visualization_msgs::msg::Marker marker;
         marker.id              = id++;
         marker.header.frame_id = "map";
