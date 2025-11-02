@@ -68,7 +68,7 @@ void line_visualizer::line_callback (const natto_msgs::msg::LineArray::SharedPtr
         m.color.b         = 0.0f;
         m.color.a         = 1.0f;
         m.points          = {p1, p2};
-        m.lifetime       = rclcpp::Duration::from_seconds (0.01);
+        m.lifetime        = rclcpp::Duration::from_seconds (0.01);
 
         marker_array.markers.push_back (m);
     }
