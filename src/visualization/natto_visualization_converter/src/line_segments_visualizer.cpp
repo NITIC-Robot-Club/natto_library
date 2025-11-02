@@ -40,6 +40,8 @@ void line_segments_visualizer::line_segments_callback (const natto_msgs::msg::Li
         m.type            = visualization_msgs::msg::Marker::LINE_STRIP;
         m.action          = visualization_msgs::msg::Marker::ADD;
 
+        m.lifetime = rclcpp::Duration::from_seconds (0.01);
+
         m.scale.x = line_width_;
         m.color.r = 1.0f;
         m.color.g = 0.0f;

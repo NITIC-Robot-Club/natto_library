@@ -34,7 +34,7 @@ class line_detector : public rclcpp::Node {
 
    private:
     int    max_iterations_, max_lines_, min_inliers_;
-    double distance_threshold_;
+    double distance_threshold_, segment_gap_threshold_;
 
     sensor_msgs::msg::PointCloud2     raw_data_;
     sensor_msgs::msg::PointCloud2     data_;

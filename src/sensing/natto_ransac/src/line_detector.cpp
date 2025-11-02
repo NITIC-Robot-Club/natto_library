@@ -23,10 +23,11 @@ line_detector::line_detector (const rclcpp::NodeOptions &node_options) : Node ("
 
     pointcloud_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 10, std::bind (&line_detector::pointcloud_callback, this, std::placeholders::_1));
 
-    max_iterations_     = this->declare_parameter<int> ("max_iterations", 100);
-    max_lines_          = this->declare_parameter<int> ("max_lines", 10);
-    min_inliers_        = this->declare_parameter<int> ("min_inliers", 75);
-    distance_threshold_ = this->declare_parameter<double> ("distance_threshold", 0.01);
+    max_iterations_        = this->declare_parameter<int> ("max_iterations", 100);
+    max_lines_             = this->declare_parameter<int> ("max_lines", 10);
+    min_inliers_           = this->declare_parameter<int> ("min_inliers", 75);
+    distance_threshold_    = this->declare_parameter<double> ("distance_threshold", 0.01);
+    segment_gap_threshold_ = this->declare_parameter<double> ("segment_gap_threshold", 0.1);
 }
 
 void line_detector::pointcloud_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
@@ -164,7 +165,6 @@ void line_detector::calculate_corner () {
         }
     }
 }
-
 void line_detector::calculate_line_segment () {
     line_segments_.line_segments.clear ();
 
@@ -173,8 +173,7 @@ void line_detector::calculate_line_segment () {
     const uint32_t WIDTH      = raw_data_.width;
     const uint32_t HEIGHT     = raw_data_.height;
 
-    std::vector<float> xs;
-    std::vector<float> ys;
+    std::vector<float> xs, ys;
     xs.reserve (WIDTH * HEIGHT);
     ys.reserve (WIDTH * HEIGHT);
 
@@ -199,45 +198,65 @@ void line_detector::calculate_line_segment () {
                 inliers.push_back ({xs[i], ys[i]});
             }
         }
-
         if (inliers.size () < 2) continue;
 
-        // 法線ベクトル n = (a, b)
-        // 方向ベクトル dir = (-b, a)
+        // 線の方向ベクトルと基準点
         double dir_x = -b;
         double dir_y = a;
         double norm  = std::sqrt (dir_x * dir_x + dir_y * dir_y);
         dir_x /= norm;
         dir_y /= norm;
-
-        // 線上の基準点（法線方向で原点からの最短点）
-        // ax + by + c = 0 → 最近点 = (-a*c, -b*c)
         double base_x = -a * c;
         double base_y = -b * c;
 
-        std::vector<double> projections;
-        projections.reserve (inliers.size ());
+        // 点を射影して並べる
+        std::vector<std::pair<double, std::pair<float, float>>> projected;
+        projected.reserve (inliers.size ());
         for (auto &p : inliers) {
             double t = (p.first - base_x) * dir_x + (p.second - base_y) * dir_y;
-            projections.push_back (t);
+            projected.push_back ({t, p});
+        }
+        std::sort (projected.begin (), projected.end (), [] (auto &a, auto &b) { return a.first < b.first; });
+
+        // ギャップ判定しながら分割
+        std::vector<std::pair<float, float>> current_cluster;
+        for (size_t i = 0; i < projected.size (); i++) {
+            if (current_cluster.empty ()) {
+                current_cluster.push_back (projected[i].second);
+                continue;
+            }
+            double gap = std::hypot (projected[i].second.first - current_cluster.back ().first, projected[i].second.second - current_cluster.back ().second);
+            if (gap > segment_gap_threshold_) {
+                if (current_cluster.size () >= 2) {
+                    auto                         first = current_cluster.front ();
+                    auto                         last  = current_cluster.back ();
+                    natto_msgs::msg::LineSegment seg;
+                    seg.start.x = first.first;
+                    seg.start.y = first.second;
+                    seg.start.z = 0.0;
+                    seg.end.x   = last.first;
+                    seg.end.y   = last.second;
+                    seg.end.z   = 0.0;
+                    line_segments_.line_segments.push_back (seg);
+                }
+                current_cluster.clear ();
+            }
+            current_cluster.push_back (projected[i].second);
         }
 
-        auto   minmax = std::minmax_element (projections.begin (), projections.end ());
-        double t1     = *minmax.first;
-        double t2     = *minmax.second;
-
-        geometry_msgs::msg::Point start, end;
-        start.x = base_x + dir_x * t1;
-        start.y = base_y + dir_y * t1;
-        start.z = 0.0;
-        end.x   = base_x + dir_x * t2;
-        end.y   = base_y + dir_y * t2;
-        end.z   = 0.0;
-
-        natto_msgs::msg::LineSegment seg;
-        seg.start = start;
-        seg.end   = end;
-        line_segments_.line_segments.push_back (seg);
+        // 最後のクラスタ
+        if (current_cluster.size () >= 2) {
+            auto                         first = current_cluster.front ();
+            auto                         last  = current_cluster.back ();
+            natto_msgs::msg::LineSegment seg;
+            seg.start.x = first.first;
+            seg.start.y = first.second;
+            seg.start.z = 0.0;
+            seg.end.x   = last.first;
+            seg.end.y   = last.second;
+            seg.end.z   = 0.0;
+            line_segments_.line_segments.push_back (seg);
+        }
     }
 }
 
