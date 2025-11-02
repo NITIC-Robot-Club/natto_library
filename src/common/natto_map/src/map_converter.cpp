@@ -142,6 +142,52 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
             gx_prev = gx;
             gy_prev = gy;
         }
+
+        const double two_pi                        = 2.0 * M_PI;
+        auto normalize_angle_positive              = [&] (double angle) {
+            double result = std::fmod (angle, two_pi);
+            if (result < 0.0) result += two_pi;
+            return result;
+        };
+        double span                                = circ.end_angle - circ.start_angle;
+        double span_abs                            = std::fabs (span);
+        bool fill_full_circle                      = (span_abs < 1e-6) || (span_abs >= (two_pi - 1e-6));
+        double min_x_circ                          = circ.center.x - circ.radius;
+        double max_x_circ                          = circ.center.x + circ.radius;
+        double min_y_circ                          = circ.center.y - circ.radius;
+        double max_y_circ                          = circ.center.y + circ.radius;
+        int gx_min                                 = std::max (0, static_cast<int> (std::floor ((min_x_circ - min_x) / resolution_)));
+        int gx_max                                 = std::min (width - 1, static_cast<int> (std::ceil ((max_x_circ - min_x) / resolution_)));
+        int gy_min                                 = std::max (0, static_cast<int> (std::floor ((min_y_circ - min_y) / resolution_)));
+        int gy_max                                 = std::min (height - 1, static_cast<int> (std::ceil ((max_y_circ - min_y) / resolution_)));
+        double radius_squared                      = circ.radius * circ.radius;
+
+        for (int gx = gx_min; gx <= gx_max; ++gx) {
+            double wx = min_x + (gx + 0.5) * resolution_;
+            for (int gy = gy_min; gy <= gy_max; ++gy) {
+                double wy          = min_y + (gy + 0.5) * resolution_;
+                double dx          = wx - circ.center.x;
+                double dy          = wy - circ.center.y;
+                double distance_sq = dx * dx + dy * dy;
+                if (distance_sq > radius_squared + 1e-9) continue;
+
+                bool in_sector = fill_full_circle;
+                if (!in_sector) {
+                    double theta = std::atan2 (dy, dx);
+                    if (span > 0.0) {
+                        double diff = normalize_angle_positive (theta - circ.start_angle);
+                        in_sector   = diff <= span;
+                    } else {
+                        double diff = normalize_angle_positive (circ.start_angle - theta);
+                        in_sector   = diff <= -span;
+                    }
+                }
+
+                if (in_sector) {
+                    set_cell (gx, gy);
+                }
+            }
+        }
     }
 
     nav_msgs::msg::OccupancyGrid occupancy_grid;

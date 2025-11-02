@@ -25,6 +25,7 @@
 #include "nav_msgs/msg/path.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -47,6 +48,7 @@ class astar_planner : public rclcpp::Node {
 
     nav_msgs::msg::OccupancyGrid       raw_map_;
     nav_msgs::msg::OccupancyGrid       costmap_;
+    nav_msgs::msg::OccupancyGrid       obstacle_costmap_;
     geometry_msgs::msg::PoseStamped    goal_pose_;
     geometry_msgs::msg::PoseStamped    current_pose_;
     geometry_msgs::msg::PolygonStamped footprint_;
@@ -65,11 +67,13 @@ class astar_planner : public rclcpp::Node {
     void   create_path ();
     void   build_footprint_mask ();
     void   create_costmap ();
+    void   create_obstacle_costmap ();
     bool   is_same_map (nav_msgs::msg::OccupancyGrid latest_map);
     bool   is_same_footprint (geometry_msgs::msg::PolygonStamped latest_footprint);
     bool   check_collision (geometry_msgs::msg::Pose pose);
     double wrap_to_2pi (double angle);
     bool   point_in_polygon (double x, double y, geometry_msgs::msg::Polygon polygon);
+    bool   rectangle_is_collision_free (int cx, int cy, const geometry_msgs::msg::Quaternion &orientation);
 
     nav_msgs::msg::Path linear_astar ();
     nav_msgs::msg::Path linear_smoother (nav_msgs::msg::Path linear_path);

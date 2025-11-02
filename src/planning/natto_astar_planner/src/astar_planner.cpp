@@ -48,6 +48,7 @@ void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid:
     if (is_same_map (*msg)) return;
     raw_map_ = *msg;
     create_costmap ();
+    create_obstacle_costmap ();
     create_path ();
 }
 
@@ -67,6 +68,7 @@ void astar_planner::footprint_callback (const geometry_msgs::msg::PolygonStamped
     build_footprint_mask ();
     if (!raw_map_.data.empty ()) {
         create_costmap ();
+        create_obstacle_costmap ();
         create_path ();
     }
 }
@@ -94,6 +96,48 @@ void astar_planner::create_path () {
     path_ = angular_smoother (angular_path);
     path_publisher_->publish (path_);
     costmap_publisher_->publish (costmap_);
+}
+
+void astar_planner::create_obstacle_costmap () {
+    if (raw_map_.data.empty ()) return;
+    const int   width           = static_cast<int> (raw_map_.info.width);
+    const int   height          = static_cast<int> (raw_map_.info.height);
+
+    if (width == 0 || height == 0) return;
+
+    obstacle_costmap_ = raw_map_;
+
+    std::vector<bool> visited (width * height, false);
+    std::queue<int>   frontier;
+
+    auto enqueue = [&](int nx, int ny) {
+        if (nx < 0 || nx >= width) return;
+        if (ny < 0 || ny >= height) return;
+        int nidx = ny * width + nx;
+        if (visited[nidx]) return;
+        if (raw_map_.data[nidx] == 100) return;
+        visited[nidx] = true;
+        frontier.push (nidx);
+    };
+    for (int x = 0; x < width; ++x) {
+        enqueue (x, 0);
+        enqueue (x, height - 1);
+    }
+    for (int y = 0; y < height; ++y) {
+        enqueue (0, y);
+        enqueue (width - 1, y);
+    }
+    while (!frontier.empty ()) {
+        int idx = frontier.front ();
+        frontier.pop ();
+        obstacle_costmap_.data[idx] = 100;
+        int cx = idx % width;
+        int cy = idx / width;
+        enqueue (cx + 1, cy);
+        enqueue (cx - 1, cy);
+        enqueue (cx, cy + 1);
+        enqueue (cx, cy - 1);
+    }
 }
 
 void astar_planner::create_costmap () {
@@ -219,6 +263,53 @@ bool astar_planner::point_in_polygon (double x, double y, geometry_msgs::msg::Po
         if (intersect) c = !c;
     }
     return c;
+}
+
+bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_msgs::msg::Quaternion &orientation) {
+    if (obstacle_costmap_.data.empty ()) return true;
+
+    const int    width  = static_cast<int> (obstacle_costmap_.info.width);
+    const int    height = static_cast<int> (obstacle_costmap_.info.height);
+    const double res    = obstacle_costmap_.info.resolution;
+    const double ox     = obstacle_costmap_.info.origin.position.x;
+    const double oy     = obstacle_costmap_.info.origin.position.y;
+
+    if (width == 0 || height == 0) return false;
+    if (cx < 0 || cy < 0 || cx >= width || cy >= height) return false;
+
+    auto is_blocked = [&](int idx) {
+        if (idx < 0 || idx >= static_cast<int> (obstacle_costmap_.data.size ())) return true;
+        return obstacle_costmap_.data[idx] == 100;
+    };
+
+    int center_idx = cy * width + cx;
+    if (is_blocked (center_idx)) return false;
+
+    if (footprint_.polygon.points.size () < 4) {
+        return true;
+    }
+
+    double yaw = tf2::getYaw (orientation);
+    double cs  = std::cos (yaw);
+    double sn  = std::sin (yaw);
+
+    double wx = ox + (cx + 0.5) * res;
+    double wy = oy + (cy + 0.5) * res;
+
+    for (const auto &vertex : footprint_.polygon.points) {
+        double vx = wx + vertex.x * cs - vertex.y * sn;
+        double vy = wy + vertex.x * sn + vertex.y * cs;
+
+        int gx = static_cast<int> ((vx - ox) / res);
+        int gy = static_cast<int> ((vy - oy) / res);
+
+        if (gx < 0 || gy < 0 || gx >= width || gy >= height) return false;
+
+        int vidx = gy * width + gx;
+        if (is_blocked (vidx)) return false;
+    }
+
+    return true;
 }
 
 bool astar_planner::check_collision (geometry_msgs::msg::Pose pose) {
@@ -576,55 +667,47 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path a
 }
 
 geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg::Pose pose) {
-    const int    width  = static_cast<int> (raw_map_.info.width);
-    const int    height = static_cast<int> (raw_map_.info.height);
-    const double res    = raw_map_.info.resolution;
-    const double ox     = raw_map_.info.origin.position.x;
-    const double oy     = raw_map_.info.origin.position.y;
+    if (obstacle_costmap_.data.empty ()) return pose;
 
-    if (raw_map_.data.empty ()) return pose;
-    auto [sx, sy] = to_grid (pose.position.x, pose.position.y);
+    const int    width  = static_cast<int> (obstacle_costmap_.info.width);
+    const int    height = static_cast<int> (obstacle_costmap_.info.height);
+    const double res    = obstacle_costmap_.info.resolution;
+    const double ox     = obstacle_costmap_.info.origin.position.x;
+    const double oy     = obstacle_costmap_.info.origin.position.y;
 
-    sx = std::clamp (sx, 0, width - 1);
-    sy = std::clamp (sy, 0, height - 1);
+    if (width <= 0 || height <= 0) return pose;
 
-    std::vector<std::vector<bool>>  visited (height, std::vector<bool> (width, false));
-    std::queue<std::pair<int, int>> q;
-    q.push ({sx, sy});
-    visited[sy][sx] = true;
+    double                 best_dist_sq = std::numeric_limits<double>::infinity ();
+    geometry_msgs::msg::Pose best_pose   = pose;
 
-    const std::vector<std::pair<int, int>> directions = {
-        { 1,  0},
-        {-1,  0},
-        { 0,  1},
-        { 0, -1},
-        { 1,  1},
-        {-1, -1},
-        { 1, -1},
-        {-1,  1}
-    };
+    for (int cy = 0; cy < height; ++cy) {
+        for (int cx = 0; cx < width; ++cx) {
+            int idx = cy * width + cx;
+            if (idx < 0 || idx >= static_cast<int> (obstacle_costmap_.data.size ())) continue;
+            if (obstacle_costmap_.data[idx] == 100) continue;
 
-    while (!q.empty ()) {
-        auto [cx, cy] = q.front ();
-        q.pop ();
-        int idx = cy * width + cx;
-        if (idx < 0 || idx >= static_cast<int> (costmap_.data.size ())) continue;
-        if (costmap_.data[idx] < 100 && costmap_.data[idx] >= 0) {
-            geometry_msgs::msg::Pose free_pose = pose;
-            free_pose.position.x               = ox + (cx + 0.5) * res;
-            free_pose.position.y               = oy + (cy + 0.5) * res;
-            return free_pose;
-        }
-        for (auto [dx, dy] : directions) {
-            int nx = cx + dx;
-            int ny = cy + dy;
-            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-            if (visited[ny][nx]) continue;
-            visited[ny][nx] = true;
-            q.push ({nx, ny});
+            if (!rectangle_is_collision_free (cx, cy, pose.orientation)) continue;
+
+            double wx = ox + (cx + 0.5) * res;
+            double wy = oy + (cy + 0.5) * res;
+
+            double dx       = wx - pose.position.x;
+            double dy       = wy - pose.position.y;
+            double dist_sq  = dx * dx + dy * dy;
+
+            if (dist_sq < best_dist_sq) {
+                best_dist_sq             = dist_sq;
+                best_pose.position.x     = wx;
+                best_pose.position.y     = wy;
+            }
         }
     }
-    RCLCPP_WARN (this->get_logger (), "No free space found near the given pose.");
+
+    if (std::isfinite (best_dist_sq)) {
+        return best_pose;
+    }
+
+    RCLCPP_WARN (this->get_logger (), "No collision-free space found in obstacle_costmap_ for the given pose.");
     return pose;
 }
 
