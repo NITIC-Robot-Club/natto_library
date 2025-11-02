@@ -20,6 +20,11 @@
 #include "natto_msgs/msg/line_array.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
+#include <cmath>
+#include <cstring>
+#include <random>
+#include <vector>
+
 namespace line_detector {
 class line_detector : public rclcpp::Node {
    public:
@@ -37,7 +42,6 @@ class line_detector : public rclcpp::Node {
     void pointcloud_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 
     rclcpp::Publisher<natto_msgs::msg::LineArray>::SharedPtr       lines_publisher_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr    filtered_pointcloud_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_subscriber_;
 };
 }  // namespace line_detector
