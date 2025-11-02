@@ -4,7 +4,7 @@
   <version>0.0.1</version>
   <description>Natto Library messages</description>
   <maintainer email="kzs321kzs@gmail.com">Kazusa Hashimoto</maintainer>
-  <license>Apache 2.0</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
