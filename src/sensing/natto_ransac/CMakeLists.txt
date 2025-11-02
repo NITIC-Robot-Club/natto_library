@@ -13,9 +13,4 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE line_detector
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "line_segment_detector::line_segment_detector"
-    EXECUTABLE line_segment_detector
-)
-
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

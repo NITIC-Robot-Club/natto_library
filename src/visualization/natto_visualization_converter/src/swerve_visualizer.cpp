@@ -17,20 +17,20 @@
 namespace swerve_visualizer {
 
 swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) : Node ("swerve_visualizer", node_options) {
-    marker_publisher_     = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    swerve_subscription_  = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_visualizer::swerve_callback, this, std::placeholders::_1));
-    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
-    timer_                = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&swerve_visualizer::timer_callback, this));
+    marker_publisher_    = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
+    swerve_subscription_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_visualizer::swerve_callback, this, std::placeholders::_1));
 
-    arrow_r        = this->declare_parameter<double> ("arrow_r", 0.0);
-    arrow_g        = this->declare_parameter<double> ("arrow_g", 1.0);
-    arrow_b        = this->declare_parameter<double> ("arrow_b", 0.0);
-    arrow_scale    = this->declare_parameter<double> ("arrow_scale", 0.2);
-    arrow_min_size = this->declare_parameter<double> ("arrow_min_size", 0.1);
+    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
+    arrow_r               = this->declare_parameter<double> ("arrow_r", 0.0);
+    arrow_g               = this->declare_parameter<double> ("arrow_g", 1.0);
+    arrow_b               = this->declare_parameter<double> ("arrow_b", 0.0);
+    arrow_scale           = this->declare_parameter<double> ("arrow_scale", 0.2);
+    arrow_min_size        = this->declare_parameter<double> ("arrow_min_size", 0.1);
 
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
 
+    timer_      = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&swerve_visualizer::timer_callback, this));
     num_wheels_ = wheel_position_x.size ();
     if (wheel_position_y.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");

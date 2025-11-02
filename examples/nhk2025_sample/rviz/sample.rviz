@@ -439,17 +439,38 @@ Visualization Manager:
           Use rainbow: true
           Value: true
         - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
+          Enabled: false
           Name: Lines
           Namespaces:
-            line_visualizer: true
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /visualization/line/line_markers
-          Value: true
+            Value: /visualization/lines
+          Value: false
+        - Alpha: 1
+          Arrow Length: 1
+          Axes Length: 0.30000001192092896
+          Axes Radius: 0.10000000149011612
+          Class: rviz_default_plugins/PoseArray
+          Color: 255; 25; 0
+          Enabled: false
+          Head Length: 1
+          Head Radius: 1
+          Name: Corners
+          Shaft Length: 1
+          Shaft Radius: 1
+          Shape: Axes
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /sensing/lidar/corners
+          Value: false
       Enabled: true
       Name: Sensing
     - Class: rviz_common/Group
@@ -522,7 +543,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10.317316055297852
+      Distance: 12.942041397094727
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

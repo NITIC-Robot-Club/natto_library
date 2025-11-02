@@ -90,7 +90,6 @@
             <param name="min_inliers" value="150"/>
             <param name="max_lines" value="5"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
-            <remap from="lines" to="/sensing/lidar/lines"/>
         </composable_node>
     </node_container>
 
@@ -159,7 +158,8 @@
         <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="line" namespace="visualization/line">
             <param name="publish_period_ms" value="10"/>
             <remap from="lines" to="/sensing/lidar/lines"/>
-            <remap from="marker_array" to="/visualization/line"/>
+            <remap from="marker_array" to="/visualization/lines"/>
+            <param name="frame_id" value="base_link"/>
         </composable_node>
     </node_container>
 

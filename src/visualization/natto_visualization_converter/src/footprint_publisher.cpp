@@ -32,9 +32,9 @@ footprint_publisher::footprint_publisher (const rclcpp::NodeOptions &node_option
         footprint_.polygon.points.push_back (point);
     }
 
-    int period_ms = this->declare_parameter<int> ("period_ms", 10);
+    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&footprint_publisher::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&footprint_publisher::timer_callback, this));
 }
 
 void footprint_publisher::timer_callback () {

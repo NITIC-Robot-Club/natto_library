@@ -12,34 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __LINE_VISUALIZER_HPP__
-#define __LINE_VISUALIZER_HPP__
+#ifndef __LINE_SEGMENTS_VISUALIZER_HPP__
+#define __LINE_SEGMENTS_VISUALIZER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "natto_msgs/msg/line_array.hpp"
+#include "natto_msgs/msg/line_segment_array.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
-namespace line_visualizer {
+namespace line_segments_visualizer {
 
-class line_visualizer : public rclcpp::Node {
+class line_segments_visualizer : public rclcpp::Node {
    public:
-    explicit line_visualizer (const rclcpp::NodeOptions &options);
+    explicit line_segments_visualizer (const rclcpp::NodeOptions &options);
 
    private:
     std::string frame_id_;
-    double      line_length_, line_width_;
+    double      line_width_;
 
     visualization_msgs::msg::MarkerArray marker_array_;
 
-    void line_callback (const natto_msgs::msg::LineArray::SharedPtr msg);
+    void line_segments_callback (const natto_msgs::msg::LineSegmentArray::SharedPtr msg);
     void timer_callback ();
 
-    rclcpp::Subscription<natto_msgs::msg::LineArray>::SharedPtr        line_sub_;
+    rclcpp::Subscription<natto_msgs::msg::LineSegmentArray>::SharedPtr line_segments_sub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
 };
 
-}  // namespace line_visualizer
+}  // namespace line_segments_visualizer
 
-#endif  // __LINE_VISUALIZER_HPP__
+#endif  // __LINE_SEGMENTS_VISUALIZER_HPP__

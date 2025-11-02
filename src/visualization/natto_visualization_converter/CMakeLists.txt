@@ -14,6 +14,11 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "line_segments_visualizer::line_segments_visualizer"
+    EXECUTABLE line_segments_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "line_visualizer::line_visualizer"
     EXECUTABLE line_visualizer
 )
