@@ -1,0 +1,59 @@
+name: auto fix and build full docker
+on:
+  pull_request_target:
+  workflow_dispatch:
+
+jobs:
+  auto-fix-and-build-pr:
+    permissions:
+      contents: write
+      packages: read
+    
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/nitic-robot-club/natto_library:latest
+
+    steps:
+      - name: Fetch origin
+        working-directory: /home/nitic-robot-club/natto_library
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: | 
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git
+          git fetch origin
+          git checkout ${{ github.head_ref || github.ref_name }}
+          git pull --rebase origin ${{ github.head_ref || github.ref_name }}
+
+      - name: Run clang-format (auto-fix)
+        working-directory: /home/nitic-robot-club/natto_library
+        run: |
+          find src -regex '.*\.\(cpp\|hpp\|h\)' -exec clang-format -i {} +
+
+      - name: Commit and push changes
+        working-directory: /home/nitic-robot-club/natto_library
+        run: |
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-fix: applied clang-format"
+            git push
+
+      - name: Build tests
+        id: build_test
+        working-directory: /home/nitic-robot-club/natto_library
+        run: |
+          . /opt/ros/humble/setup.sh && 
+          colcon build --symlink-install
+        continue-on-error: true
+    
+      - name: build_test command success
+        if: steps.build_test.outcome == 'success'
+        run: echo "result - success"
+
+      - name: build_test command failure
+        if: steps.build_test.outcome == 'failure'
+        run: echo "result - failure" && exit 1
