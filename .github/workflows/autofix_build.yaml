@@ -22,11 +22,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
-      - name: Set git config
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-
       - name: Run clang-format
         run: |
           find src -regex '.*\.\(cpp\|hpp\|h\)' -exec clang-format -i {} +
@@ -37,15 +32,26 @@ jobs:
           git config --global user.email "actions@github.com"
           git config --global --add safe.directory /__w/natto_library/natto_library
 
+          git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=${{ secrets.GITHUB_TOKEN }}"; }; f'
           if ! git diff --quiet; then
             git add -u
             git commit -m "style(clang-format): autofix" || true
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref || github.ref_name }}
+            git push https://github.com/${{ github.repository }}.git HEAD:${{ github.head_ref || github.ref_name }}
           else
             echo "No changes to commit."
           fi
 
       - name: Build test
+        id: build_test
+        working-directory: /home/nitic-robot-club/natto_library
         run: |
           . /opt/ros/humble/setup.sh
           colcon build --symlink-install
+
+      - name: build_test command success
+        if: steps.build_test.outcome == 'success'
+        run: echo "result - success"
+
+      - name: build_test command failure
+        if: steps.build_test.outcome == 'failure'
+        run: echo "result - failure" && exit 1
