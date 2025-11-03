@@ -42,7 +42,6 @@ jobs:
           ls -la
           git log --oneline
           . /opt/ros/humble/setup.sh
-          source install/setup.sh
           ls install
           colcon build --symlink-install
 
