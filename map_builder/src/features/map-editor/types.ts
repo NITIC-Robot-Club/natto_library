@@ -4,19 +4,20 @@ export type Vector3 = {
   z: number
 }
 
-export type MapPoint = {
-  id: string
-  position: Vector3
-}
-
 export type SelectedElement =
-  | { type: 'point'; pointId: string }
+  | { type: 'line'; lineId: string; endpoint?: 'start' | 'end' }
   | { type: 'circle'; circleId: string }
 
 export type ViewportState = {
   offsetX: number
   offsetY: number
   scale: number
+}
+
+export type LineSegment = {
+  id: string
+  start: Vector3
+  end: Vector3
 }
 
 export type CircleArc = {

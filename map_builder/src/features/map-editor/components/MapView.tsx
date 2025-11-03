@@ -3,21 +3,19 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from 'react'
-import type { CircleArc, MapPoint, SelectedElement, ViewportState } from '../types'
-import { buildSegmentsFromPoints } from '../utils'
+import type { CircleArc, LineSegment, SelectedElement, ViewportState } from '../types'
 
 type MapViewProps = {
-  points: MapPoint[]
+  lines: LineSegment[]
   circles: CircleArc[]
   selectedElement: SelectedElement | null
   onSelectElement: (element: SelectedElement | null) => void
-  onUpdatePoint: (
-    pointId: string,
-    updater: (point: MapPoint) => MapPoint,
+  onUpdateLine: (
+    lineId: string,
+    updater: (line: LineSegment) => LineSegment,
   ) => void
   onUpdateCircle: (
     circleId: string,
@@ -34,8 +32,9 @@ export type MapViewHandle = {
 
 type DragState =
   | {
-      kind: 'point'
-      pointId: string
+      kind: 'line-endpoint'
+      lineId: string
+      endpoint: 'start' | 'end'
       pointerId: number
     }
   | {
@@ -62,11 +61,11 @@ const MAX_SCALE = 350
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(
   (
     {
-      points,
+      lines,
       circles,
       selectedElement,
       onSelectElement,
-      onUpdatePoint,
+      onUpdateLine,
       onUpdateCircle,
     },
     ref,
@@ -82,9 +81,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
     const [dragState, setDragState] = useState<DragState | null>(null)
     const hasManualViewport = useRef(false)
     const initialFitDone = useRef(false)
-    const pointsRef = useLatest(points)
+    const linesRef = useLatest(lines)
     const circlesRef = useLatest(circles)
-    const segments = useMemo(() => buildSegmentsFromPoints(points), [points])
 
     useEffect(() => {
       if (!containerRef.current) return
@@ -102,7 +100,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
     }, [])
 
     const fitToContent = useCallback(() => {
-      const bounds = computeBounds(pointsRef.current, circlesRef.current)
+      const bounds = computeBounds(linesRef.current, circlesRef.current)
       const padding = 120
       const width = containerSize.width
       const height = containerSize.height
@@ -118,7 +116,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         offsetY: padding - bounds.minY * scale,
       })
       hasManualViewport.current = false
-    }, [circlesRef, containerSize.height, containerSize.width, pointsRef])
+    }, [circlesRef, containerSize.height, containerSize.width, linesRef])
 
     useEffect(() => {
       if (initialFitDone.current) return
@@ -185,10 +183,10 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       const screenX = event.clientX - rect.left
       const screenY = event.clientY - rect.top
 
-      if (dragState.kind === 'point') {
-        const point =
-          pointsRef.current.find((item) => item.id === dragState.pointId) ?? null
-        if (!point) return
+      if (dragState.kind === 'line-endpoint') {
+        const line =
+          linesRef.current.find((item) => item.id === dragState.lineId) ?? null
+        if (!line) return
         const worldPoint = screenToWorld(
           screenX,
           screenY,
@@ -197,12 +195,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           viewport.scale,
         )
 
-        onUpdatePoint(dragState.pointId, (prev) => ({
+        onUpdateLine(dragState.lineId, (prev) => ({
           ...prev,
-          position: {
+          [dragState.endpoint]: {
             x: worldPoint.x,
             y: worldPoint.y,
-            z: prev.position.z,
+            z: prev[dragState.endpoint].z,
           },
         }))
       } else if (dragState.kind === 'circle-center') {
@@ -320,57 +318,65 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       }
     }
 
-    const renderSegments = segments.map((segment) => {
-      const start = worldToScreen(segment.start, viewport)
-      const end = worldToScreen(segment.end, viewport)
-      const isConnected =
-        selectedElement?.type === 'point' &&
-        (selectedElement.pointId === segment.startPointId ||
-          selectedElement.pointId === segment.endPointId)
+    const renderSegments = lines.map((line) => {
+      const start = worldToScreen(line.start, viewport)
+      const end = worldToScreen(line.end, viewport)
+      const isSelected =
+        selectedElement?.type === 'line' && selectedElement.lineId === line.id
       return (
         <line
-          key={segment.id}
+          key={line.id}
           x1={start.x}
           y1={start.y}
           x2={end.x}
           y2={end.y}
-          stroke={isConnected ? '#58d0ff' : '#99a1b3'}
-          strokeWidth={isConnected ? 3.2 : 2.2}
+          stroke={isSelected ? '#58d0ff' : '#99a1b3'}
+          strokeWidth={isSelected ? 3.2 : 2.2}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            onSelectElement({ type: 'line', lineId: line.id })
+          }}
         />
       )
     })
 
-    const renderPointHandles = points.map((point) => {
-      const screenPoint = worldToScreen(point.position, viewport)
-      const isActive =
-        selectedElement?.type === 'point' && selectedElement.pointId === point.id
+    const renderLineHandles = lines.flatMap((line) => {
+      const isSelectedLine =
+        selectedElement?.type === 'line' && selectedElement.lineId === line.id
+      const activeEndpoint = isSelectedLine ? selectedElement.endpoint : undefined
 
-      return (
-        <g key={point.id} className="map-view__point">
-          <circle
-            className={`map-view__handle map-view__handle--point ${
-              isActive ? 'is-active' : ''
-            }`}
-            cx={screenPoint.x}
-            cy={screenPoint.y}
-            r={8}
-            stroke="rgba(255,255,255,0.85)"
-            strokeWidth={2}
-            fill="rgba(0,0,0,0.45)"
-            onPointerDown={(event) => {
-              event.stopPropagation()
-              const pointerId = event.pointerId
-              event.currentTarget.setPointerCapture(pointerId)
-              setDragState({
-                kind: 'point',
-                pointId: point.id,
-                pointerId,
-              })
-              onSelectElement({ type: 'point', pointId: point.id })
-            }}
-          />
-        </g>
-      )
+      return (['start', 'end'] as const).map((endpoint) => {
+        const screenPoint = worldToScreen(line[endpoint], viewport)
+        const isActive = isSelectedLine && activeEndpoint === endpoint
+
+        return (
+          <g key={`${line.id}-${endpoint}`} className="map-view__point">
+            <circle
+              className={`map-view__handle map-view__handle--point ${
+                isActive ? 'is-active' : ''
+              }`}
+              cx={screenPoint.x}
+              cy={screenPoint.y}
+              r={8}
+              stroke="rgba(255,255,255,0.85)"
+              strokeWidth={2}
+              fill="rgba(0,0,0,0.45)"
+              onPointerDown={(event) => {
+                event.stopPropagation()
+                const pointerId = event.pointerId
+                event.currentTarget.setPointerCapture(pointerId)
+                setDragState({
+                  kind: 'line-endpoint',
+                  lineId: line.id,
+                  endpoint,
+                  pointerId,
+                })
+                onSelectElement({ type: 'line', lineId: line.id, endpoint })
+              }}
+            />
+          </g>
+        )
+      })
     })
 
     const renderCircleArc = (circle: CircleArc) => {
@@ -504,7 +510,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           <g className="map-view__content">
             {renderSegments}
             {circles.map((circle) => renderCircleArc(circle))}
-            {renderPointHandles}
+            {renderLineHandles}
           </g>
         </svg>
       </div>
@@ -536,18 +542,21 @@ const screenToWorld = (
   y: (y - offsetY) / scale,
 })
 
-const computeBounds = (points: MapPoint[], circles: CircleArc[]) => {
+const computeBounds = (lines: LineSegment[], circles: CircleArc[]) => {
   let minX = Number.POSITIVE_INFINITY
   let minY = Number.POSITIVE_INFINITY
   let maxX = Number.NEGATIVE_INFINITY
   let maxY = Number.NEGATIVE_INFINITY
 
-  points.forEach((point) => {
-    const projectedX = projectX(point.position.x)
-    minX = Math.min(minX, projectedX)
-    maxX = Math.max(maxX, projectedX)
-    minY = Math.min(minY, point.position.y)
-    maxY = Math.max(maxY, point.position.y)
+  lines.forEach((line) => {
+    const endpoints = [line.start, line.end]
+    endpoints.forEach((endpoint) => {
+      const projectedX = projectX(endpoint.x)
+      minX = Math.min(minX, projectedX)
+      maxX = Math.max(maxX, projectedX)
+      minY = Math.min(minY, endpoint.y)
+      maxY = Math.max(maxY, endpoint.y)
+    })
   })
 
   circles.forEach((circle) => {
@@ -558,7 +567,7 @@ const computeBounds = (points: MapPoint[], circles: CircleArc[]) => {
     maxY = Math.max(maxY, circle.center.y + circle.radius)
   })
 
-  if (points.length === 0 && circles.length === 0) {
+  if (lines.length === 0 && circles.length === 0) {
     minX = -5
     maxX = 5
     minY = -5

@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import type { CircleArc, MapPoint, SelectedElement } from '../types'
+import type { CircleArc, LineSegment, SelectedElement } from '../types'
 
 type StatusMessage = {
   tone: 'info' | 'error' | 'success'
@@ -8,20 +8,19 @@ type StatusMessage = {
 
 type InspectorPanelProps = {
   selectedElement: SelectedElement | null
-  selectedPoint: MapPoint | null
+  selectedLine: LineSegment | null
   selectedCircle: CircleArc | null
-  points: MapPoint[]
+  lines: LineSegment[]
   circles: CircleArc[]
   status: StatusMessage | null
   onStatusClear: () => void
-  onAddPoint: () => void
-  onRemovePoint: (pointId: string) => void
-  onReorderPoint: (pointId: string, targetIndex: number) => void
+  onAddLine: () => void
+  onRemoveLine: (lineId: string) => void
   onAddCircle: () => void
   onRemoveCircle: (circleId: string) => void
-  onUpdatePoint: (
-    pointId: string,
-    updater: (point: MapPoint) => MapPoint,
+  onUpdateLine: (
+    lineId: string,
+    updater: (line: LineSegment) => LineSegment,
   ) => void
   onUpdateCircle: (
     circleId: string,
@@ -31,31 +30,31 @@ type InspectorPanelProps = {
 }
 
 export const InspectorPanel = ({
-  points,
+  lines,
   circles,
   selectedElement,
-  selectedPoint,
+  selectedLine,
   selectedCircle,
   status,
   onStatusClear,
-  onAddPoint,
-  onRemovePoint,
-  onReorderPoint,
+  onAddLine,
+  onRemoveLine,
   onAddCircle,
   onRemoveCircle,
   onUpdateCircle,
-  onUpdatePoint,
+  onUpdateLine,
   onSelectElement,
 }: InspectorPanelProps) => {
-  const updatePointCoordinate = (
-    pointId: string,
+  const updateLineEndpointCoordinate = (
+    lineId: string,
+    endpoint: 'start' | 'end',
     axis: 'x' | 'y' | 'z',
     value: number,
   ) => {
-    onUpdatePoint(pointId, (point) => ({
-      ...point,
-      position: {
-        ...point.position,
+    onUpdateLine(lineId, (line) => ({
+      ...line,
+      [endpoint]: {
+        ...line[endpoint],
         [axis]: value,
       },
     }))
@@ -94,131 +93,10 @@ export const InspectorPanel = ({
           </button>
         </div>
       ) : null}
-      <section className="inspector__section">
-        <h3 className="inspector__section-title">Points</h3>
-        {points.length === 0 ? (
-          <p className="inspector__empty">なし</p>
-        ) : (
-          <div className="inspector__list">
-            {points.map((point, index) => {
-              const isActive =
-                selectedElement?.type === 'point' &&
-                selectedElement.pointId === point.id
-              return (
-                <div
-                  key={point.id}
-                  className={`inspector__list-item ${isActive ? 'is-active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="inspector__list-trigger"
-                    onClick={() =>
-                      onSelectElement({ type: 'point', pointId: point.id })
-                    }
-                  >
-                    <span className="inspector__list-label">#{index + 1}</span>
-                    <span className="inspector__list-meta">
-                      ({point.position.x.toFixed(2)}, {point.position.y.toFixed(2)})
-                    </span>
-                  </button>
-                  <div className="inspector__list-actions">
-                    <button
-                      type="button"
-                      className="inspector__icon-button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onReorderPoint(point.id, index - 1)
-                      }}
-                      disabled={index === 0}
-                      aria-label="上に移動"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="inspector__icon-button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onReorderPoint(point.id, index + 1)
-                      }}
-                      disabled={index === points.length - 1}
-                      aria-label="下に移動"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="inspector__icon-button inspector__icon-button--danger"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onRemovePoint(point.id)
-                      }}
-                      aria-label="ポイントを削除"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <button type="button" className="inspector__add-button" onClick={onAddPoint}>
-          + Add point
-        </button>
-      </section>
-      <section className="inspector__section">
-        <h3 className="inspector__section-title">Circles</h3>
-        {circles.length === 0 ? (
-          <p className="inspector__empty">なし</p>
-        ) : (
-          <div className="inspector__list">
-            {circles.map((circle, index) => {
-              const isActive =
-                selectedElement?.type === 'circle' &&
-                selectedElement.circleId === circle.id
-              return (
-                <div
-                  key={circle.id}
-                  className={`inspector__list-item ${isActive ? 'is-active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="inspector__list-trigger"
-                    onClick={() =>
-                      onSelectElement({ type: 'circle', circleId: circle.id })
-                    }
-                  >
-                    <span className="inspector__list-label">#{index + 1}</span>
-                    <span className="inspector__list-meta">
-                      ({circle.center.x.toFixed(2)}, {circle.center.y.toFixed(2)})
-                    </span>
-                  </button>
-                  <div className="inspector__list-actions">
-                    <button
-                      type="button"
-                      className="inspector__icon-button inspector__icon-button--danger"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onRemoveCircle(circle.id)
-                      }}
-                      aria-label="サークルを削除"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <button type="button" className="inspector__add-button" onClick={onAddCircle}>
-          + Add circle
-        </button>
-      </section>
-      {selectedPoint ? (
+      {selectedLine ? (
         <div className="inspector__properties">
-          <h3 className="inspector__section-title">Point Properties</h3>
+          <h3 className="inspector__section-title">Line Properties</h3>
+          <span className="inspector__label-heading">Start</span>
           <div className="inspector__form-grid">
             {(['x', 'y', 'z'] as const).map((axis) => (
               <label key={axis} className="inspector__label">
@@ -226,10 +104,38 @@ export const InspectorPanel = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={selectedPoint.position[axis]}
+                  value={selectedLine.start[axis]}
                   onChange={(event) =>
                     handleNumberInput(event, (value) =>
-                      updatePointCoordinate(selectedPoint.id, axis, value),
+                      updateLineEndpointCoordinate(
+                        selectedLine.id,
+                        'start',
+                        axis,
+                        value,
+                      ),
+                    )
+                  }
+                />
+              </label>
+            ))}
+          </div>
+          <span className="inspector__label-heading">End</span>
+          <div className="inspector__form-grid">
+            {(['x', 'y', 'z'] as const).map((axis) => (
+              <label key={axis} className="inspector__label">
+                {axis.toUpperCase()}
+                <input
+                  type="number"
+                  step="0.01"
+                  value={selectedLine.end[axis]}
+                  onChange={(event) =>
+                    handleNumberInput(event, (value) =>
+                      updateLineEndpointCoordinate(
+                        selectedLine.id,
+                        'end',
+                        axis,
+                        value,
+                      ),
                     )
                   }
                 />
@@ -237,8 +143,7 @@ export const InspectorPanel = ({
             ))}
           </div>
         </div>
-      ) : null}
-      {selectedCircle ? (
+      ) : selectedCircle ? (
         <div className="inspector__properties">
           <h3 className="inspector__section-title">Circle Properties</h3>
           <span className="inspector__label-heading">Center</span>
@@ -317,10 +222,107 @@ export const InspectorPanel = ({
             </label>
           </div>
         </div>
-      ) : null}
-      {!selectedPoint && !selectedCircle ? (
-        <p className="inspector__hint">MapViewまたはポイントリストから要素を選択してください。</p>
-      ) : null}
+      ) : (
+        <p className="inspector__hint">MapViewまたはラインリストから要素を選択してください。</p>
+      )}
+      <section className="inspector__section">
+        <h3 className="inspector__section-title">Lines</h3>
+        {lines.length === 0 ? (
+          <p className="inspector__empty">なし</p>
+        ) : (
+          <div className="inspector__list">
+            {lines.map((line, index) => {
+              const isActive =
+                selectedElement?.type === 'line' &&
+                selectedElement.lineId === line.id
+              return (
+                <div
+                  key={line.id}
+                  className={`inspector__list-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="inspector__list-trigger"
+                    onClick={() =>
+                      onSelectElement({ type: 'line', lineId: line.id })
+                    }
+                  >
+                    <span className="inspector__list-label">#{index + 1}</span>
+                    <span className="inspector__list-meta">
+                      ({line.start.x.toFixed(2)}, {line.start.y.toFixed(2)}) -&gt; ({line.end.x.toFixed(2)}, {line.end.y.toFixed(2)})
+                    </span>
+                  </button>
+                  <div className="inspector__list-actions">
+                    <button
+                      type="button"
+                      className="inspector__icon-button inspector__icon-button--danger"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onRemoveLine(line.id)
+                      }}
+                      aria-label="線を削除"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <button type="button" className="inspector__add-button" onClick={onAddLine}>
+          + Add line
+        </button>
+      </section>
+      <section className="inspector__section">
+        <h3 className="inspector__section-title">Circles</h3>
+        {circles.length === 0 ? (
+          <p className="inspector__empty">なし</p>
+        ) : (
+          <div className="inspector__list">
+            {circles.map((circle, index) => {
+              const isActive =
+                selectedElement?.type === 'circle' &&
+                selectedElement.circleId === circle.id
+              return (
+                <div
+                  key={circle.id}
+                  className={`inspector__list-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="inspector__list-trigger"
+                    onClick={() =>
+                      onSelectElement({ type: 'circle', circleId: circle.id })
+                    }
+                  >
+                    <span className="inspector__list-label">#{index + 1}</span>
+                    <span className="inspector__list-meta">
+                      ({circle.center.x.toFixed(2)}, {circle.center.y.toFixed(2)})
+                    </span>
+                  </button>
+                  <div className="inspector__list-actions">
+                    <button
+                      type="button"
+                      className="inspector__icon-button inspector__icon-button--danger"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onRemoveCircle(circle.id)
+                      }}
+                      aria-label="サークルを削除"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <button type="button" className="inspector__add-button" onClick={onAddCircle}>
+          + Add circle
+        </button>
+      </section>
     </aside>
   )
 }
