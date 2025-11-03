@@ -24,6 +24,11 @@ line_segments_visualizer::line_segments_visualizer (const rclcpp::NodeOptions &o
     line_width_           = this->declare_parameter<double> ("line_width", 0.05);
     frame_id_             = this->declare_parameter<std::string> ("frame_id", "");
 
+    RCLCPP_INFO(this->get_logger(),"line_segments_visualizer node has been started.");
+    RCLCPP_INFO(this->get_logger(), "publish_period_ms : %d", publish_period_ms);
+    RCLCPP_INFO(this->get_logger(), "line_width : %0.2f", line_width_);
+    RCLCPP_INFO(this->get_logger(), "frame_id : %s", frame_id_.c_str());
+
     timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&line_segments_visualizer::timer_callback, this));
 }
 
