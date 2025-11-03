@@ -17,6 +17,7 @@ export type ViewportState = {
   offsetX: number
   offsetY: number
   scale: number
+  rotation: number
 }
 
 export type LineSegment = {

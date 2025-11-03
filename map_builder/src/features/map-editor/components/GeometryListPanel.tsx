@@ -29,9 +29,6 @@ export const GeometryListPanel = ({
     <aside className="inspector inspector--lists">
       <header className="inspector__header">
         <p className="inspector__title">Elements</p>
-        <p className="inspector__subtitle">
-          ラインとサークルの一覧。選択または削除ができます。
-        </p>
       </header>
       {status ? (
         <div

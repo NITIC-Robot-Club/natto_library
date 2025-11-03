@@ -20,6 +20,9 @@ export const InspectorPanel = ({
   onUpdateCircle,
   onUpdateLine,
 }: InspectorPanelProps) => {
+  const radToDeg = (rad: number) => (rad * 180) / Math.PI
+  const degToRad = (deg: number) => (deg * Math.PI) / 180
+
   const updateLineEndpointCoordinate = (
     lineId: string,
     endpoint: 'start' | 'end',
@@ -49,9 +52,6 @@ export const InspectorPanel = ({
     <aside className="inspector inspector--properties">
       <header className="inspector__header">
         <p className="inspector__title">Properties</p>
-        <p className="inspector__subtitle">
-          選択したラインやサークルの属性を調整できます。
-        </p>
       </header>
       {selectedLine ? (
         <section className="inspector__properties">
@@ -149,32 +149,32 @@ export const InspectorPanel = ({
               />
             </label>
             <label className="inspector__label">
-              Start angle (rad)
+              Start angle (deg)
               <input
                 type="number"
-                step="0.1"
-                value={selectedCircle.startAngle}
+                step="1"
+                value={radToDeg(selectedCircle.startAngle)}
                 onChange={(event) =>
                   handleNumberInput(event, (value) =>
                     onUpdateCircle(selectedCircle.id, (circle) => ({
                       ...circle,
-                      startAngle: value,
+                      startAngle: degToRad(value),
                     })),
                   )
                 }
               />
             </label>
             <label className="inspector__label">
-              End angle (rad)
+              End angle (deg)
               <input
                 type="number"
-                step="0.1"
-                value={selectedCircle.endAngle}
+                step="1"
+                value={radToDeg(selectedCircle.endAngle)}
                 onChange={(event) =>
                   handleNumberInput(event, (value) =>
                     onUpdateCircle(selectedCircle.id, (circle) => ({
                       ...circle,
-                      endAngle: value,
+                      endAngle: degToRad(value),
                     })),
                   )
                 }
