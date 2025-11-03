@@ -253,18 +253,6 @@ bool astar_planner::is_same_footprint (geometry_msgs::msg::PolygonStamped latest
     return true;
 }
 
-bool astar_planner::point_in_polygon (double x, double y, geometry_msgs::msg::Polygon polygon) {
-    bool   c = false;
-    size_t n = polygon.points.size ();
-    for (size_t i = 0, j = n - 1; i < n; j = i++) {
-        double xi = polygon.points[i].x, yi = polygon.points[i].y;
-        double xj = polygon.points[j].x, yj = polygon.points[j].y;
-        bool   intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi);
-        if (intersect) c = !c;
-    }
-    return c;
-}
-
 bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_msgs::msg::Quaternion &orientation) {
     if (obstacle_costmap_.data.empty ()) return true;
 

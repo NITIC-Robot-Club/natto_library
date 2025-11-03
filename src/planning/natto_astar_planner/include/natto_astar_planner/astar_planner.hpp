@@ -72,7 +72,6 @@ class astar_planner : public rclcpp::Node {
     bool   is_same_footprint (geometry_msgs::msg::PolygonStamped latest_footprint);
     bool   check_collision (geometry_msgs::msg::Pose pose);
     double wrap_to_2pi (double angle);
-    bool   point_in_polygon (double x, double y, geometry_msgs::msg::Polygon polygon);
     bool   rectangle_is_collision_free (int cx, int cy, const geometry_msgs::msg::Quaternion &orientation);
 
     nav_msgs::msg::Path linear_astar ();
