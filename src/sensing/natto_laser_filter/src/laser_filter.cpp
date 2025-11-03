@@ -21,14 +21,14 @@ laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("la
     subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", 10, std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
 
     threshold_ = this->declare_parameter<double> ("threshold", 0.83);
-    RCLCPP_INFO(this->get_logger(), "laser_filter node has been started.");
+    RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");
 }
 
 void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-    auto  out    = *msg;
-    auto &ranges = out.ranges;
-    const size_t n         = ranges.size ();
-    
+    auto         out    = *msg;
+    auto        &ranges = out.ranges;
+    const size_t n      = ranges.size ();
+
     const double angle_min = msg->angle_min;
     const double angle_inc = msg->angle_increment;
 
