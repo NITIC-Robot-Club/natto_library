@@ -107,15 +107,36 @@
 }
 
 .inspector {
-  width: 320px;
+  box-sizing: border-box;
   padding: 24px 20px 32px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
-  border-right: 1px solid rgba(148, 163, 184, 0.24);
   display: flex;
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
   min-height: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.85),
+    rgba(15, 23, 42, 0.55)
+  );
+  backdrop-filter: blur(18px);
+}
+
+.inspector--lists {
+  width: 300px;
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.35);
+}
+
+.inspector--properties {
+  width: 360px;
+  border-left: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.75),
+    rgba(15, 23, 42, 0.65)
+  );
 }
 
 .inspector__header {
@@ -174,6 +195,13 @@
 .inspector__section {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.inspector__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
@@ -287,8 +315,8 @@
 }
 
 .inspector__add-button {
-  align-self: flex-start;
-  margin-top: 4px;
+  align-self: auto;
+  margin-top: 0;
   padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.4);
@@ -367,6 +395,13 @@
   margin: 0;
   font-size: 0.8rem;
   color: rgba(148, 163, 184, 0.62);
+}
+
+.inspector__hint--centered {
+  margin-top: auto;
+  margin-bottom: auto;
+  text-align: center;
+  line-height: 1.6;
 }
 
 .map-editor__viewport {

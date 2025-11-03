@@ -1,7 +1,13 @@
 import { useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { CircleArc, LineSegment, SelectedElement } from './types'
+import type {
+  CircleArc,
+  LineSegment,
+  SelectedElement,
+  StatusMessage,
+} from './types'
 import { MapView, type MapViewHandle } from './components/MapView'
+import { GeometryListPanel } from './components/GeometryListPanel'
 import { InspectorPanel } from './components/InspectorPanel'
 import { TopBar } from './components/TopBar'
 import './mapEditor.css'
@@ -62,11 +68,6 @@ const SAMPLE_CIRCLES: CircleArc[] = [
     endAngle: 2 * Math.PI,
   },
 ]
-
-type StatusMessage = {
-  tone: 'info' | 'error' | 'success'
-  text: string
-}
 
 function MapEditor() {
   const [lines, setLines] = useState<LineSegment[]>(SAMPLE_LINES)
@@ -252,21 +253,17 @@ function MapEditor() {
         onDownload={handleDownload}
       />
       <div className="map-editor__body">
-        <InspectorPanel
+        <GeometryListPanel
           circles={circles}
           lines={lines}
           onAddCircle={addCircle}
           onAddLine={addLine}
-          onUpdateCircle={updateCircle}
-          onUpdateLine={updateLine}
           onRemoveCircle={removeCircle}
           onRemoveLine={removeLine}
-          selectedCircle={selectedCircle}
+          onSelectElement={setSelectedElement}
           selectedElement={selectedElement}
-          selectedLine={selectedLine}
           status={status}
           onStatusClear={() => setStatus(null)}
-          onSelectElement={setSelectedElement}
         />
         <div className="map-editor__viewport">
           <MapView
@@ -299,6 +296,12 @@ function MapEditor() {
             </HudButton>
           </div>
         </div>
+        <InspectorPanel
+          selectedCircle={selectedCircle}
+          selectedLine={selectedLine}
+          onUpdateCircle={updateCircle}
+          onUpdateLine={updateLine}
+        />
       </div>
     </div>
   )

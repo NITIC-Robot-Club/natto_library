@@ -8,6 +8,11 @@ export type SelectedElement =
   | { type: 'line'; lineId: string; endpoint?: 'start' | 'end' }
   | { type: 'circle'; circleId: string }
 
+export type StatusMessage = {
+  tone: 'info' | 'error' | 'success'
+  text: string
+}
+
 export type ViewportState = {
   offsetX: number
   offsetY: number
