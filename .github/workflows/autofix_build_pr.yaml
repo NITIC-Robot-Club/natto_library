@@ -48,7 +48,7 @@ jobs:
             
             PR_REPO="${{ github.event.pull_request.head.repo.clone_url }}"
             PR_REF="${{ github.event.pull_request.head.ref }}"
-            git push PR_REPO PR_REF
+            git push "$PR_REPO" "$PR_REF"
           fi
 
       - name: Build tests
