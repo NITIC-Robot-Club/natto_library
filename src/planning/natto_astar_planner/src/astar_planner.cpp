@@ -236,10 +236,7 @@ void astar_planner::build_footprint_mask () {
     }
 }
 
-bool astar_planner::rectangle_is_collision_free (
-    const int cx, const int cy, 
-    const double yaw, const double yaw_cos, const double yaw_sin
-) {
+bool astar_planner::rectangle_is_collision_free (const int cx, const int cy, const double yaw, const double yaw_cos, const double yaw_sin) {
     if (obstacle_costmap_.data.empty ()) return true;
 
     const int    width  = static_cast<int> (obstacle_costmap_.info.width);
@@ -282,10 +279,10 @@ bool astar_planner::rectangle_is_collision_free (
     return true;
 }
 
-bool astar_planner::rectangle_is_collision_free(const geometry_msgs::msg::Pose & pose) {
-    const double yaw = tf2::getYaw(pose.orientation);
-    const double yaw_cos = std::cos(yaw);
-    const double yaw_sin = std::sin(yaw);
+bool astar_planner::rectangle_is_collision_free (const geometry_msgs::msg::Pose &pose) {
+    const double yaw     = tf2::getYaw (pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
     return rectangle_is_collision_free (pose.position.x, pose.position.y, yaw, yaw_cos, yaw_sin);
 }
 
@@ -341,9 +338,9 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         {-1, -1}
     };
 
-    const double yaw = tf2::getYaw(current_pose_.pose.orientation);
-    const double yaw_cos = std::cos(yaw);
-    const double yaw_sin = std::sin(yaw);
+    const double yaw     = tf2::getYaw (current_pose_.pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
 
     while (!open.empty ()) {
         Node cur = open.top ();
@@ -362,10 +359,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
                 probe.position.x  = ox + (nx + 0.5) * res;
                 probe.position.y  = oy + (ny + 0.5) * res;
                 probe.orientation = current_pose_.pose.orientation;
-                if (rectangle_is_collision_free (
-                    probe.position.x, probe.position.y, 
-                    yaw, yaw_cos, yaw_sin
-                )){
+                if (rectangle_is_collision_free (probe.position.x, probe.position.y, yaw, yaw_cos, yaw_sin)) {
                     continue;
                 }
 
@@ -412,7 +406,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     return path;
 }
 
-nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path & linear_path) {
+nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path &linear_path) {
     if (linear_path.poses.size () < 3) return linear_path;
     nav_msgs::msg::Path path     = linear_path;
     auto                get_cost = [&] (int gx, int gy) -> double {
@@ -464,7 +458,7 @@ nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path & 
     return path;
 }
 
-nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path & linear_smoothed_path) {
+nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &linear_smoothed_path) {
     nav_msgs::msg::Path out;
     if (linear_smoothed_path.poses.empty ()) return out;
     const int N         = static_cast<int> (linear_smoothed_path.poses.size ());
@@ -574,7 +568,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path & li
     return out;
 }
 
-nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path & angular_path) {
+nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &angular_path) {
     if (angular_path.poses.size () < 3) return angular_path;
     int                 N         = angular_path.poses.size ();
     int                 num_theta = std::max (1, 360 / theta_resolution_deg_);
@@ -614,7 +608,7 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &
     return out;
 }
 
-geometry_msgs::msg::Pose astar_planner::find_free_space_pose (const geometry_msgs::msg::Pose & pose) {
+geometry_msgs::msg::Pose astar_planner::find_free_space_pose (const geometry_msgs::msg::Pose &pose) {
     if (obstacle_costmap_.data.empty ()) return pose;
 
     const int    width  = static_cast<int> (obstacle_costmap_.info.width);
@@ -628,9 +622,9 @@ geometry_msgs::msg::Pose astar_planner::find_free_space_pose (const geometry_msg
     double                   best_dist_sq = std::numeric_limits<double>::infinity ();
     geometry_msgs::msg::Pose best_pose    = pose;
 
-    const double yaw = tf2::getYaw(pose.orientation);
-    const double yaw_cos = std::cos(yaw);
-    const double yaw_sin = std::sin(yaw);
+    const double yaw     = tf2::getYaw (pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
 
     for (int cy = 0; cy < height; ++cy) {
         for (int cx = 0; cx < width; ++cx) {
