@@ -4,6 +4,10 @@
 # pointcloud2_merger
 このノードは、複数の `sensor_msgs/PointCloud2` メッセージを統合し、単一の `sensor_msgs/PointCloud2` メッセージとして出力します。
 
+## 機能
+- 複数のLiDARからのPointCloud2データを統合
+- ロボットのフットプリント情報を考慮してデータをフィルタリング
+
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
