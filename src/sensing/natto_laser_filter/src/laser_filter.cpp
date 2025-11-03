@@ -20,8 +20,9 @@ laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("la
     publisher_  = this->create_publisher<sensor_msgs::msg::LaserScan> ("output", 10);
     subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", 10, std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
 
-    threshold_ = this->declare_parameter<double> ("threshold", 0.83);
-    RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");
+     threshold_ = this->declare_parameter<double> ("threshold", 0.83);
+      RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");
+  RCLCPP_INFO(this->get_logger(), "threshold : %0.2f", threshold_);
 }
 
 void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
@@ -55,7 +56,6 @@ void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr m
             ranges[i] = std::numeric_limits<float>::quiet_NaN ();
         }
     }
-
     publisher_->publish (out);
 }
 
