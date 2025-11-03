@@ -4,6 +4,8 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
   push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -16,12 +18,13 @@ jobs:
       image: ghcr.io/nitic-robot-club/natto_library:latest
 
     steps:
-      - name: Checkout PR code (from fork)
-        run: |
-          git clone https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git repo
-          cd repo
-          git fetch origin ${{ github.event.pull_request.head.ref }}
-          git checkout FETCH_HEAD
+      - name: Checkout code (handles fork PRs safely)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
           
       - name: Run clang-format
         run: |
