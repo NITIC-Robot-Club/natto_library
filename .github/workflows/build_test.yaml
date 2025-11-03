@@ -15,21 +15,24 @@ jobs:
       image: ghcr.io/nitic-robot-club/natto_library:latest
 
     steps:
-      - name: Checkout target
+      - name: Checkout target commit
         working-directory: /home/nitic-robot-club/natto_library
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Fetching PR source..."
             git fetch https://github.com/${{ github.event.pull_request.head.repo.full_name }} \
               ${{ github.event.pull_request.head.ref }} --depth=1
-            git checkout FETCH_HEAD
+            git reset --hard FETCH_HEAD
           else
-            git fetch ${{ github.repository }} --depth=1
-            git checkout ${{ github.ref }}
+            echo "Fetching push branch..."
+            git fetch https://github.com/${{ github.repository }}.git ${{ github.ref }} --depth=1
+            git reset --hard FETCH_HEAD
           fi
+
           git remote -v
           git branch -v
-          git log --oneline -5
+          git log --oneline
+
 
       - name: Build test
         id: build_test
