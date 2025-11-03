@@ -19,6 +19,7 @@ type MapViewProps = {
   circles: CircleArc[]
   selectedElement: SelectedElement | null
   onSelectElement: (element: SelectedElement | null) => void
+  onBeginInteraction?: () => void
   onUpdateLine: (
     lineId: string,
     updater: (line: LineSegment) => LineSegment,
@@ -34,6 +35,8 @@ export type MapViewHandle = {
   zoomIn: () => void
   zoomOut: () => void
   resetZoom: () => void
+  rotateClockwise: () => void
+  resetRotation: () => void
 }
 
 type DragState =
@@ -69,6 +72,7 @@ type DragState =
       originY: number
       startOffsetX: number
       startOffsetY: number
+      hasMoved: boolean
     }
 
 const MIN_SCALE = 10
@@ -81,6 +85,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       circles,
       selectedElement,
       onSelectElement,
+      onBeginInteraction,
       onUpdateLine,
       onUpdateCircle,
     },
@@ -92,6 +97,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       offsetX: 120,
       offsetY: 200,
       scale: 60,
+      rotation: 0,
     })
     const [containerSize, setContainerSize] = useState({ width: 1, height: 1 })
     const [dragState, setDragState] = useState<DragState | null>(null)
@@ -130,6 +136,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         scale,
         offsetX: padding - bounds.minX * scale,
         offsetY: padding - bounds.minY * scale,
+        rotation: 0,
       })
       hasManualViewport.current = false
     }, [circlesRef, containerSize.height, containerSize.width, linesRef])
@@ -152,9 +159,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           const centerWorld = screenToWorld(
             centerX,
             centerY,
-            current.offsetX,
-            current.offsetY,
-            current.scale,
+            current,
           )
           const newOffsetX = centerX - projectX(centerWorld.x) * newScale
           const newOffsetY = centerY - centerWorld.y * newScale
@@ -162,8 +167,41 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
             scale: newScale,
             offsetX: newOffsetX,
             offsetY: newOffsetY,
+            rotation: current.rotation,
           }
         })
+      },
+      [containerSize.height, containerSize.width],
+    )
+
+    const rotateViewport = useCallback(
+      (delta: number) => {
+        setViewport((current) => {
+          const nextRotation = normalizeAngle(current.rotation + delta)
+          if (containerSize.width <= 0 || containerSize.height <= 0) {
+            return {
+              ...current,
+              rotation: nextRotation,
+            }
+          }
+          const centerX = containerSize.width / 2
+          const centerY = containerSize.height / 2
+          const centerWorld = screenToWorld(centerX, centerY, current)
+          const zeroOffsetViewport: ViewportState = {
+            ...current,
+            rotation: nextRotation,
+            offsetX: 0,
+            offsetY: 0,
+          }
+          const projectedCenter = worldToScreen(centerWorld, zeroOffsetViewport)
+          return {
+            ...current,
+            rotation: nextRotation,
+            offsetX: centerX - projectedCenter.x,
+            offsetY: centerY - projectedCenter.y,
+          }
+        })
+        hasManualViewport.current = true
       },
       [containerSize.height, containerSize.width],
     )
@@ -179,11 +217,18 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
             scale: 60,
             offsetX: 120,
             offsetY: 200,
+            rotation: viewport.rotation,
           })
           hasManualViewport.current = false
         },
+        rotateClockwise: () => {
+          rotateViewport(Math.PI / 2)
+        },
+        resetRotation: () => {
+          rotateViewport(-viewport.rotation)
+        },
       }),
-      [zoom, fitToContent],
+      [zoom, fitToContent, rotateViewport, viewport.rotation],
     )
 
     useEffect(() => {
@@ -203,13 +248,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         const line =
           linesRef.current.find((item) => item.id === dragState.lineId) ?? null
         if (!line) return
-        const worldPoint = screenToWorld(
-          screenX,
-          screenY,
-          viewport.offsetX,
-          viewport.offsetY,
-          viewport.scale,
-        )
+        const worldPoint = screenToWorld(screenX, screenY, viewport)
 
         onUpdateLine(dragState.lineId, (prev) => ({
           ...prev,
@@ -220,13 +259,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           },
         }))
       } else if (dragState.kind === 'line-translate') {
-        const worldPoint = screenToWorld(
-          screenX,
-          screenY,
-          viewport.offsetX,
-          viewport.offsetY,
-          viewport.scale,
-        )
+        const worldPoint = screenToWorld(screenX, screenY, viewport)
         const deltaX = worldPoint.x - dragState.originWorldX
         const deltaY = worldPoint.y - dragState.originWorldY
 
@@ -248,13 +281,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           circlesRef.current.find((item) => item.id === dragState.circleId) ??
           null
         if (!circle) return
-        const worldPoint = screenToWorld(
-          screenX,
-          screenY,
-          viewport.offsetX,
-          viewport.offsetY,
-          viewport.scale,
-        )
+        const worldPoint = screenToWorld(screenX, screenY, viewport)
         onUpdateCircle(dragState.circleId, (prev) => ({
           ...prev,
           center: {
@@ -268,13 +295,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           circlesRef.current.find((item) => item.id === dragState.circleId) ??
           null
         if (!circle) return
-        const worldPoint = screenToWorld(
-          screenX,
-          screenY,
-          viewport.offsetX,
-          viewport.offsetY,
-          viewport.scale,
-        )
+        const worldPoint = screenToWorld(screenX, screenY, viewport)
         const dx = worldPoint.x - circle.center.x
         const dy = worldPoint.y - circle.center.y
         const radius = Math.max(Math.hypot(dx, dy), 0.001)
@@ -285,16 +306,32 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       } else if (dragState.kind === 'pan') {
         const deltaX = event.clientX - dragState.originX
         const deltaY = event.clientY - dragState.originY
+        if (deltaX !== 0 || deltaY !== 0) {
+          setDragState((currentState) =>
+            currentState && currentState.kind === 'pan'
+              ? { ...currentState, hasMoved: true }
+              : currentState,
+          )
+        }
         setViewport((current) => ({
-          scale: current.scale,
+          ...current,
           offsetX: dragState.startOffsetX + deltaX,
           offsetY: dragState.startOffsetY + deltaY,
         }))
       }
     }
 
-    const endDrag = () => {
-      setDragState(null)
+    const endDrag = (options?: { cancelled?: boolean }) => {
+      setDragState((currentState) => {
+        if (
+          currentState?.kind === 'pan' &&
+          !currentState.hasMoved &&
+          !options?.cancelled
+        ) {
+          onSelectElement(null)
+        }
+        return null
+      })
     }
 
     const handlePointerUp = () => {
@@ -304,8 +341,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
     const handleBackgroundPointerDown = (
       event: React.PointerEvent<SVGRectElement>,
     ) => {
-      if (event.button === 0 && !event.altKey) {
-        onSelectElement(null)
+      if (event.button !== 0) {
         return
       }
 
@@ -320,6 +356,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         originY: event.clientY,
         startOffsetX: viewport.offsetX,
         startOffsetY: viewport.offsetY,
+        hasMoved: false,
       })
     }
 
@@ -342,14 +379,9 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           const rect = svgRef.current?.getBoundingClientRect()
           const screenX = rect ? event.clientX - rect.left : containerSize.width / 2
           const screenY = rect ? event.clientY - rect.top : containerSize.height / 2
-          const worldPoint = screenToWorld(
-            screenX,
-            screenY,
-            current.offsetX,
-            current.offsetY,
-            current.scale,
-          )
+          const worldPoint = screenToWorld(screenX, screenY, current)
           return {
+            ...current,
             scale: newScale,
             offsetX: screenX - projectX(worldPoint.x) * newScale,
             offsetY: screenY - worldPoint.y * newScale,
@@ -371,18 +403,13 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         const pointerId = event.pointerId
         event.currentTarget.setPointerCapture(pointerId)
         onSelectElement({ type: 'line', lineId: line.id })
+        onBeginInteraction?.()
 
         const rect = svgRef.current?.getBoundingClientRect()
         if (!rect) return
         const screenX = event.clientX - rect.left
         const screenY = event.clientY - rect.top
-        const worldPoint = screenToWorld(
-          screenX,
-          screenY,
-          viewport.offsetX,
-          viewport.offsetY,
-          viewport.scale,
-        )
+        const worldPoint = screenToWorld(screenX, screenY, viewport)
 
         setDragState({
           kind: 'line-translate',
@@ -422,7 +449,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       )
     })
 
-    const renderLineHandles = lines.flatMap((line) => {
+    const orderedLineHandles =
+      selectedElement?.type === 'line'
+        ? [
+            ...lines.filter((line) => line.id !== selectedElement.lineId),
+            lines.find((line) => line.id === selectedElement.lineId) ?? null,
+          ].filter((line): line is LineSegment => line !== null)
+        : lines
+
+    const renderLineHandles = orderedLineHandles.flatMap((line) => {
       const isSelectedLine =
         selectedElement?.type === 'line' && selectedElement.lineId === line.id
       const activeEndpoint = isSelectedLine ? selectedElement.endpoint : undefined
@@ -447,6 +482,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
                 event.stopPropagation()
                 const pointerId = event.pointerId
                 event.currentTarget.setPointerCapture(pointerId)
+                onBeginInteraction?.()
                 setDragState({
                   kind: 'line-endpoint',
                   lineId: line.id,
@@ -525,6 +561,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
               event.stopPropagation()
               const pointerId = event.pointerId
               event.currentTarget.setPointerCapture(pointerId)
+              onBeginInteraction?.()
               setDragState({
                 kind: 'circle-center',
                 circleId: circle.id,
@@ -542,6 +579,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
               event.stopPropagation()
               const pointerId = event.pointerId
               event.currentTarget.setPointerCapture(pointerId)
+              onBeginInteraction?.()
               setDragState({
                 kind: 'circle-radius',
                 circleId: circle.id,
@@ -561,7 +599,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           className="map-view__svg"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerCancel={endDrag}
+          onPointerCancel={() => endDrag({ cancelled: true })}
           onWheel={handleWheel}
           onContextMenu={(event) => event.preventDefault()}
         >
@@ -571,6 +609,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
               width={viewport.scale}
               height={viewport.scale}
               patternUnits="userSpaceOnUse"
+              patternTransform={`rotate(${(viewport.rotation * 180) / Math.PI})`}
             >
               <path
                 d={`M ${viewport.scale} 0 L 0 0 0 ${viewport.scale}`}
@@ -608,21 +647,48 @@ const clamp = (value: number, min: number, max: number) =>
 const projectX = (x: number) => -x
 const unprojectX = (value: number) => -value
 
-const worldToScreen = (point: { x: number; y: number }, viewport: ViewportState) => ({
-  x: projectX(point.x) * viewport.scale + viewport.offsetX,
-  y: point.y * viewport.scale + viewport.offsetY,
-})
+const rotatePoint = (x: number, y: number, rotation: number) => {
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  }
+}
 
-const screenToWorld = (
-  x: number,
-  y: number,
-  offsetX: number,
-  offsetY: number,
-  scale: number,
-) => ({
-  x: unprojectX((x - offsetX) / scale),
-  y: (y - offsetY) / scale,
-})
+const inverseRotatePoint = (x: number, y: number, rotation: number) => {
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+  return {
+    x: x * cos + y * sin,
+    y: -x * sin + y * cos,
+  }
+}
+
+const worldToScreen = (point: { x: number; y: number }, viewport: ViewportState) => {
+  const projectedX = projectX(point.x)
+  const rotated = rotatePoint(projectedX, point.y, viewport.rotation)
+  return {
+    x: rotated.x * viewport.scale + viewport.offsetX,
+    y: rotated.y * viewport.scale + viewport.offsetY,
+  }
+}
+
+const screenToWorld = (x: number, y: number, viewport: ViewportState) => {
+  const scaledX = (x - viewport.offsetX) / viewport.scale
+  const scaledY = (y - viewport.offsetY) / viewport.scale
+  const unrotated = inverseRotatePoint(scaledX, scaledY, viewport.rotation)
+  return {
+    x: unprojectX(unrotated.x),
+    y: unrotated.y,
+  }
+}
+
+const normalizeAngle = (angle: number) => {
+  const twoPi = Math.PI * 2
+  const normalized = angle % twoPi
+  return normalized < 0 ? normalized + twoPi : normalized
+}
 
 const computeBounds = (lines: LineSegment[], circles: CircleArc[]) => {
   let minX = Number.POSITIVE_INFINITY
