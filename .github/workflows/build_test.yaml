@@ -43,7 +43,9 @@ jobs:
           git log --oneline
           . /opt/ros/humble/setup.sh
           ls install
+          . install/setup.sh
           colcon build --symlink-install
+        continue-on-error: true
 
       - name: build_test command success
         if: steps.build_test.outcome == 'success'
