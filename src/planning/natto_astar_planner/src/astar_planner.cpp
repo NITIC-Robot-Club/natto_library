@@ -362,8 +362,12 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     const double        ox     = raw_map_.info.origin.position.x;
     const double        oy     = raw_map_.info.origin.position.y;
 
-    auto [sx, sy] = to_grid (current_pose_.pose.position.x, current_pose_.pose.position.y);
-    auto [gx, gy] = to_grid (goal_pose_.pose.position.x, goal_pose_.pose.position.y);
+    const auto start_grid = to_grid (current_pose_.pose.position.x, current_pose_.pose.position.y);
+    int        sx         = start_grid.first;
+    int        sy         = start_grid.second;
+    const auto goal_grid  = to_grid (goal_pose_.pose.position.x, goal_pose_.pose.position.y);
+    int        gx         = goal_grid.first;
+    int        gy         = goal_grid.second;
 
     auto idx = [&] (int x, int y) { return y * width + x; };
 
