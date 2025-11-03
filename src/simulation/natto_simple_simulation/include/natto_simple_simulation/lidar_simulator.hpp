@@ -22,6 +22,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "natto_msgs/msg/map.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <random>
 
