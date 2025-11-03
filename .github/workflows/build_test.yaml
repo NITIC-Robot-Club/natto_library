@@ -1,0 +1,54 @@
+name: Build test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build_test:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/nitic-robot-club/natto_library:latest
+
+    steps:
+      - name: Checkout target commit
+        working-directory: /home/nitic-robot-club/natto_library
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Fetching PR source..."
+            git fetch https://github.com/${{ github.event.pull_request.head.repo.full_name }} \
+              ${{ github.event.pull_request.head.ref }} --depth=1
+            git reset --hard FETCH_HEAD
+          else
+            echo "Fetching push branch..."
+            git fetch https://github.com/${{ github.repository }}.git ${{ github.ref }} --depth=1
+            git reset --hard FETCH_HEAD
+          fi
+
+          git remote -v
+          git branch -v
+          git log --oneline
+
+
+      - name: Build test
+        id: build_test
+        working-directory: /home/nitic-robot-club/natto_library
+        run: |
+          pwd
+          ls -la
+          git log --oneline
+          . /opt/ros/humble/setup.sh
+          ls install
+          colcon build --symlink-install
+
+      - name: build_test command success
+        if: steps.build_test.outcome == 'success'
+        run: echo "result - success"
+
+      - name: build_test command failure
+        if: steps.build_test.outcome == 'failure'
+        run: echo "result - failure" && exit 1
