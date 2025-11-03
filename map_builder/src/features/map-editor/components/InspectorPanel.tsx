@@ -22,6 +22,8 @@ export const InspectorPanel = ({
 }: InspectorPanelProps) => {
   const radToDeg = (rad: number) => (rad * 180) / Math.PI
   const degToRad = (deg: number) => (deg * Math.PI) / 180
+  const roundToThousandth = (value: number) =>
+    Number.isFinite(value) ? Math.round(value * 1000) / 1000 : value
 
   const updateLineEndpointCoordinate = (
     lineId: string,
@@ -64,7 +66,7 @@ export const InspectorPanel = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={selectedLine.start[axis]}
+                  value={roundToThousandth(selectedLine.start[axis])}
                   onChange={(event) =>
                     handleNumberInput(event, (value) =>
                       updateLineEndpointCoordinate(
@@ -87,7 +89,7 @@ export const InspectorPanel = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={selectedLine.end[axis]}
+                  value={roundToThousandth(selectedLine.end[axis])}
                   onChange={(event) =>
                     handleNumberInput(event, (value) =>
                       updateLineEndpointCoordinate(
@@ -114,7 +116,7 @@ export const InspectorPanel = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={selectedCircle.center[axis]}
+                  value={roundToThousandth(selectedCircle.center[axis])}
                   onChange={(event) =>
                     handleNumberInput(event, (value) =>
                       onUpdateCircle(selectedCircle.id, (circle) => ({
@@ -137,7 +139,7 @@ export const InspectorPanel = ({
                 type="number"
                 step="0.01"
                 min="0"
-                value={selectedCircle.radius}
+                value={roundToThousandth(selectedCircle.radius)}
                 onChange={(event) =>
                   handleNumberInput(event, (value) =>
                     onUpdateCircle(selectedCircle.id, (circle) => ({
@@ -153,7 +155,7 @@ export const InspectorPanel = ({
               <input
                 type="number"
                 step="1"
-                value={radToDeg(selectedCircle.startAngle)}
+                value={roundToThousandth(radToDeg(selectedCircle.startAngle))}
                 onChange={(event) =>
                   handleNumberInput(event, (value) =>
                     onUpdateCircle(selectedCircle.id, (circle) => ({
@@ -169,7 +171,7 @@ export const InspectorPanel = ({
               <input
                 type="number"
                 step="1"
-                value={radToDeg(selectedCircle.endAngle)}
+                value={roundToThousandth(radToDeg(selectedCircle.endAngle))}
                 onChange={(event) =>
                   handleNumberInput(event, (value) =>
                     onUpdateCircle(selectedCircle.id, (circle) => ({

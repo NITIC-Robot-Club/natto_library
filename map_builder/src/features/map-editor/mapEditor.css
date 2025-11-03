@@ -136,7 +136,7 @@
 }
 
 .inspector--properties {
-  width: 360px;
+  width: 300px;
   border-left: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.35);
   background: linear-gradient(
