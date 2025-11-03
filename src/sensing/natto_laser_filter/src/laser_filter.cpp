@@ -14,9 +14,6 @@
 
 #include "natto_laser_filter/laser_filter.hpp"
 
-#include <cmath>
-#include <limits>
-
 namespace laser_filter {
 
 laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("laser_filter", node_options) {
