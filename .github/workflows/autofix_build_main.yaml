@@ -1,4 +1,4 @@
-name: auto fix and build full docker
+name: auto fix and build full docker main
 on:
   push:
     branches:
@@ -19,7 +19,7 @@ jobs:
       - name: Fetch origin
         working-directory: /home/nitic-robot-club/natto_library
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           REPO: ${{ github.repository }}
         run: | 
           git config --global user.name "github-actions"

@@ -1,4 +1,4 @@
-name: auto fix and build full docker
+name: auto fix and build full docker pr
 on:
   pull_request_target:
   workflow_dispatch:
