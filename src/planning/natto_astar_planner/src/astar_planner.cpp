@@ -45,7 +45,7 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
 }
 
 void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-    if (is_same_map (*msg)) return;
+    if (raw_map_.data == msg->data) return;
     raw_map_ = *msg;
     create_costmap ();
     create_obstacle_costmap ();
@@ -62,7 +62,7 @@ void astar_planner::current_pose_callback (const geometry_msgs::msg::PoseStamped
 }
 
 void astar_planner::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
-    if (is_same_footprint (*msg)) return;
+    if (footprint_.polygon.points == msg->polygon.points) return;
     footprint_ = *msg;
     RCLCPP_INFO (this->get_logger (), "build footprint mask");
     build_footprint_mask ();
@@ -236,36 +236,7 @@ void astar_planner::build_footprint_mask () {
     }
 }
 
-bool astar_planner::is_same_map (nav_msgs::msg::OccupancyGrid latest_map) {
-    if (raw_map_.data.size () != latest_map.data.size ()) return false;
-    for (size_t i = 0; i < raw_map_.data.size (); ++i) {
-        if (raw_map_.data[i] != latest_map.data[i]) return false;
-    }
-    return true;
-}
-
-bool astar_planner::is_same_footprint (geometry_msgs::msg::PolygonStamped latest_footprint) {
-    if (footprint_.polygon.points.size () != latest_footprint.polygon.points.size ()) return false;
-    for (size_t i = 0; i < footprint_.polygon.points.size (); ++i) {
-        if (footprint_.polygon.points[i].x != latest_footprint.polygon.points[i].x) return false;
-        if (footprint_.polygon.points[i].y != latest_footprint.polygon.points[i].y) return false;
-    }
-    return true;
-}
-
-bool astar_planner::point_in_polygon (double x, double y, geometry_msgs::msg::Polygon polygon) {
-    bool   c = false;
-    size_t n = polygon.points.size ();
-    for (size_t i = 0, j = n - 1; i < n; j = i++) {
-        double xi = polygon.points[i].x, yi = polygon.points[i].y;
-        double xj = polygon.points[j].x, yj = polygon.points[j].y;
-        bool   intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi);
-        if (intersect) c = !c;
-    }
-    return c;
-}
-
-bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_msgs::msg::Quaternion &orientation) {
+bool astar_planner::rectangle_is_collision_free (const int cx, const int cy, const double yaw, const double yaw_cos, const double yaw_sin) {
     if (obstacle_costmap_.data.empty ()) return true;
 
     const int    width  = static_cast<int> (obstacle_costmap_.info.width);
@@ -289,16 +260,12 @@ bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_
         return true;
     }
 
-    double yaw = tf2::getYaw (orientation);
-    double cs  = std::cos (yaw);
-    double sn  = std::sin (yaw);
-
     double wx = ox + (cx + 0.5) * res;
     double wy = oy + (cy + 0.5) * res;
 
     for (const auto &vertex : footprint_.polygon.points) {
-        double vx = wx + vertex.x * cs - vertex.y * sn;
-        double vy = wy + vertex.x * sn + vertex.y * cs;
+        double vx = wx + vertex.x * yaw_cos - vertex.y * yaw_sin;
+        double vy = wy + vertex.x * yaw_sin + vertex.y * yaw_cos;
 
         int gx = static_cast<int> ((vx - ox) / res);
         int gy = static_cast<int> ((vy - oy) / res);
@@ -312,46 +279,11 @@ bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_
     return true;
 }
 
-bool astar_planner::check_collision (geometry_msgs::msg::Pose pose) {
-    if (footprint_mask_.empty ()) {
-        auto [gx, gy] = to_grid (pose.position.x, pose.position.y);
-        if (gx < 0 || gy < 0 || gx >= static_cast<int> (raw_map_.info.width) || gy >= static_cast<int> (raw_map_.info.height)) return true;
-        int idx = gy * raw_map_.info.width + gx;
-        return raw_map_.data[idx] > 50;
-    }
-
-    const int    width  = static_cast<int> (raw_map_.info.width);
-    const int    height = static_cast<int> (raw_map_.info.height);
-    const double res    = raw_map_.info.resolution;
-    const double ox     = raw_map_.info.origin.position.x;
-    const double oy     = raw_map_.info.origin.position.y;
-
-    double yaw = tf2::getYaw (pose.orientation);
-    double cs  = std::cos (yaw);
-    double sn  = std::sin (yaw);
-
-    int cx = static_cast<int> ((pose.position.x - ox) / res);
-    int cy = static_cast<int> ((pose.position.y - oy) / res);
-
-    int hw = footprint_mask_w_ / 2;
-    int hh = footprint_mask_h_ / 2;
-    for (int my = 0; my < footprint_mask_h_; ++my) {
-        for (int mx = 0; mx < footprint_mask_w_; ++mx) {
-            if (footprint_mask_[my * footprint_mask_w_ + mx] == 0) continue;
-            double lx = (mx - hw) * raw_map_.info.resolution;
-            double ly = (my - hh) * raw_map_.info.resolution;
-            double wx = pose.position.x + lx * cs - ly * sn;
-            double wy = pose.position.y + lx * sn + ly * cs;
-
-            int gx = static_cast<int> ((wx - ox) / res);
-            int gy = static_cast<int> ((wy - oy) / res);
-
-            if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
-
-            if (raw_map_.data[gy * width + gx] > 50) return true;
-        }
-    }
-    return false;
+bool astar_planner::rectangle_is_collision_free (const geometry_msgs::msg::Pose &pose) {
+    const double yaw     = tf2::getYaw (pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
+    return rectangle_is_collision_free (pose.position.x, pose.position.y, yaw, yaw_cos, yaw_sin);
 }
 
 nav_msgs::msg::Path astar_planner::linear_astar () {
@@ -406,6 +338,10 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         {-1, -1}
     };
 
+    const double yaw     = tf2::getYaw (current_pose_.pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
+
     while (!open.empty ()) {
         Node cur = open.top ();
         open.pop ();
@@ -423,7 +359,9 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
                 probe.position.x  = ox + (nx + 0.5) * res;
                 probe.position.y  = oy + (ny + 0.5) * res;
                 probe.orientation = current_pose_.pose.orientation;
-                if (check_collision (probe)) continue;
+                if (rectangle_is_collision_free (probe.position.x, probe.position.y, yaw, yaw_cos, yaw_sin)) {
+                    continue;
+                }
 
                 gscore[idx (nx, ny)]    = tentative;
                 came_from[idx (nx, ny)] = idx (cur.x, cur.y);
@@ -468,7 +406,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     return path;
 }
 
-nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_path) {
+nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path &linear_path) {
     if (linear_path.poses.size () < 3) return linear_path;
     nav_msgs::msg::Path path     = linear_path;
     auto                get_cost = [&] (int gx, int gy) -> double {
@@ -500,7 +438,7 @@ nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_p
 
             geometry_msgs::msg::Pose probe = path.poses[i].pose;
             probe.orientation              = path.poses[i].pose.orientation;
-            if (check_collision (probe)) {
+            if (rectangle_is_collision_free (probe)) {
                 path.poses[i].pose.position = linear_path.poses[i].pose.position;
             }
         }
@@ -520,7 +458,7 @@ nav_msgs::msg::Path astar_planner::linear_smoother (nav_msgs::msg::Path linear_p
     return path;
 }
 
-nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path linear_smoothed_path) {
+nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &linear_smoothed_path) {
     nav_msgs::msg::Path out;
     if (linear_smoothed_path.poses.empty ()) return out;
     const int N         = static_cast<int> (linear_smoothed_path.poses.size ());
@@ -533,7 +471,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
             geometry_msgs::msg::Pose probe = linear_smoothed_path.poses[i].pose;
             probe.orientation.z            = std::sin (yaw / 2.0);
             probe.orientation.w            = std::cos (yaw / 2.0);
-            if (check_collision (probe)) {
+            if (rectangle_is_collision_free (probe)) {
                 angle_cost[i][t] = 100;
             } else {
                 angle_cost[i][t] = 0;
@@ -630,7 +568,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path line
     return out;
 }
 
-nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path angular_path) {
+nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &angular_path) {
     if (angular_path.poses.size () < 3) return angular_path;
     int                 N         = angular_path.poses.size ();
     int                 num_theta = std::max (1, 360 / theta_resolution_deg_);
@@ -657,7 +595,7 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path a
             geometry_msgs::msg::Pose probe = angular_path.poses[i].pose;
             probe.orientation.z            = std::sin (thetas[i] / 2.0);
             probe.orientation.w            = std::cos (thetas[i] / 2.0);
-            if (check_collision (probe)) {
+            if (rectangle_is_collision_free (probe)) {
                 thetas[i] = angular_path.poses[i].pose.orientation.w;
             }
         }
@@ -670,7 +608,7 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path a
     return out;
 }
 
-geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg::Pose pose) {
+geometry_msgs::msg::Pose astar_planner::find_free_space_pose (const geometry_msgs::msg::Pose &pose) {
     if (obstacle_costmap_.data.empty ()) return pose;
 
     const int    width  = static_cast<int> (obstacle_costmap_.info.width);
@@ -684,13 +622,17 @@ geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg
     double                   best_dist_sq = std::numeric_limits<double>::infinity ();
     geometry_msgs::msg::Pose best_pose    = pose;
 
+    const double yaw     = tf2::getYaw (pose.orientation);
+    const double yaw_cos = std::cos (yaw);
+    const double yaw_sin = std::sin (yaw);
+
     for (int cy = 0; cy < height; ++cy) {
         for (int cx = 0; cx < width; ++cx) {
             int idx = cy * width + cx;
             if (idx < 0 || idx >= static_cast<int> (obstacle_costmap_.data.size ())) continue;
             if (obstacle_costmap_.data[idx] == 100) continue;
 
-            if (!rectangle_is_collision_free (cx, cy, pose.orientation)) continue;
+            if (!rectangle_is_collision_free (cx, cy, yaw, yaw_cos, yaw_sin)) continue;
 
             double wx = ox + (cx + 0.5) * res;
             double wy = oy + (cy + 0.5) * res;
