@@ -19,6 +19,9 @@
 
 #include "sensor_msgs/msg/laser_scan.hpp"
 
+#include <cmath>
+#include <limits>
+
 namespace laser_filter {
 class laser_filter : public rclcpp::Node {
    public:
