@@ -1,7 +1,7 @@
 name: autofix and build
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
   push:
     branches:
@@ -18,29 +18,28 @@ jobs:
       image: ghcr.io/nitic-robot-club/natto_library:latest
 
     steps:
-      - name: Checkout code (handles fork PRs safely)
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          ref: ${{ github.head_ref }}
 
-          
       - name: Run clang-format
         run: |
           find src -regex '.*\.\(cpp\|hpp\|h\)' -exec clang-format -i {} +
 
-      - name: Commit and push changes
+      - name: Commit and push autofix
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git config --global --add safe.directory /__w/natto_library/natto_library
 
-          git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=${{ secrets.GITHUB_TOKEN }}"; }; f'
+          # commit される変更があるか確認
           if ! git diff --quiet; then
             git add -u
             git commit -m "style(clang-format): autofix" || true
-            git push https://github.com/${{ github.repository }}.git HEAD:${{ github.head_ref || github.ref_name }}
+
+            # pull_requestイベントでは、このトークンがフォーク先に対してwrite可能
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref }}
           else
             echo "No changes to commit."
           fi
