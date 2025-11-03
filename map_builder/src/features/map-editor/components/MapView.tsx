@@ -6,7 +6,13 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { CircleArc, LineSegment, SelectedElement, ViewportState } from '../types'
+import type {
+  CircleArc,
+  LineSegment,
+  SelectedElement,
+  Vector3,
+  ViewportState,
+} from '../types'
 
 type MapViewProps = {
   lines: LineSegment[]
@@ -38,6 +44,15 @@ type DragState =
       pointerId: number
     }
   | {
+      kind: 'line-translate'
+      lineId: string
+      pointerId: number
+      originWorldX: number
+      originWorldY: number
+      initialStart: Vector3
+      initialEnd: Vector3
+    }
+  | {
       kind: 'circle-center'
       circleId: string
       pointerId: number
@@ -58,6 +73,7 @@ type DragState =
 
 const MIN_SCALE = 10
 const MAX_SCALE = 350
+const LINE_HIT_STROKE_WIDTH = 16
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(
   (
     {
@@ -203,6 +219,30 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
             z: prev[dragState.endpoint].z,
           },
         }))
+      } else if (dragState.kind === 'line-translate') {
+        const worldPoint = screenToWorld(
+          screenX,
+          screenY,
+          viewport.offsetX,
+          viewport.offsetY,
+          viewport.scale,
+        )
+        const deltaX = worldPoint.x - dragState.originWorldX
+        const deltaY = worldPoint.y - dragState.originWorldY
+
+        onUpdateLine(dragState.lineId, (prev) => ({
+          ...prev,
+          start: {
+            ...prev.start,
+            x: dragState.initialStart.x + deltaX,
+            y: dragState.initialStart.y + deltaY,
+          },
+          end: {
+            ...prev.end,
+            x: dragState.initialEnd.x + deltaX,
+            y: dragState.initialEnd.y + deltaY,
+          },
+        }))
       } else if (dragState.kind === 'circle-center') {
         const circle =
           circlesRef.current.find((item) => item.id === dragState.circleId) ??
@@ -323,20 +363,62 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       const end = worldToScreen(line.end, viewport)
       const isSelected =
         selectedElement?.type === 'line' && selectedElement.lineId === line.id
+      const strokeWidth = isSelected ? 3.2 : 2.2
+
+      const handleLinePointerDown = (event: React.PointerEvent<SVGLineElement>) => {
+        if (event.button !== 0) return
+        event.stopPropagation()
+        const pointerId = event.pointerId
+        event.currentTarget.setPointerCapture(pointerId)
+        onSelectElement({ type: 'line', lineId: line.id })
+
+        const rect = svgRef.current?.getBoundingClientRect()
+        if (!rect) return
+        const screenX = event.clientX - rect.left
+        const screenY = event.clientY - rect.top
+        const worldPoint = screenToWorld(
+          screenX,
+          screenY,
+          viewport.offsetX,
+          viewport.offsetY,
+          viewport.scale,
+        )
+
+        setDragState({
+          kind: 'line-translate',
+          lineId: line.id,
+          pointerId,
+          originWorldX: worldPoint.x,
+          originWorldY: worldPoint.y,
+          initialStart: { ...line.start },
+          initialEnd: { ...line.end },
+        })
+      }
+
       return (
-        <line
-          key={line.id}
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          stroke={isSelected ? '#58d0ff' : '#99a1b3'}
-          strokeWidth={isSelected ? 3.2 : 2.2}
-          onPointerDown={(event) => {
-            event.stopPropagation()
-            onSelectElement({ type: 'line', lineId: line.id })
-          }}
-        />
+        <g key={line.id} className="map-view__line">
+          <line
+            x1={start.x}
+            y1={start.y}
+            x2={end.x}
+            y2={end.y}
+            stroke={isSelected ? '#58d0ff' : '#99a1b3'}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            pointerEvents="none"
+          />
+          <line
+            x1={start.x}
+            y1={start.y}
+            x2={end.x}
+            y2={end.y}
+            stroke="rgba(0, 0, 0, 0)"
+            strokeWidth={LINE_HIT_STROKE_WIDTH}
+            strokeLinecap="round"
+            pointerEvents="stroke"
+            onPointerDown={handleLinePointerDown}
+          />
+        </g>
       )
     })
 
