@@ -100,8 +100,8 @@ void astar_planner::create_path () {
 
 void astar_planner::create_obstacle_costmap () {
     if (raw_map_.data.empty ()) return;
-    const int   width           = static_cast<int> (raw_map_.info.width);
-    const int   height          = static_cast<int> (raw_map_.info.height);
+    const int width  = static_cast<int> (raw_map_.info.width);
+    const int height = static_cast<int> (raw_map_.info.height);
 
     if (width == 0 || height == 0) return;
 
@@ -110,7 +110,7 @@ void astar_planner::create_obstacle_costmap () {
     std::vector<bool> visited (width * height, false);
     std::queue<int>   frontier;
 
-    auto enqueue = [&](int nx, int ny) {
+    auto enqueue = [&] (int nx, int ny) {
         if (nx < 0 || nx >= width) return;
         if (ny < 0 || ny >= height) return;
         int nidx = ny * width + nx;
@@ -131,8 +131,8 @@ void astar_planner::create_obstacle_costmap () {
         int idx = frontier.front ();
         frontier.pop ();
         obstacle_costmap_.data[idx] = 100;
-        int cx = idx % width;
-        int cy = idx / width;
+        int cx                      = idx % width;
+        int cy                      = idx / width;
         enqueue (cx + 1, cy);
         enqueue (cx - 1, cy);
         enqueue (cx, cy + 1);
@@ -277,7 +277,7 @@ bool astar_planner::rectangle_is_collision_free (int cx, int cy, const geometry_
     if (width == 0 || height == 0) return false;
     if (cx < 0 || cy < 0 || cx >= width || cy >= height) return false;
 
-    auto is_blocked = [&](int idx) {
+    auto is_blocked = [&] (int idx) {
         if (idx < 0 || idx >= static_cast<int> (obstacle_costmap_.data.size ())) return true;
         return obstacle_costmap_.data[idx] == 100;
     };
@@ -677,8 +677,8 @@ geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg
 
     if (width <= 0 || height <= 0) return pose;
 
-    double                 best_dist_sq = std::numeric_limits<double>::infinity ();
-    geometry_msgs::msg::Pose best_pose   = pose;
+    double                   best_dist_sq = std::numeric_limits<double>::infinity ();
+    geometry_msgs::msg::Pose best_pose    = pose;
 
     for (int cy = 0; cy < height; ++cy) {
         for (int cx = 0; cx < width; ++cx) {
@@ -691,14 +691,14 @@ geometry_msgs::msg::Pose astar_planner::find_free_space_pose (geometry_msgs::msg
             double wx = ox + (cx + 0.5) * res;
             double wy = oy + (cy + 0.5) * res;
 
-            double dx       = wx - pose.position.x;
-            double dy       = wy - pose.position.y;
-            double dist_sq  = dx * dx + dy * dy;
+            double dx      = wx - pose.position.x;
+            double dy      = wy - pose.position.y;
+            double dist_sq = dx * dx + dy * dy;
 
             if (dist_sq < best_dist_sq) {
-                best_dist_sq             = dist_sq;
-                best_pose.position.x     = wx;
-                best_pose.position.y     = wy;
+                best_dist_sq         = dist_sq;
+                best_pose.position.x = wx;
+                best_pose.position.y = wy;
             }
         }
     }

@@ -25,8 +25,8 @@
 #include "nav_msgs/msg/path.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <queue>
