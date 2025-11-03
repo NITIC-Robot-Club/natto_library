@@ -29,13 +29,12 @@ line_detector::line_detector (const rclcpp::NodeOptions &node_options) : Node ("
     distance_threshold_    = this->declare_parameter<double> ("distance_threshold", 0.01);
     segment_gap_threshold_ = this->declare_parameter<double> ("segment_gap_threshold", 0.1);
 
-    RCLCPP_INFO(this->get_logger(), "line_detector node has been started.");
-  RCLCPP_INFO(this->get_logger(), "max_iterations : %d", max_iterations_);
-  RCLCPP_INFO(this->get_logger(), "max_lines : %d", max_lines_);
-    RCLCPP_INFO(this->get_logger(), "min_inliers : %d", min_inliers_);
-    RCLCPP_INFO(this->get_logger(), "distance_threshold : %0.2f", distance_threshold_);
-    RCLCPP_INFO(this->get_logger(), "segment_gap_threshold : %0.2f", segment_gap_threshold_);
-    
+    RCLCPP_INFO (this->get_logger (), "line_detector node has been started.");
+    RCLCPP_INFO (this->get_logger (), "max_iterations : %d", max_iterations_);
+    RCLCPP_INFO (this->get_logger (), "max_lines : %d", max_lines_);
+    RCLCPP_INFO (this->get_logger (), "min_inliers : %d", min_inliers_);
+    RCLCPP_INFO (this->get_logger (), "distance_threshold : %0.2f", distance_threshold_);
+    RCLCPP_INFO (this->get_logger (), "segment_gap_threshold : %0.2f", segment_gap_threshold_);
 }
 
 void line_detector::pointcloud_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
