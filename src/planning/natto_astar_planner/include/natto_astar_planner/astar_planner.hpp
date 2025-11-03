@@ -71,8 +71,7 @@ class astar_planner : public rclcpp::Node {
     double wrap_to_2pi (double angle);
     bool   rectangle_is_collision_free (
         const int cx, const int cy, 
-        const double yaw, const double yaw_cos, const double yaw_sin
-    );
+        const double yaw, const double yaw_cos, const double yaw_sin);
     bool rectangle_is_collision_free(const geometry_msgs::msg::Pose & pose);
 
     nav_msgs::msg::Path linear_astar ();
