@@ -32,7 +32,6 @@
    ```
 
 ## 追加予定
-- natto_ransac : RANSACアルゴリズムを実装したパッケージ
 - natto_wheel_odometry : 車輪オドメトリを計算するパッケージ
 - natto_mcl : Monte Carlo Localizationを実装したパッケージ
 - natto_ekf_localizer : 拡張カルマンフィルタを用いた自己位置推定パッケージ
