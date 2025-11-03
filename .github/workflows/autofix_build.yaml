@@ -16,12 +16,13 @@ jobs:
       image: ghcr.io/nitic-robot-club/natto_library:latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
-
+      - name: Checkout PR code (from fork)
+        run: |
+          git clone https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git repo
+          cd repo
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git checkout FETCH_HEAD
+          
       - name: Run clang-format
         run: |
           find src -regex '.*\.\(cpp\|hpp\|h\)' -exec clang-format -i {} +
