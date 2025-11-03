@@ -26,7 +26,11 @@ jobs:
           PR_REF="${{ github.event.pull_request.head.ref }}"
           git fetch "${PR_REPO}" "${PR_REF}"
           git checkout -B pr-branch FETCH_HEAD
-          git pull --rebase origin "${{ github.event.pull_request.head.ref }}" || true
+          PR_REPO="${{ github.event.pull_request.head.repo.clone_url }}"
+          PR_REF="${{ github.event.pull_request.head.ref }}"
+          git fetch "$PR_REPO" "$PR_REF"
+          git checkout -B "$PR_REF" FETCH_HEAD
+          git pull --rebase "$PR_REPO" "$PR_REF" || true
 
       - name: Run clang-format (auto-fix)
         working-directory: /home/nitic-robot-club/natto_library
