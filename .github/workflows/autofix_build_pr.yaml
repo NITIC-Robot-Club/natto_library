@@ -45,10 +45,7 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Auto-fix: applied clang-format"
-            
-            PR_REPO="${{ github.event.pull_request.head.repo.clone_url }}"
-            PR_REF="${{ github.event.pull_request.head.ref }}"
-            git push PR_REPO PR_REF
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git ${{ github.event.pull_request.head.ref }} || true
           fi
 
       - name: Build tests
