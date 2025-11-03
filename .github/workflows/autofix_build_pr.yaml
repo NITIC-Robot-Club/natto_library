@@ -41,6 +41,7 @@ jobs:
           else
             git commit -m "Auto-fix: applied clang-format"
             git push
+          fi
 
       - name: Build tests
         id: build_test
