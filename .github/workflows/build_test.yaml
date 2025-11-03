@@ -38,6 +38,9 @@ jobs:
         id: build_test
         working-directory: /home/nitic-robot-club/natto_library
         run: |
+          pwd
+          ls -la
+          git log --oneline
           . /opt/ros/humble/setup.sh
           colcon build --symlink-install
 
