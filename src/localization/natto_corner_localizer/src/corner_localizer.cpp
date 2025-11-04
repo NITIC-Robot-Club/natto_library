@@ -48,13 +48,24 @@ void corner_localizer::corner_callback (const natto_msgs::msg::CornerArray::Shar
     }
 
     natto_msgs::msg::CornerArray         transformed_map_corners;
-    geometry_msgs::msg::TransformStamped odom_to_base;
+    geometry_msgs::msg::TransformStamped base_to_odom;
     try {
-        odom_to_base = tf_buffer_->lookupTransform (base_frame_id_, odom_frame_id_, tf2::TimePointZero);
+        base_to_odom = tf_buffer_->lookupTransform (base_frame_id_, odom_frame_id_, tf2::TimePointZero);
     } catch (tf2::TransformException &ex) {
         RCLCPP_WARN (this->get_logger (), "Transform error: %s", ex.what ());
         return;
     }
+
+    geometry_msgs::msg::TransformStamped odom_to_map;
+    odom_to_map.header          = last_map_to_odom_.header;
+    odom_to_map.header.frame_id = odom_frame_id_;
+    odom_to_map.child_frame_id  = map_frame_id_;
+
+    tf2::Transform tf_map_to_odom, tf_odom_to_map;
+    tf2::fromMsg (last_map_to_odom_.transform, tf_map_to_odom);
+    tf_odom_to_map = tf_map_to_odom.inverse ();
+
+    odom_to_map.transform = tf2::toMsg (tf_odom_to_map);
 
     for (const auto &map_corner : map_corners_.corners) {
         geometry_msgs::msg::PointStamped corner_in_map;
@@ -65,20 +76,17 @@ void corner_localizer::corner_callback (const natto_msgs::msg::CornerArray::Shar
         geometry_msgs::msg::PointStamped corner_in_odom;
         corner_in_odom.header.frame_id = odom_frame_id_;
         corner_in_odom.header.stamp    = this->now ();
-        tf2::doTransform (corner_in_map, corner_in_odom, last_map_to_odom_);
-        RCLCPP_INFO (this->get_logger (), "map : %.2f , odom %.2f, tf: %.2f", corner_in_map.point.x, corner_in_odom.point.x, last_map_to_odom_.transform.translation.x);
+        tf2::doTransform (corner_in_map, corner_in_odom, odom_to_map);
 
         geometry_msgs::msg::PointStamped corner_in_base;
         corner_in_base.header.frame_id = base_frame_id_;
         corner_in_base.header.stamp    = this->now ();
-        tf2::doTransform (corner_in_odom, corner_in_base, odom_to_base);
-        RCLCPP_INFO (this->get_logger (), "odom : %.2f , base : %.2f, tf: %.2f", corner_in_odom.point.x, corner_in_base.point.x, odom_to_base.transform.translation.x);
+        tf2::doTransform (corner_in_odom, corner_in_base, base_to_odom);
 
-        return;
         natto_msgs::msg::Corner transformed_corner;
         transformed_corner.position = corner_in_base.point;
 
-        double base_yaw         = tf2::getYaw (odom_to_base.transform.rotation) + tf2::getYaw (last_map_to_odom_.transform.rotation);
+        double base_yaw         = tf2::getYaw (base_to_odom.transform.rotation) + tf2::getYaw (odom_to_map.transform.rotation);
         transformed_corner.yaw1 = map_corner.yaw1 + base_yaw;
         transformed_corner.yaw2 = map_corner.yaw2 + base_yaw;
 
@@ -86,24 +94,32 @@ void corner_localizer::corner_callback (const natto_msgs::msg::CornerArray::Shar
     }
     debug_coner_publisher_->publish (transformed_map_corners);
 
-    last_map_to_odom_.header.stamp = this->now ();
-    tf_broadcaster_->sendTransform (last_map_to_odom_);
-
     std::vector<std::pair<natto_msgs::msg::Corner, natto_msgs::msg::Corner>> matched_corners;
     for (const auto &observed_corner : msg->corners) {
+        double                  best_distance = std::numeric_limits<double>::max ();
+        natto_msgs::msg::Corner best_map_corner;
         for (const auto &map_corner : transformed_map_corners.corners) {
-            if (is_same_corner (observed_corner, map_corner)) {
-                matched_corners.push_back (std::make_pair (observed_corner, map_corner));
-                break;
+            double dx       = observed_corner.position.x - map_corner.position.x;
+            double dy       = observed_corner.position.y - map_corner.position.y;
+            double distance = std::sqrt (dx * dx + dy * dy);
+            if (distance < best_distance) {
+                best_distance   = distance;
+                best_map_corner = map_corner;
             }
+            // if (is_same_corner (observed_corner, map_corner)) {
+            //     matched_corners.push_back (std::make_pair (observed_corner, map_corner));
+            //     break;
+            // }
         }
+        if (best_distance > 1.0) continue;
+        matched_corners.push_back (std::make_pair (observed_corner, best_map_corner));
     }
     if (matched_corners.size () < 2) {
-        // RCLCPP_WARN (this->get_logger (), "Not enough matched corners for localization.");
+        RCLCPP_WARN (this->get_logger (), "Not enough matched corners for localization.");
+        last_map_to_odom_.header.stamp = this->now ();
+        tf_broadcaster_->sendTransform (last_map_to_odom_);
         return;
     }
-
-    return;
 
     double mean_x_obs = 0.0, mean_y_obs = 0.0;
     double mean_x_map = 0.0, mean_y_map = 0.0;
@@ -138,10 +154,10 @@ void corner_localizer::corner_callback (const natto_msgs::msg::CornerArray::Shar
     double ty = mean_y_map - (sin_t * mean_x_obs + cos_t * mean_y_obs);
 
     tf2::Quaternion q;
-    q.setRPY (0.0, 0.0, tf2::getYaw (last_map_to_odom_.transform.rotation) - theta);
+    q.setRPY (0.0, 0.0, tf2::getYaw (last_map_to_odom_.transform.rotation) + theta / 10.0);
     last_map_to_odom_.header.stamp = this->now ();
-    last_map_to_odom_.transform.translation.x -= tx;
-    last_map_to_odom_.transform.translation.y -= ty;
+    last_map_to_odom_.transform.translation.x += tx / 10.0;
+    last_map_to_odom_.transform.translation.y += ty / 10.0;
     last_map_to_odom_.transform.rotation.x = q.x ();
     last_map_to_odom_.transform.rotation.y = q.y ();
     last_map_to_odom_.transform.rotation.z = q.z ();
@@ -149,6 +165,7 @@ void corner_localizer::corner_callback (const natto_msgs::msg::CornerArray::Shar
 
     tf_broadcaster_->sendTransform (last_map_to_odom_);
 
+    q.setRPY (0.0, 0.0, theta);
     geometry_msgs::msg::PoseStamped pose_msg;
     pose_msg.header.stamp       = this->now ();
     pose_msg.header.frame_id    = map_frame_id_;
@@ -202,7 +219,7 @@ void corner_localizer::map_callback (const natto_msgs::msg::Map::SharedPtr msg) 
 }
 
 bool corner_localizer::is_same_corner (natto_msgs::msg::Corner corner1, natto_msgs::msg::Corner corner2) {
-    double position_threshold = 0.4;
+    double position_threshold = 0.1;
     double angle_threshold    = 0.5;
 
     double dx       = corner1.position.x - corner2.position.x;
@@ -210,15 +227,20 @@ bool corner_localizer::is_same_corner (natto_msgs::msg::Corner corner1, natto_ms
     double distance = std::sqrt (dx * dx + dy * dy);
     if (distance > position_threshold) return false;
 
-    double dyaw1 = std::fabs (corner1.yaw1 - corner2.yaw1);
-    dyaw1        = std::fmod (dyaw1 + M_PI, 2.0 * M_PI) - M_PI;  // wrap to [-pi, pi]
-    dyaw1        = std::fabs (dyaw1);
+    auto angle_diff = [] (double a, double b) {
+        double d = std::fmod (std::fabs (a - b) + M_PI, 2.0 * M_PI) - M_PI;
+        return std::fabs (d);
+    };
 
-    double dyaw2 = std::fabs (corner1.yaw2 - corner2.yaw2);
-    dyaw2        = std::fmod (dyaw2 + M_PI, 2.0 * M_PI) - M_PI;  // wrap to [-pi, pi]
-    dyaw2        = std::fabs (dyaw2);
+    double dyaw11 = angle_diff (corner1.yaw1, corner2.yaw1);
+    double dyaw22 = angle_diff (corner1.yaw2, corner2.yaw2);
+    double dyaw12 = angle_diff (corner1.yaw1, corner2.yaw2);
+    double dyaw21 = angle_diff (corner1.yaw2, corner2.yaw1);
 
-    // if (dyaw1 > angle_threshold || dyaw2 > angle_threshold) return false;
+    bool normal_match  = (dyaw11 < angle_threshold && dyaw22 < angle_threshold);
+    bool swapped_match = (dyaw12 < angle_threshold && dyaw21 < angle_threshold);
+
+    // return (normal_match || swapped_match);
     return true;
 }
 

@@ -142,6 +142,26 @@ Visualization Manager:
       Name: Common
     - Class: rviz_common/Group
       Displays:
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz_default_plugins/Pose
+          Color: 255; 25; 0
+          Enabled: true
+          Head Length: 0.30000001192092896
+          Head Radius: 0.10000000149011612
+          Name: Pose
+          Shaft Length: 1
+          Shaft Radius: 0.05000000074505806
+          Shape: Arrow
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /localization/pose
+          Value: true
         - Class: rviz_common/Group
           Displays:
             - Alpha: 1
@@ -183,9 +203,9 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /localization/swerve_odometry/pose
               Value: true
-          Enabled: true
+          Enabled: false
           Name: WheelOdometry
-      Enabled: false
+      Enabled: true
       Name: Localization
     - Class: rviz_common/Group
       Displays:
@@ -528,17 +548,17 @@ Visualization Manager:
             Value: /visualization/corners
           Value: false
         - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
+          Enabled: false
           Name: DebugCorners
           Namespaces:
-            corners: true
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /visualization/debug_corners
-          Value: true
+          Value: false
       Enabled: true
       Name: Sensing
     - Class: rviz_common/Group
@@ -611,7 +631,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10.022316932678223
+      Distance: 12.21252727508545
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

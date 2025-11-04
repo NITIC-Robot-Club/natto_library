@@ -104,11 +104,11 @@
         </composable_node>
 
         <!-- コーナーからの自己位置推定 -->
-        <!-- <composable_node pkg="natto_corner_localizer" plugin="corner_localizer::corner_localizer" name="corner_localizer" namespace="localization/corner_localizer">
+        <composable_node pkg="natto_corner_localizer" plugin="corner_localizer::corner_localizer" name="corner_localizer" namespace="localization/corner_localizer">
             <remap from="corners" to="/sensing/lidar/corners"/>
             <remap from="pose" to="/localization/pose"/>
             <remap from="map" to="/map"/>
-        </composable_node> -->
+        </composable_node>
     </node_container>
 
     <!-- コントロールコンテナ -->
@@ -200,8 +200,8 @@
 
         <composable_node pkg="natto_visualization_converter" plugin="corners_visualizer::corners_visualizer" name="corners_visualizer" namespace="visualization/corners">
             <param name="publish_period_ms" value="10"/>
-            <!-- <remap from="corners" to="/localization/corner_localizer/debug_corners"/> -->
-            <remap from="corners" to="/debug_corners"/>
+            <remap from="corners" to="/localization/corner_localizer/debug_corners"/>
+            <!-- <remap from="corners" to="/debug_corners"/> -->
             <remap from="marker_array" to="/visualization/debug_corners"/>
             <param name="frame_id" value="base_link"/>
         </composable_node>
