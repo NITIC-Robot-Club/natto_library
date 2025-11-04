@@ -25,7 +25,6 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
     tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    infinite_swerve_mode_        = this->declare_parameter<bool> ("infinite_swerve_mode", false);
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x             = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y             = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
@@ -45,7 +44,6 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
 
     RCLCPP_INFO (this->get_logger (), "swerve_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
-    RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
