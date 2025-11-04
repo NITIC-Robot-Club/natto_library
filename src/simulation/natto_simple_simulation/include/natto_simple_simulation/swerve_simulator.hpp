@@ -50,9 +50,9 @@ class swerve_simulator : public rclcpp::Node {
     void                                 apply_wheel_response (double dt, const natto_msgs::msg::Swerve &latest_command);
     void                                 publish_swerve_result ();
     std::array<double, 3>                estimate_body_velocity () const;
-    void                                 integrate_pose (double vx, double vy, double vz, double dt);
-    void                                 publish_pose ();
-    void                                 broadcast_transform ();
+    geometry_msgs::msg::Pose             integrate_pose (const double vx, const double vy, const double vz, const double dt);
+    void                                 publish_pose (const geometry_msgs::msg::Pose &new_pose);
+    void                                 broadcast_transform (const geometry_msgs::msg::Pose &new_pose);
 
     void swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
     void timer_callback ();

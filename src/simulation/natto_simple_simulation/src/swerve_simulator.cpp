@@ -169,38 +169,43 @@ std::array<double, 3> swerve_simulator::estimate_body_velocity () const {
     return {A[0][3], A[1][3], A[2][3]};
 }
 
-void swerve_simulator::integrate_pose (double vx, double vy, double vz, double dt) {
-    double yaw      = tf2::getYaw (current_pose.pose.orientation);
-    double vx_world = vx * std::cos (yaw) - vy * std::sin (yaw);
-    double vy_world = vx * std::sin (yaw) + vy * std::cos (yaw);
+geometry_msgs::msg::Pose swerve_simulator::integrate_pose (const double vx, const double vy, const double vz, const double dt) {
+    const auto yaw      = tf2::getYaw (current_pose.pose.orientation);
+    const auto vx_world = vx * std::cos (yaw) - vy * std::sin (yaw);
+    const auto vy_world = vx * std::sin (yaw) + vy * std::cos (yaw);
 
-    current_pose.pose.position.x += vx_world * dt;
-    current_pose.pose.position.y += vy_world * dt;
-    yaw += vz * dt;
+    auto new_pose = current_pose.pose;
+
+    new_pose.position.x += vx_world * dt;
+    new_pose.position.y += vy_world * dt;
 
     tf2::Quaternion q;
-    q.setRPY (0.0, 0.0, yaw);
-    current_pose.pose.orientation.x = q.x ();
-    current_pose.pose.orientation.y = q.y ();
-    current_pose.pose.orientation.z = q.z ();
-    current_pose.pose.orientation.w = q.w ();
+    q.setRPY (0.0, 0.0, yaw + vz * dt);
+    new_pose.orientation.x = q.x ();
+    new_pose.orientation.y = q.y ();
+    new_pose.orientation.z = q.z ();
+    new_pose.orientation.w = q.w ();
+
+    return new_pose;
 }
 
-void swerve_simulator::publish_pose () {
-    current_pose.header.stamp    = this->now ();
-    current_pose.header.frame_id = "map";
-    simulation_pose_publisher_->publish (current_pose);
+void swerve_simulator::publish_pose (const geometry_msgs::msg::Pose &new_pose) {
+    auto message = geometry_msgs::msg::PoseStamped();
+    message.header.stamp = this->now ();
+    message.header.frame_id = "map";
+    message.pose = new_pose;
+    simulation_pose_publisher_->publish (message);
 }
 
-void swerve_simulator::broadcast_transform () {
+void swerve_simulator::broadcast_transform (const geometry_msgs::msg::Pose &new_pose) {
     geometry_msgs::msg::TransformStamped tf_msg;
     tf_msg.header.stamp            = this->now ();
     tf_msg.header.frame_id         = "map";
     tf_msg.child_frame_id          = "simulation";
-    tf_msg.transform.translation.x = current_pose.pose.position.x;
-    tf_msg.transform.translation.y = current_pose.pose.position.y;
-    tf_msg.transform.translation.z = current_pose.pose.position.z;
-    tf_msg.transform.rotation      = current_pose.pose.orientation;
+    tf_msg.transform.translation.x = new_pose.position.x;
+    tf_msg.transform.translation.y = new_pose.position.y;
+    tf_msg.transform.translation.z = new_pose.position.z;
+    tf_msg.transform.rotation      = new_pose.orientation;
 
     tf_broadcaster_->sendTransform (tf_msg);
 }
@@ -221,13 +226,14 @@ void swerve_simulator::timer_callback () {
     received_commands.clear ();
 
     // ホイール挙動から機体の速度を推定する
-    const auto velocities = estimate_body_velocity ();
+    const auto [vx, vy, vz] = estimate_body_velocity ();
     // 推定速度を積分して現在姿勢を更新する
-    integrate_pose (velocities[0], velocities[1], velocities[2], dt);
+    const auto new_pose = integrate_pose (vx, vy, vz, dt);
+    current_pose.pose = new_pose;
     // 姿勢トピックをPublsihする
-    publish_pose ();
+    publish_pose (current_pose.pose);
     // TFを更新してbroadcastする
-    broadcast_transform ();
+    broadcast_transform (current_pose.pose);
 }
 
 }  // namespace swerve_simulator
