@@ -30,10 +30,3 @@
    ```bash
    echo "source ~/natto_library/install/setup.bash" >> ~/.bashrc
    ```
-
-## 追加予定
-- natto_wheel_odometry : 車輪オドメトリを計算するパッケージ
-- natto_mcl : Monte Carlo Localizationを実装したパッケージ
-- natto_ekf_localizer : 拡張カルマンフィルタを用いた自己位置推定パッケージ
-- natto_speed_planner : 速度計画を行うパッケージ
-- natto_pid_controller : PID制御で速度追従を行うパッケージ

@@ -14,6 +14,9 @@
 - [natto_holonomic_pure_pursuit](control/natto_holonomic_pure_pursuit) : ホロノミックロボットのためのピュアパシュート制御を行う
 - [natto_swerve_calculator](control/natto_swerve_calculator) : N輪独立ステアリングのホイール指令を計算する
 
+### localization
+- [natto_wheel_odometry](localization/natto_wheel_odometry) : 計測輪や足回りの出力結果からオドメトリを計算する
+
 ### message
 - [natto_msgs](message/natto_msgs) : 共通で使うメッセージ定義
 
