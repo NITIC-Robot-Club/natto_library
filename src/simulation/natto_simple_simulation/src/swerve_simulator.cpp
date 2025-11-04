@@ -14,6 +14,9 @@
 
 #include "natto_simple_simulation/swerve_simulator.hpp"
 
+#include <cmath>
+#include <stdexcept>
+
 namespace swerve_simulator {
 
 swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : Node ("swerve_simulator", node_options) {
@@ -63,28 +66,45 @@ void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::S
     received_commands.push_back (*msg);
 }
 
-void swerve_simulator::timer_callback () {
+void swerve_simulator::ensure_command_available () {
     if (received_commands.empty ()) {
         received_commands.push_back (result);
     }
+}
+
+void swerve_simulator::compute_average_command () {
     natto_msgs::msg::Swerve command_sum;
-    command_sum.wheel_angle.resize (num_wheels_, 0.0);
-    command_sum.wheel_speed.resize (num_wheels_, 0.0);
-    for (int i = 0; i < received_commands.size (); i++) {
+    command_sum.wheel_angle.assign (num_wheels_, 0.0);
+    command_sum.wheel_speed.assign (num_wheels_, 0.0);
+
+    for (const auto &cmd : received_commands) {
+        if (cmd.wheel_speed.size () != num_wheels_ || cmd.wheel_angle.size () != num_wheels_) {
+            RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
+            RCLCPP_INFO (
+                this->get_logger (),
+                "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu",
+                num_wheels_,
+                cmd.wheel_angle.size (),
+                cmd.wheel_speed.size ()
+            );
+            throw std::runtime_error ("Received command size does not match number of wheels.");
+        }
+
         for (int j = 0; j < num_wheels_; j++) {
-            if (received_commands[i].wheel_speed.size () != num_wheels_ || received_commands[i].wheel_angle.size () != num_wheels_) {
-                RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
-                RCLCPP_INFO (this->get_logger (), "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, received_commands[i].wheel_angle.size (), received_commands[i].wheel_speed.size ());
-            }
-            command_sum.wheel_angle[j] += received_commands[i].wheel_angle[j];
-            command_sum.wheel_speed[j] += received_commands[i].wheel_speed[j];
+            command_sum.wheel_angle[j] += cmd.wheel_angle[j];
+            command_sum.wheel_speed[j] += cmd.wheel_speed[j];
         }
     }
+
+    command.wheel_angle.assign (num_wheels_, 0.0);
+    command.wheel_speed.assign (num_wheels_, 0.0);
     for (int j = 0; j < num_wheels_; j++) {
         command.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands.size ();
         command.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands.size ();
     }
+}
 
+void swerve_simulator::apply_wheel_response (double dt, const natto_msgs::msg::Swerve &latest_command) {
     for (int i = 0; i < num_wheels_; i++) {
         double angle_error = command.wheel_angle[i] - result.wheel_angle[i];
         double speed_error = command.wheel_speed[i] - result.wheel_speed[i];
@@ -92,18 +112,22 @@ void swerve_simulator::timer_callback () {
         double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (result.wheel_angle[i] - command.wheel_angle[i]);
         double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (result.wheel_speed[i] - command.wheel_speed[i]);
 
-        result.wheel_angle[i] += angle_adjustment * period_ms / 1000.0;
-        result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
+        result.wheel_angle[i] += angle_adjustment * dt;
+        result.wheel_speed[i] += speed_adjustment * dt;
 
-        if (abs (received_commands.back ().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
+        if (std::abs (latest_command.wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
             // 誤差が小さいときは見た目のために一致させる
-            result.wheel_speed[i] = received_commands.back ().wheel_speed[i];
+            result.wheel_speed[i] = latest_command.wheel_speed[i];
         }
     }
-    swerve_result_publisher_->publish (result);
-    received_commands.clear ();
+}
 
+void swerve_simulator::publish_swerve_result () {
+    swerve_result_publisher_->publish (result);
+}
+
+std::array<double, 3> swerve_simulator::estimate_body_velocity () const {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
@@ -144,16 +168,17 @@ void swerve_simulator::timer_callback () {
         }
     }
 
-    double vx = A[0][3];
-    double vy = A[1][3];
-    double vz = A[2][3];
+    return {A[0][3], A[1][3], A[2][3]};
+}
 
+void swerve_simulator::integrate_pose (double vx, double vy, double vz, double dt) {
     double yaw      = tf2::getYaw (current_pose.pose.orientation);
-    double vx_world = vx * cos (yaw) - vy * sin (yaw);
-    double vy_world = vx * sin (yaw) + vy * cos (yaw);
-    current_pose.pose.position.x += vx_world * period_ms / 1000.0;
-    current_pose.pose.position.y += vy_world * period_ms / 1000.0;
-    yaw += vz * period_ms / 1000.0;
+    double vx_world = vx * std::cos (yaw) - vy * std::sin (yaw);
+    double vy_world = vx * std::sin (yaw) + vy * std::cos (yaw);
+
+    current_pose.pose.position.x += vx_world * dt;
+    current_pose.pose.position.y += vy_world * dt;
+    yaw += vz * dt;
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
@@ -161,10 +186,15 @@ void swerve_simulator::timer_callback () {
     current_pose.pose.orientation.y = q.y ();
     current_pose.pose.orientation.z = q.z ();
     current_pose.pose.orientation.w = q.w ();
-    current_pose.header.stamp       = this->now ();
-    current_pose.header.frame_id    = "map";
-    simulation_pose_publisher_->publish (current_pose);
+}
 
+void swerve_simulator::publish_pose () {
+    current_pose.header.stamp    = this->now ();
+    current_pose.header.frame_id = "map";
+    simulation_pose_publisher_->publish (current_pose);
+}
+
+void swerve_simulator::broadcast_transform () {
     geometry_msgs::msg::TransformStamped tf_msg;
     tf_msg.header.stamp            = this->now ();
     tf_msg.header.frame_id         = "map";
@@ -175,6 +205,31 @@ void swerve_simulator::timer_callback () {
     tf_msg.transform.rotation      = current_pose.pose.orientation;
 
     tf_broadcaster_->sendTransform (tf_msg);
+}
+
+void swerve_simulator::timer_callback () {
+    // コマンド入力が空のときは最新結果で補完する
+    ensure_command_available ();
+
+    const double dt = static_cast<double> (period_ms) / 1000.0;
+    const natto_msgs::msg::Swerve &latest_command = received_commands.back ();
+
+    // 受信した複数コマンドを平均化する
+    compute_average_command ();
+    // コマンドに基づいてホイールの角度と速度を追従させる
+    apply_wheel_response (dt, latest_command);
+    // 追従結果をswerve_resultとして配信する
+    publish_swerve_result ();
+    received_commands.clear ();
+
+    // ホイール挙動から機体の速度を推定する
+    const auto velocities = estimate_body_velocity ();
+    // 推定速度を積分して現在姿勢を更新する
+    integrate_pose (velocities[0], velocities[1], velocities[2], dt);
+    // 姿勢トピックを配信する
+    publish_pose ();
+    // TFを更新してbroadcastする
+    broadcast_transform ();
 }
 
 }  // namespace swerve_simulator

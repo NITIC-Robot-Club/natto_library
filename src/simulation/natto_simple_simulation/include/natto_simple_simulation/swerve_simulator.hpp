@@ -25,6 +25,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <tf2_ros/transform_broadcaster.h>
+#include <array>
 
 namespace swerve_simulator {
 class swerve_simulator : public rclcpp::Node {
@@ -45,6 +46,14 @@ class swerve_simulator : public rclcpp::Node {
     natto_msgs::msg::Swerve              command;
     natto_msgs::msg::Swerve              result;
     geometry_msgs::msg::PoseStamped      current_pose;
+    void                                 ensure_command_available ();
+    void                                 compute_average_command ();
+    void                                 apply_wheel_response (double dt, const natto_msgs::msg::Swerve &latest_command);
+    void                                 publish_swerve_result ();
+    std::array<double, 3>                estimate_body_velocity () const;
+    void                                 integrate_pose (double vx, double vy, double vz, double dt);
+    void                                 publish_pose ();
+    void                                 broadcast_transform ();
 
     void swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
     void timer_callback ();
