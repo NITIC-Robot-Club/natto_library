@@ -218,7 +218,7 @@ void swerve_simulator::timer_callback () {
     compute_average_command ();
     // コマンドに基づいてホイールの角度と速度を追従させる
     apply_wheel_response (dt, latest_command);
-    // 追従結果をswerve_resultとして配信する
+    // 追従結果をswerve_resultとしてPublishする
     publish_swerve_result ();
     received_commands.clear ();
 
@@ -226,7 +226,7 @@ void swerve_simulator::timer_callback () {
     const auto velocities = estimate_body_velocity ();
     // 推定速度を積分して現在姿勢を更新する
     integrate_pose (velocities[0], velocities[1], velocities[2], dt);
-    // 姿勢トピックを配信する
+    // 姿勢トピックをPublsihする
     publish_pose ();
     // TFを更新してbroadcastする
     broadcast_transform ();
