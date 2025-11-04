@@ -7,6 +7,10 @@ Panels:
         - /Global Options1
         - /Grid1/Offset1
         - /Common1
+        - /Common1/TF1/Tree1/map1
+        - /Common1/TF1/Tree1/map1/odom1/base_link1
+        - /Localization1
+        - /Localization1/WheelOdometry1
         - /Control1
         - /Swerve1
         - /Planning1
@@ -69,6 +73,8 @@ Visualization Manager:
               Value: true
             map:
               Value: true
+            odom:
+              Value: true
             simulation:
               Value: true
           Marker Scale: 1
@@ -78,12 +84,14 @@ Visualization Manager:
           Show Names: false
           Tree:
             map:
-              simulation:
+              odom:
                 base_link:
                   lidar_front:
                     {}
                   lidar_rear:
                     {}
+              simulation:
+                {}
           Update Interval: 0
           Value: true
         - Class: rviz_default_plugins/MarkerArray
@@ -136,12 +144,59 @@ Visualization Manager:
       Name: Common
     - Class: rviz_common/Group
       Displays:
+        - Class: rviz_common/Group
+          Displays:
+            - Alpha: 1
+              Angular Arrow Scale: 2
+              Angular Color: 204; 204; 51
+              Arrow Width: 0.5
+              Class: rviz_default_plugins/TwistStamped
+              Enabled: true
+              Hide Small Values: true
+              History Length: 1
+              Linear Arrow Scale: 2
+              Linear Color: 204; 51; 51
+              Name: Twist
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                Filter size: 10
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /localization/swerve_odometry/twist
+              Value: true
+            - Alpha: 1
+              Axes Length: 1
+              Axes Radius: 0.10000000149011612
+              Class: rviz_default_plugins/Pose
+              Color: 255; 25; 0
+              Enabled: true
+              Head Length: 0.30000001192092896
+              Head Radius: 0.10000000149011612
+              Name: Pose
+              Shaft Length: 1
+              Shaft Radius: 0.05000000074505806
+              Shape: Arrow
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                Filter size: 10
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /localization/swerve_odometry/pose
+              Value: true
+          Enabled: true
+          Name: WheelOdometry
+      Enabled: false
+      Name: Localization
+    - Class: rviz_common/Group
+      Displays:
         - Alpha: 1
           Angular Arrow Scale: 1
           Angular Color: 204; 204; 51
           Arrow Width: 1
           Class: rviz_default_plugins/TwistStamped
-          Enabled: true
+          Enabled: false
           Hide Small Values: false
           History Length: 1
           Linear Arrow Scale: 1
@@ -154,7 +209,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /control/command_velocity
-          Value: true
+          Value: false
         - Alpha: 1
           Axes Length: 1
           Axes Radius: 0.10000000149011612
@@ -555,7 +610,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 12.942041397094727
+      Distance: 10.022316932678223
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
