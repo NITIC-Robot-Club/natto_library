@@ -94,6 +94,7 @@
         </composable_node>
     </node_container>
 
+    <!-- 自己位置推定 -->
     <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
         <!-- 独ステオドメトリ -->
         <composable_node pkg="natto_wheel_odometry" plugin="swerve_odometry::swerve_odometry" name="swerve_odometry" namespace="localization/swerve_odometry">
@@ -191,6 +192,8 @@
         args="+0.4 0 0 0 0 0 1 base_link lidar_front"/>
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
         args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
+
+    <!-- 自己位置推定 -->
     <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
         args="1 1 0 0 0 0 1 map odom"/>
 </launch>
