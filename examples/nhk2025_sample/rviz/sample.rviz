@@ -7,8 +7,6 @@ Panels:
         - /Global Options1
         - /Grid1/Offset1
         - /Common1
-        - /Common1/TF1/Tree1/map1
-        - /Common1/TF1/Tree1/map1/odom1/base_link1
         - /Localization1
         - /Localization1/WheelOdometry1
         - /Control1
@@ -505,27 +503,6 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /visualization/lines
           Value: false
-        - Alpha: 1
-          Arrow Length: 1
-          Axes Length: 0.30000001192092896
-          Axes Radius: 0.10000000149011612
-          Class: rviz_default_plugins/PoseArray
-          Color: 255; 25; 0
-          Enabled: false
-          Head Length: 1
-          Head Radius: 1
-          Name: Corners
-          Shaft Length: 1
-          Shaft Radius: 1
-          Shape: Axes
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            Filter size: 10
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /sensing/lidar/corners
-          Value: false
         - Class: rviz_default_plugins/MarkerArray
           Enabled: false
           Name: LineSegments
@@ -537,6 +514,18 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /visualization/line_segments
+          Value: false
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: false
+          Name: Corners
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /visualization/corners
           Value: false
       Enabled: true
       Name: Sensing

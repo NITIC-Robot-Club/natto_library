@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_visualization_converter/line_visualizer.hpp"
+#include "natto_visualization_converter/lines_visualizer.hpp"
 
-namespace line_visualizer {
+namespace lines_visualizer {
 
-line_visualizer::line_visualizer (const rclcpp::NodeOptions &options) : Node ("line_visualizer", options) {
+lines_visualizer::lines_visualizer (const rclcpp::NodeOptions &options) : Node ("lines_visualizer", options) {
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    line_sub_   = this->create_subscription<natto_msgs::msg::LineArray> ("lines", 10, std::bind (&line_visualizer::line_callback, this, std::placeholders::_1));
+    lines_sub_   = this->create_subscription<natto_msgs::msg::LineArray> ("lines", 10, std::bind (&lines_visualizer::lines_callback, this, std::placeholders::_1));
 
     int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
     line_length_          = this->declare_parameter<double> ("line_length", 10.0);
     line_width_           = this->declare_parameter<double> ("line_width", 0.05);
     frame_id_             = this->declare_parameter<std::string> ("frame_id", "");
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&line_visualizer::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&lines_visualizer::timer_callback, this));
 }
 
-void line_visualizer::line_callback (const natto_msgs::msg::LineArray::SharedPtr msg) {
+void lines_visualizer::lines_callback (const natto_msgs::msg::LineArray::SharedPtr msg) {
     marker_array_.markers.clear ();
 
     int id = 0;
@@ -61,7 +61,7 @@ void line_visualizer::line_callback (const natto_msgs::msg::LineArray::SharedPtr
         visualization_msgs::msg::Marker m;
         m.header.frame_id = frame_id_;
         m.header.stamp    = this->now ();
-        m.ns              = "line_visualizer";
+        m.ns              = "lines";
         m.id              = id++;
         m.type            = visualization_msgs::msg::Marker::LINE_STRIP;
         m.action          = visualization_msgs::msg::Marker::ADD;
@@ -77,11 +77,11 @@ void line_visualizer::line_callback (const natto_msgs::msg::LineArray::SharedPtr
     }
 }
 
-void line_visualizer::timer_callback () {
+void lines_visualizer::timer_callback () {
     marker_pub_->publish (marker_array_);
 }
 
-}  // namespace line_visualizer
+}  // namespace lines_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (line_visualizer::line_visualizer)
+RCLCPP_COMPONENTS_REGISTER_NODE (lines_visualizer::lines_visualizer)

@@ -19,7 +19,7 @@ namespace line_detector {
 line_detector::line_detector (const rclcpp::NodeOptions &node_options) : Node ("line_detector", node_options) {
     lines_publisher_         = this->create_publisher<natto_msgs::msg::LineArray> ("lines", 10);
     line_segments_publisher_ = this->create_publisher<natto_msgs::msg::LineSegmentArray> ("line_segments", 10);
-    corners_publisher_       = this->create_publisher<geometry_msgs::msg::PoseArray> ("corners", 10);
+    corners_publisher_       = this->create_publisher<natto_msgs::msg::CornerArray> ("corners", 10);
 
     pointcloud_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 10, std::bind (&line_detector::pointcloud_callback, this, std::placeholders::_1));
 
@@ -47,8 +47,6 @@ void line_detector::pointcloud_callback (const sensor_msgs::msg::PointCloud2::Sh
     calculate_corner ();
     calculate_line_segment ();
 
-    corners_.header.frame_id = "base_link";
-    corners_.header.stamp    = this->now ();
     lines_publisher_->publish (lines_);
     corners_publisher_->publish (corners_);
     line_segments_publisher_->publish (line_segments_);
@@ -147,7 +145,7 @@ void line_detector::process_pointcloud () {
 }
 
 void line_detector::calculate_corner () {
-    corners_.poses.clear ();
+    corners_.corners.clear ();
     for (size_t i = 0; i < lines_.lines.size (); i++) {
         for (size_t j = i + 1; j < lines_.lines.size (); j++) {
             double a1 = lines_.lines[i].a;
@@ -163,15 +161,19 @@ void line_detector::calculate_corner () {
             double x = (b1 * c2 - b2 * c1) / det;
             double y = (c1 * a2 - c2 * a1) / det;
 
-            geometry_msgs::msg::Pose p;
-            p.position.x    = x;
-            p.position.y    = y;
-            p.position.z    = 0.0;
-            p.orientation.w = 1.0;
-            corners_.poses.push_back (p);
+            natto_msgs::msg::Corner corner;
+            corner.position.x = x;
+            corner.position.y = y;
+            corner.position.z = 0.0;
+
+            corner.yaw1 = std::atan2 (-a1, b1);
+            corner.yaw2 = std::atan2 (-a2, b2);
+
+            corners_.corners.push_back (corner);
         }
     }
 }
+
 void line_detector::calculate_line_segment () {
     line_segments_.line_segments.clear ();
 

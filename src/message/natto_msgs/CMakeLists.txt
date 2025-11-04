@@ -8,6 +8,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Can.msg"
   "msg/Circle.msg"
   "msg/CircleArray.msg"
+  "msg/Corner.msg"
+  "msg/CornerArray.msg"
   "msg/Line.msg"
   "msg/LineArray.msg"
   "msg/LineSegment.msg"

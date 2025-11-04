@@ -181,6 +181,14 @@
             <remap from="marker_array" to="/visualization/line_segments"/>
             <param name="frame_id" value="base_link"/>
         </composable_node>
+
+        <!-- コーナー表示 -->
+        <composable_node pkg="natto_visualization_converter" plugin="corners_visualizer::corners_visualizer" name="corners_visualizer" namespace="visualization/corners">
+            <param name="publish_period_ms" value="10"/>
+            <remap from="corners" to="/sensing/lidar/corners"/>
+            <remap from="marker_array" to="/visualization/corners"/>
+            <param name="frame_id" value="base_link"/>
+        </composable_node>
     </node_container>
 
     <!-- RViz2 -->

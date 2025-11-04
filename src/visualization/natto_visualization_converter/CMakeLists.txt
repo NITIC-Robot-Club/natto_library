@@ -9,6 +9,11 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "corners_visualizer::corners_visualizer"
+    EXECUTABLE corners_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "footprint_publisher::footprint_publisher"
     EXECUTABLE footprint_publisher
 )
@@ -19,8 +24,8 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "line_visualizer::line_visualizer"
-    EXECUTABLE line_visualizer
+    PLUGIN "lines_visualizer::lines_visualizer"
+    EXECUTABLE lines_visualizer
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}

@@ -20,6 +20,7 @@
 #include "geometry_msgs/msg/pose_array.hpp"
 #include "natto_msgs/msg/line_array.hpp"
 #include "natto_msgs/msg/line_segment_array.hpp"
+#include "natto_msgs/msg/corner_array.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 #include <cmath>
@@ -40,7 +41,7 @@ class line_detector : public rclcpp::Node {
     sensor_msgs::msg::PointCloud2     data_;
     natto_msgs::msg::LineArray        lines_;
     natto_msgs::msg::LineSegmentArray line_segments_;
-    geometry_msgs::msg::PoseArray     corners_;
+    natto_msgs::msg::CornerArray      corners_;
 
     void process_pointcloud ();
     void calculate_corner ();
@@ -50,7 +51,7 @@ class line_detector : public rclcpp::Node {
 
     rclcpp::Publisher<natto_msgs::msg::LineArray>::SharedPtr        lines_publisher_;
     rclcpp::Publisher<natto_msgs::msg::LineSegmentArray>::SharedPtr line_segments_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr     corners_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::CornerArray>::SharedPtr     corners_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr  pointcloud_subscriber_;
 };
 }  // namespace line_detector
