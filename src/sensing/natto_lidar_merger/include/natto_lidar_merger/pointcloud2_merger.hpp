@@ -16,7 +16,7 @@
 #define __POINTCLOUD2_MERGER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
-#include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_listener.hpp"
 
 #include "geometry_msgs/msg/point_stamped.hpp"

@@ -1,4 +1,3 @@
-<!-- ros2 topic pub /control/command_velocity geometry_msgs/msg/TwistStamped "{twist: {linear: {x: 0.0, y: 0.0}, angular: {z: 0.0}}}" -r 100 -->
 <launch>
     <!-- コモンコンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/">
@@ -86,10 +85,10 @@
     <node_container pkg="rclcpp_components" exec="component_container" name="perception_container" namespace="sensing/ransac">
         <!-- 直線検出 -->
         <composable_node pkg="natto_ransac" plugin="line_detector::line_detector" name="line_detector" namespace="sensing/lidar">
-            <param name="max_iterations" value="30"/>
-            <param name="distance_threshold" value="0.01"/>
+            <param name="max_iterations" value="50"/>
+            <param name="distance_threshold" value="0.015"/>
             <param name="min_inliers" value="150"/>
-            <param name="max_lines" value="5"/>
+            <param name="max_lines" value="7"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
         </composable_node>
     </node_container>
@@ -103,6 +102,13 @@
             <param name="child_frame_id" value="base_link"/>
             <remap from="swerve" to="/swerve/result"/>
         </composable_node>
+
+        <!-- コーナーからの自己位置推定 -->
+        <!-- <composable_node pkg="natto_corner_localizer" plugin="corner_localizer::corner_localizer" name="corner_localizer" namespace="localization/corner_localizer">
+            <remap from="corners" to="/sensing/lidar/corners"/>
+            <remap from="pose" to="/localization/pose"/>
+            <remap from="map" to="/map"/>
+        </composable_node> -->
     </node_container>
 
     <!-- コントロールコンテナ -->
@@ -167,11 +173,12 @@
         </composable_node>
 
         <!-- 直線表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="lines" namespace="visualization/lines">
+        <composable_node pkg="natto_visualization_converter" plugin="lines_visualizer::lines_visualizer" name="lines" namespace="visualization/lines">
             <param name="publish_period_ms" value="10"/>
             <remap from="lines" to="/sensing/lidar/lines"/>
             <remap from="marker_array" to="/visualization/lines"/>
             <param name="frame_id" value="base_link"/>
+            <param name="line_width" value="0.015"/>
         </composable_node>
 
         <!-- 線分表示 -->
@@ -180,6 +187,7 @@
             <remap from="line_segments" to="/sensing/lidar/line_segments"/>
             <remap from="marker_array" to="/visualization/line_segments"/>
             <param name="frame_id" value="base_link"/>
+            <param name="line_width" value="0.015"/>
         </composable_node>
 
         <!-- コーナー表示 -->
@@ -187,6 +195,14 @@
             <param name="publish_period_ms" value="10"/>
             <remap from="corners" to="/sensing/lidar/corners"/>
             <remap from="marker_array" to="/visualization/corners"/>
+            <param name="frame_id" value="base_link"/>
+        </composable_node>
+
+        <composable_node pkg="natto_visualization_converter" plugin="corners_visualizer::corners_visualizer" name="corners_visualizer" namespace="visualization/corners">
+            <param name="publish_period_ms" value="10"/>
+            <!-- <remap from="corners" to="/localization/corner_localizer/debug_corners"/> -->
+            <remap from="corners" to="/debug_corners"/>
+            <remap from="marker_array" to="/visualization/debug_corners"/>
             <param name="frame_id" value="base_link"/>
         </composable_node>
     </node_container>
@@ -202,6 +218,5 @@
         args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
 
     <!-- 自己位置推定 -->
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
-        args="1 1 0 0 0 0 1 map odom"/>
+    <!-- <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen" args="1 1 0 0 0 0 1 map odom"/> -->
 </launch>
