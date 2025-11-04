@@ -2,5 +2,5 @@
   ros__parameters:
     wheel_radius : 0.05
     infinite_swerve_mode : true
-    wheel_position_x : [+0.5, -0.5, -0.5, +0.5]
-    wheel_position_y : [+0.5, +0.5, -0.5, -0.5]
+    wheel_position_x : [+0.45, -0.45, -0.45, +0.45]
+    wheel_position_y : [+0.45, +0.45, -0.45, -0.45]

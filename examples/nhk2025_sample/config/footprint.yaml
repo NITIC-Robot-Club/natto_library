@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    footprint_points_x : [+0.5, -0.5, -0.5, +0.5]
+    footprint_points_y : [+0.5, +0.5, -0.5, -0.5]

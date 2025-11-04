@@ -18,6 +18,7 @@
 
         <!-- フットプリント出版 -->
         <composable_node pkg="natto_visualization_converter" plugin="footprint_publisher::footprint_publisher" name="footprint_publisher">
+            <param from="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
             <remap from="footprint" to="/robot/footprint"/>
         </composable_node>
     </node_container>
@@ -90,6 +91,16 @@
             <param name="min_inliers" value="150"/>
             <param name="max_lines" value="5"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+        </composable_node>
+    </node_container>
+
+    <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
+        <!-- 独ステオドメトリ -->
+        <composable_node pkg="natto_wheel_odometry" plugin="swerve_odometry::swerve_odometry" name="swerve_odometry" namespace="localization/swerve_odometry">
+            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
+            <param name="frame_id" value="odom"/>
+            <param name="child_frame_id" value="base_link"/>
+            <remap from="swerve" to="/swerve/result"/>
         </composable_node>
     </node_container>
 
@@ -180,8 +191,6 @@
         args="+0.4 0 0 0 0 0 1 base_link lidar_front"/>
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
         args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
-    
-    <!-- 自己位置 -->
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="simulation_to_base_link" output="screen"
-        args="0 0 0 0 0 0 1 simulation base_link"/>
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
+        args="1 1 0 0 0 0 1 map odom"/>
 </launch>
