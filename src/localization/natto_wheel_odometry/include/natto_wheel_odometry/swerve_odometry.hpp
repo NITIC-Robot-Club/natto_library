@@ -16,6 +16,7 @@
 #define __SWERVE_ODOMETRY_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+#include "tf2/utils.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -23,7 +24,6 @@
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "natto_msgs/msg/swerve.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-#include "tf2/utils.hpp"
 
 namespace swerve_odometry {
 class swerve_odometry : public rclcpp::Node {
@@ -31,11 +31,11 @@ class swerve_odometry : public rclcpp::Node {
     swerve_odometry (const rclcpp::NodeOptions &node_options);
 
    private:
-    double wheel_radius_;
-    int    num_wheels_;
+    double      wheel_radius_;
+    int         num_wheels_;
     std::string frame_id_;
     std::string child_frame_id_;
-    bool publish_tf_;
+    bool        publish_tf_;
 
     std::vector<double> wheel_position_x;
     std::vector<double> wheel_position_y;
