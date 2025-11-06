@@ -41,6 +41,7 @@ class swerve_simulator : public rclcpp::Node {
     double speed_gain_p_, speed_gain_d_;
     rclcpp::Time last_time;
     natto_msgs::msg::Map map;
+    natto_msgs::msg::LineSegmentArray robot_footprint;
 
     std::vector<double> wheel_position_x;
     std::vector<double> wheel_position_y;
@@ -58,12 +59,14 @@ class swerve_simulator : public rclcpp::Node {
 
     void swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
     void map_callback (const natto_msgs::msg::Map::SharedPtr msg);
+    void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr         swerve_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr      swerve_command_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::Map>::SharedPtr         map_subscriber_;
+    rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
 };

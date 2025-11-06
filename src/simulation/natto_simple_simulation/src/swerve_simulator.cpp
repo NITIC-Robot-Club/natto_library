@@ -15,6 +15,7 @@
 #include "natto_simple_simulation/swerve_simulator.hpp"
 
 #include <cmath>
+#include <sstream>
 #include <stdexcept>
 
 namespace swerve_simulator {
@@ -24,6 +25,8 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
     map_subscriber_            = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&swerve_simulator::map_callback, this, std::placeholders::_1));
+    footprint_subscription_     = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&swerve_simulator::footprint_callback, this, std::placeholders::_1));
+
     tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
@@ -57,6 +60,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     result.wheel_speed.resize (num_wheels_, 0.0);
 
     map = natto_msgs::msg::Map();
+    robot_footprint = natto_msgs::msg::LineSegmentArray();
 
     last_time = this->now();
     timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
@@ -69,6 +73,54 @@ void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::S
 void swerve_simulator::map_callback (const natto_msgs::msg::Map::SharedPtr msg){
     map = *msg;
 }
+
+void swerve_simulator::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg){
+    const auto &points = msg->polygon.points;
+
+    robot_footprint.line_segments.clear();
+    if (points.size () < 2) {
+        return;
+    }
+
+    auto to_point = [] (const geometry_msgs::msg::Point32 &src) {
+        geometry_msgs::msg::Point dst;
+        dst.x = static_cast<double> (src.x);
+        dst.y = static_cast<double> (src.y);
+        dst.z = static_cast<double> (src.z);
+        return dst;
+    };
+
+    auto append_segment = [this, &to_point] (const geometry_msgs::msg::Point32 &start_pt, const geometry_msgs::msg::Point32 &end_pt) {
+        natto_msgs::msg::LineSegment segment;
+        segment.start = to_point (start_pt);
+        segment.end   = to_point (end_pt);
+        robot_footprint.line_segments.emplace_back (std::move (segment));
+    };
+
+    for (size_t i = 0; i + 1 < points.size (); ++i) {
+        append_segment (points[i], points[i + 1]);
+    }
+
+    if (points.size () > 2) {
+        const auto is_same_point = [] (const geometry_msgs::msg::Point32 &lhs, const geometry_msgs::msg::Point32 &rhs) {
+            const double dx = static_cast<double> (lhs.x) - static_cast<double> (rhs.x);
+            const double dy = static_cast<double> (lhs.y) - static_cast<double> (rhs.y);
+            const double dz = static_cast<double> (lhs.z) - static_cast<double> (rhs.z);
+            constexpr double kEps = 1e-6;
+            return (dx * dx + dy * dy + dz * dz) < kEps;
+        };
+
+        if (!is_same_point (points.back (), points.front ())) {
+            append_segment (points.back (), points.front ());
+        }
+    }
+
+    if (robot_footprint.line_segments.empty ()) {
+        RCLCPP_INFO (this->get_logger (), "Robot footprint is empty after polygon conversion.");
+        return;
+    }
+}
+
 
 natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::vector<natto_msgs::msg::Swerve> &commands) const {
     if (commands.empty ()) {
