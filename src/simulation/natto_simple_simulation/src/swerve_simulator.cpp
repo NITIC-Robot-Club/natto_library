@@ -46,7 +46,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
     }
     RCLCPP_INFO (this->get_logger (), "Angle gain P: %.2f, D: %.2f", angle_gain_p_, angle_gain_d_);
@@ -86,7 +86,7 @@ natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::ve
             throw std::runtime_error ("Received command size does not match number of wheels.");
         }
 
-        for (int j = 0; j < num_wheels_; j++) {
+        for (size_t j = 0; j < num_wheels_; j++) {
             command_sum.wheel_angle[j] += cmd.wheel_angle[j];
             command_sum.wheel_speed[j] += cmd.wheel_speed[j];
         }
@@ -95,7 +95,7 @@ natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::ve
     natto_msgs::msg::Swerve average_command;
     average_command.wheel_angle.assign (num_wheels_, 0.0);
     average_command.wheel_speed.assign (num_wheels_, 0.0);
-    for (int j = 0; j < num_wheels_; j++) {
+    for (size_t j = 0; j < num_wheels_; j++) {
         average_command.wheel_angle[j] = command_sum.wheel_angle[j] / commands.size ();
         average_command.wheel_speed[j] = command_sum.wheel_speed[j] / commands.size ();
     }
@@ -110,7 +110,7 @@ natto_msgs::msg::Swerve swerve_simulator::apply_wheel_response (
     const natto_msgs::msg::Swerve &current_state
 ) const {
     natto_msgs::msg::Swerve updated_state = current_state;
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle_error = reference_command.wheel_angle[i] - current_state.wheel_angle[i];
         double speed_error = reference_command.wheel_speed[i] - current_state.wheel_speed[i];
 
@@ -138,7 +138,7 @@ std::array<double, 3> swerve_simulator::estimate_body_velocity (const natto_msgs
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle = wheel_state.wheel_angle[i];
         double speed = wheel_state.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
@@ -148,8 +148,8 @@ std::array<double, 3> swerve_simulator::estimate_body_velocity (const natto_msgs
         double bx = speed * std::cos (angle);
         double by = speed * std::sin (angle);
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (size_t row = 0; row < 3; row++) {
+            for (size_t col = 0; col < 3; col++) {
                 ATA[row][col] += ax[row] * ax[col] + ay[row] * ay[col];
             }
             ATb[row] += ax[row] * bx + ay[row] * by;
@@ -161,12 +161,12 @@ std::array<double, 3> swerve_simulator::estimate_body_velocity (const natto_msgs
         {ATA[2][0], ATA[2][1], ATA[2][2], ATb[2]}
     };
 
-    for (int i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         double pivot = A[i][i];
-        for (int j = i; j < 4; ++j) {
+        for (size_t j = i; j < 4; ++j) {
             A[i][j] /= pivot;
         }
-        for (int k = 0; k < 3; ++k) {
+        for (size_t k = 0; k < 3; ++k) {
             if (k == i) continue;
             double factor = A[k][i];
             for (int j = i; j < 4; ++j) {
