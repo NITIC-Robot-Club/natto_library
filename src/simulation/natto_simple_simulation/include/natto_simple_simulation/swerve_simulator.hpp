@@ -26,6 +26,7 @@
 
 #include <tf2_ros/transform_broadcaster.h>
 #include <array>
+#include <vector>
 
 namespace swerve_simulator {
 class swerve_simulator : public rclcpp::Node {
@@ -43,14 +44,12 @@ class swerve_simulator : public rclcpp::Node {
     std::vector<double> wheel_position_y;
 
     std::vector<natto_msgs::msg::Swerve> received_commands;
-    natto_msgs::msg::Swerve              command;
     natto_msgs::msg::Swerve              result;
     geometry_msgs::msg::PoseStamped      current_pose;
-    void                                 ensure_command_available ();
-    void                                 compute_average_command ();
-    void                                 apply_wheel_response (double dt, const natto_msgs::msg::Swerve &latest_command);
-    void                                 publish_swerve_result ();
-    std::array<double, 3>                estimate_body_velocity () const;
+    natto_msgs::msg::Swerve              compute_average_command (const std::vector<natto_msgs::msg::Swerve> &commands) const;
+    natto_msgs::msg::Swerve              apply_wheel_response (double dt, const natto_msgs::msg::Swerve &reference_command, const natto_msgs::msg::Swerve &latest_command, const natto_msgs::msg::Swerve &current_state) const;
+    void                                 publish_swerve_result (const natto_msgs::msg::Swerve &swerve_state);
+    std::array<double, 3>                estimate_body_velocity (const natto_msgs::msg::Swerve &wheel_state) const;
     geometry_msgs::msg::Pose             integrate_pose (const double vx, const double vy, const double vz, const double dt);
     void                                 publish_pose (const geometry_msgs::msg::Pose &new_pose);
     void                                 broadcast_transform (const geometry_msgs::msg::Pose &new_pose);

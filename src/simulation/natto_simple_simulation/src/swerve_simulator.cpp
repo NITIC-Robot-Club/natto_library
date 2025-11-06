@@ -52,8 +52,6 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     RCLCPP_INFO (this->get_logger (), "Angle gain P: %.2f, D: %.2f", angle_gain_p_, angle_gain_d_);
     RCLCPP_INFO (this->get_logger (), "Speed gain P: %.2f, D: %.2f", speed_gain_p_, speed_gain_d_);
 
-    command.wheel_angle.resize (num_wheels_, 0.0);
-    command.wheel_speed.resize (num_wheels_, 0.0);
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
@@ -66,18 +64,16 @@ void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::S
     received_commands.push_back (*msg);
 }
 
-void swerve_simulator::ensure_command_available () {
-    if (received_commands.empty ()) {
-        received_commands.push_back (result);
+natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::vector<natto_msgs::msg::Swerve> &commands) const {
+    if (commands.empty ()) {
+        throw std::runtime_error ("No commands to average.");
     }
-}
 
-void swerve_simulator::compute_average_command () {
     natto_msgs::msg::Swerve command_sum;
     command_sum.wheel_angle.assign (num_wheels_, 0.0);
     command_sum.wheel_speed.assign (num_wheels_, 0.0);
 
-    for (const auto &cmd : received_commands) {
+    for (const auto &cmd : commands) {
         if (cmd.wheel_speed.size () != num_wheels_ || cmd.wheel_angle.size () != num_wheels_) {
             RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
             RCLCPP_INFO (
@@ -96,44 +92,55 @@ void swerve_simulator::compute_average_command () {
         }
     }
 
-    command.wheel_angle.assign (num_wheels_, 0.0);
-    command.wheel_speed.assign (num_wheels_, 0.0);
+    natto_msgs::msg::Swerve average_command;
+    average_command.wheel_angle.assign (num_wheels_, 0.0);
+    average_command.wheel_speed.assign (num_wheels_, 0.0);
     for (int j = 0; j < num_wheels_; j++) {
-        command.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands.size ();
-        command.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands.size ();
+        average_command.wheel_angle[j] = command_sum.wheel_angle[j] / commands.size ();
+        average_command.wheel_speed[j] = command_sum.wheel_speed[j] / commands.size ();
     }
+
+    return average_command;
 }
 
-void swerve_simulator::apply_wheel_response (double dt, const natto_msgs::msg::Swerve &latest_command) {
+natto_msgs::msg::Swerve swerve_simulator::apply_wheel_response (
+    double dt,
+    const natto_msgs::msg::Swerve &reference_command,
+    const natto_msgs::msg::Swerve &latest_command,
+    const natto_msgs::msg::Swerve &current_state
+) const {
+    natto_msgs::msg::Swerve updated_state = current_state;
     for (int i = 0; i < num_wheels_; i++) {
-        double angle_error = command.wheel_angle[i] - result.wheel_angle[i];
-        double speed_error = command.wheel_speed[i] - result.wheel_speed[i];
+        double angle_error = reference_command.wheel_angle[i] - current_state.wheel_angle[i];
+        double speed_error = reference_command.wheel_speed[i] - current_state.wheel_speed[i];
 
-        double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (result.wheel_angle[i] - command.wheel_angle[i]);
-        double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (result.wheel_speed[i] - command.wheel_speed[i]);
+        double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (current_state.wheel_angle[i] - reference_command.wheel_angle[i]);
+        double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (current_state.wheel_speed[i] - reference_command.wheel_speed[i]);
 
-        result.wheel_angle[i] += angle_adjustment * dt;
-        result.wheel_speed[i] += speed_adjustment * dt;
+        updated_state.wheel_angle[i] += angle_adjustment * dt;
+        updated_state.wheel_speed[i] += speed_adjustment * dt;
 
-        if (std::abs (latest_command.wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
+        if (std::abs (latest_command.wheel_speed[i] - updated_state.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
             // 誤差が小さいときは見た目のために一致させる
-            result.wheel_speed[i] = latest_command.wheel_speed[i];
+            updated_state.wheel_speed[i] = latest_command.wheel_speed[i];
         }
     }
+
+    return updated_state;
 }
 
-void swerve_simulator::publish_swerve_result () {
-    swerve_result_publisher_->publish (result);
+void swerve_simulator::publish_swerve_result (const natto_msgs::msg::Swerve &swerve_state) {
+    swerve_result_publisher_->publish (swerve_state);
 }
 
-std::array<double, 3> swerve_simulator::estimate_body_velocity () const {
+std::array<double, 3> swerve_simulator::estimate_body_velocity (const natto_msgs::msg::Swerve &wheel_state) const {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
     for (int i = 0; i < num_wheels_; i++) {
-        double angle = result.wheel_angle[i];
-        double speed = result.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
+        double angle = wheel_state.wheel_angle[i];
+        double speed = wheel_state.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
         double ax[3] = {1.0, 0.0, -wheel_position_y[i]};
         double ay[3] = {0.0, 1.0, +wheel_position_x[i]};
@@ -214,23 +221,24 @@ void swerve_simulator::broadcast_transform (const geometry_msgs::msg::Pose &new_
 
 void swerve_simulator::timer_callback () {
     const rclcpp::Time now_time = this->now();
-    const double dt = std::max(1e-6, (now_time - last_time).seconds());
+    const double dt = (now_time - last_time).seconds();
     last_time = now_time;
 
     // コマンド入力が空のときは最新結果で補完する
-    ensure_command_available ();
-    const natto_msgs::msg::Swerve &latest_command = received_commands.back ();
+    if (received_commands.empty ()) {
+        received_commands.push_back (result);
+    }
 
     // 受信した複数コマンドを平均化する
-    compute_average_command ();
+    const auto average_command = compute_average_command (received_commands);
     // コマンドに基づいてホイールの角度と速度を追従させる
-    apply_wheel_response (dt, latest_command);
+    result = apply_wheel_response (dt, average_command, received_commands.back (), result);
     // 追従結果をswerve_resultとしてPublishする
-    publish_swerve_result ();
+    publish_swerve_result (result);
     received_commands.clear ();
 
     // ホイール挙動から機体の速度を推定する
-    const auto [vx, vy, vz] = estimate_body_velocity ();
+    const auto [vx, vy, vz] = estimate_body_velocity (result);
     // 推定速度を積分して現在姿勢を更新する
     const auto new_pose = integrate_pose (vx, vy, vz, dt);
     current_pose.pose = new_pose;
