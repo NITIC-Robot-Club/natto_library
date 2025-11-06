@@ -21,6 +21,7 @@
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "natto_msgs/msg/swerve.hpp"
+#include "natto_msgs/msg/map.hpp"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -39,6 +40,7 @@ class swerve_simulator : public rclcpp::Node {
     double angle_gain_p_, angle_gain_d_;
     double speed_gain_p_, speed_gain_d_;
     rclcpp::Time last_time;
+    natto_msgs::msg::Map map;
 
     std::vector<double> wheel_position_x;
     std::vector<double> wheel_position_y;
@@ -55,11 +57,13 @@ class swerve_simulator : public rclcpp::Node {
     void                                 broadcast_transform (const geometry_msgs::msg::Pose &new_pose);
 
     void swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
+    void map_callback (const natto_msgs::msg::Map::SharedPtr msg);
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr         swerve_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr      swerve_command_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::Map>::SharedPtr         map_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
 };

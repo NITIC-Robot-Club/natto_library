@@ -23,6 +23,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     swerve_result_publisher_   = this->create_publisher<natto_msgs::msg::Swerve> ("swerve_result", 10);
     simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
+    map_subscriber_            = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&swerve_simulator::map_callback, this, std::placeholders::_1));
     tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
@@ -55,6 +56,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
+    map = natto_msgs::msg::Map();
 
     last_time = this->now();
     timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
@@ -62,6 +64,10 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
 
 void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     received_commands.push_back (*msg);
+}
+
+void swerve_simulator::map_callback (const natto_msgs::msg::Map::SharedPtr msg){
+    map = *msg;
 }
 
 natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::vector<natto_msgs::msg::Swerve> &commands) const {
