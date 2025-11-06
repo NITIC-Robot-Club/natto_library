@@ -15,6 +15,7 @@
 #include "natto_simple_simulation/swerve_simulator.hpp"
 
 #include <cmath>
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 
@@ -254,6 +255,45 @@ geometry_msgs::msg::Pose swerve_simulator::integrate_pose (const double vx, cons
     new_pose.orientation.w = q.w ();
 
     return new_pose;
+}
+
+bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b){
+    constexpr double kEps = 1e-9;
+
+    auto orientation = [] (const geometry_msgs::msg::Point &p, const geometry_msgs::msg::Point &q, const geometry_msgs::msg::Point &r, const double eps) {
+        const auto val = (q.y - p.y) * (r.x - q.x) -
+                         (q.x - p.x) * (r.y - q.y);
+        if (std::abs (val) <= eps) {
+            return 0;
+        }
+        return (val > 0.0) ? 1 : 2;
+    };
+
+    auto onSegment = [] (const geometry_msgs::msg::Point &p, const geometry_msgs::msg::Point &q, const geometry_msgs::msg::Point &r, const double eps) {
+        return (q.x <= std::max (p.x, r.x) + eps && q.x >= std::min (p.x, r.x) - eps &&
+                q.y <= std::max (p.y, r.y) + eps && q.y >= std::min (p.y, r.y) - eps);
+    };
+
+    const auto p1 = line_a.start;
+    const auto q1 = line_a.end;
+    const auto p2 = line_b.start;
+    const auto q2 = line_b.end;
+
+    const int o1 = orientation (p1, q1, p2, kEps);
+    const int o2 = orientation (p1, q1, q2, kEps);
+    const int o3 = orientation (p2, q2, p1, kEps);
+    const int o4 = orientation (p2, q2, q1, kEps);
+
+    // 一般的なケース
+    if (o1 != o2 && o3 != o4) return true;
+
+    // 特殊ケース（共線上にある場合）
+    if (o1 == 0 && onSegment (p1, p2, q1, kEps)) return true;
+    if (o2 == 0 && onSegment (p1, q2, q1, kEps)) return true;
+    if (o3 == 0 && onSegment (p2, p1, q2, kEps)) return true;
+    if (o4 == 0 && onSegment (p2, q1, q2, kEps)) return true;
+
+    return false;
 }
 
 void swerve_simulator::publish_pose (const geometry_msgs::msg::Pose &new_pose) {
