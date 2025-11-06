@@ -48,7 +48,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (size_t i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "Wheel %ld position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
     }
     RCLCPP_INFO (this->get_logger (), "Angle gain P: %.2f, D: %.2f", angle_gain_p_, angle_gain_d_);
     RCLCPP_INFO (this->get_logger (), "Speed gain P: %.2f, D: %.2f", speed_gain_p_, speed_gain_d_);
