@@ -57,6 +57,8 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
+
+    last_time = this->now();
     timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
 }
 
@@ -211,10 +213,12 @@ void swerve_simulator::broadcast_transform (const geometry_msgs::msg::Pose &new_
 }
 
 void swerve_simulator::timer_callback () {
+    const rclcpp::Time now_time = this->now();
+    const double dt = std::max(1e-6, (now_time - last_time).seconds());
+    last_time = now_time;
+
     // コマンド入力が空のときは最新結果で補完する
     ensure_command_available ();
-
-    const double dt = static_cast<double> (period_ms) / 1000.0;
     const natto_msgs::msg::Swerve &latest_command = received_commands.back ();
 
     // 受信した複数コマンドを平均化する

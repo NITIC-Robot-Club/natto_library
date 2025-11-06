@@ -37,6 +37,7 @@ class swerve_simulator : public rclcpp::Node {
     int    num_wheels_, period_ms;
     double angle_gain_p_, angle_gain_d_;
     double speed_gain_p_, speed_gain_d_;
+    rclcpp::Time last_time;
 
     std::vector<double> wheel_position_x;
     std::vector<double> wheel_position_y;
