@@ -288,6 +288,41 @@ natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
     return transformed;
 }
 
+bool swerve_simulator::intersects_circle_segment (
+    const natto_msgs::msg::Circle &circle,
+    const natto_msgs::msg::LineSegment &segment
+) const {
+    constexpr double kDegenerateThreshold = 1e-12;
+
+    const auto &center = circle.center;
+    const auto &start  = segment.start;
+    const auto &end    = segment.end;
+
+    const double dx = end.x - start.x;
+    const double dy = end.y - start.y;
+    const double len_sq = dx * dx + dy * dy;
+    const double radius_sq = circle.radius * circle.radius;
+
+    if (len_sq < kDegenerateThreshold) {
+        const double diff_x = center.x - start.x;
+        const double diff_y = center.y - start.y;
+        return (diff_x * diff_x + diff_y * diff_y) <= radius_sq;
+    }
+
+    const double ac_x = center.x - start.x;
+    const double ac_y = center.y - start.y;
+    double t = (ac_x * dx + ac_y * dy) / len_sq;
+    t = std::clamp (t, 0.0, 1.0);
+
+    const double nearest_x = start.x + t * dx;
+    const double nearest_y = start.y + t * dy;
+    const double diff_x = center.x - nearest_x;
+    const double diff_y = center.y - nearest_y;
+    const double dist_sq = diff_x * diff_x + diff_y * diff_y;
+
+    return dist_sq <= radius_sq;
+}
+
 bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b){
     constexpr double kEps = 1e-9;
 
@@ -382,13 +417,21 @@ void swerve_simulator::timer_callback () {
         if (has_intersection) {
             break;
         }
+        for (const auto &map_circle : map.circles.circles) {
+            if (intersects_circle_segment (map_circle, robot_line)) {
+                has_intersection = true;
+                RCLCPP_INFO(this->get_logger(), "Robot footprint intersects with map lines or circles.");
+                break;
+            }
+        }
+        if (has_intersection) {
+            break;
+        }
     }
     if (not has_intersection) {
         current_pose.pose = new_pose;
-    }else{
-        RCLCPP_INFO(this->get_logger(), "Robot footprint intersects with map lines.");
     }
-    
+
     // 姿勢トピックをPublsihする
     publish_pose (current_pose.pose);
     // TFを更新してbroadcastする
