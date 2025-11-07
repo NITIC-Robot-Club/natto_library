@@ -20,12 +20,13 @@
 #include "tf2/utils.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "natto_msgs/msg/swerve.hpp"
 #include "natto_msgs/msg/map.hpp"
+#include "natto_msgs/msg/swerve.hpp"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <tf2_ros/transform_broadcaster.h>
+
 #include <array>
 #include <vector>
 
@@ -35,12 +36,12 @@ class swerve_simulator : public rclcpp::Node {
     swerve_simulator (const rclcpp::NodeOptions &node_options);
 
    private:
-    double wheel_radius_;
-    int    num_wheels_, period_ms;
-    double angle_gain_p_, angle_gain_d_;
-    double speed_gain_p_, speed_gain_d_;
-    rclcpp::Time last_time;
-    natto_msgs::msg::Map map;
+    double                            wheel_radius_;
+    int                               num_wheels_, period_ms;
+    double                            angle_gain_p_, angle_gain_d_;
+    double                            speed_gain_p_, speed_gain_d_;
+    rclcpp::Time                      last_time;
+    natto_msgs::msg::Map              map;
     natto_msgs::msg::LineSegmentArray robot_footprint;
 
     std::vector<double> wheel_position_x;
@@ -54,10 +55,10 @@ class swerve_simulator : public rclcpp::Node {
     void                                 publish_swerve_result (const natto_msgs::msg::Swerve &swerve_state);
     std::array<double, 3>                estimate_body_velocity (const natto_msgs::msg::Swerve &wheel_state) const;
     geometry_msgs::msg::Pose             integrate_pose (const double vx, const double vy, const double vz, const double dt);
-    bool intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b);
-    bool intersects (const natto_msgs::msg::LineSegment &line, const natto_msgs::msg::Circle &circle);
-    bool intersects (const natto_msgs::msg::LineSegmentArray footprint_, natto_msgs::msg::Map & map_);
-    natto_msgs::msg::LineSegmentArray transform_line_segments (const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments) const;
+    bool                                 intersects (const natto_msgs::msg::LineSegment &line_a, const natto_msgs::msg::LineSegment &line_b);
+    bool                                 intersects (const natto_msgs::msg::LineSegment &line, const natto_msgs::msg::Circle &circle);
+    bool                                 intersects (const natto_msgs::msg::LineSegmentArray footprint_, natto_msgs::msg::Map &map_);
+    natto_msgs::msg::LineSegmentArray    transform_line_segments (const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments) const;
     void                                 publish_pose (const geometry_msgs::msg::Pose &new_pose);
     void                                 broadcast_transform (const geometry_msgs::msg::Pose &new_pose);
 
@@ -66,13 +67,13 @@ class swerve_simulator : public rclcpp::Node {
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     void timer_callback ();
 
-    rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr         swerve_result_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr      swerve_command_subscriber_;
-    rclcpp::Subscription<natto_msgs::msg::Map>::SharedPtr         map_subscriber_;
+    rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr               swerve_result_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       simulation_pose_publisher_;
+    rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr            swerve_command_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::Map>::SharedPtr               map_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
-    rclcpp::TimerBase::SharedPtr                                  timer_;
-    std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
+    rclcpp::TimerBase::SharedPtr                                        timer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster>                      tf_broadcaster_;
 };
 }  // namespace swerve_simulator
 

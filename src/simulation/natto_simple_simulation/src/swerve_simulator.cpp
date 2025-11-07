@@ -14,8 +14,8 @@
 
 #include "natto_simple_simulation/swerve_simulator.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 
@@ -26,9 +26,9 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
     map_subscriber_            = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&swerve_simulator::map_callback, this, std::placeholders::_1));
-    footprint_subscription_     = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&swerve_simulator::footprint_callback, this, std::placeholders::_1));
+    footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&swerve_simulator::footprint_callback, this, std::placeholders::_1));
 
-    tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x             = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
@@ -60,25 +60,25 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
-    map = natto_msgs::msg::Map();
-    robot_footprint = natto_msgs::msg::LineSegmentArray();
+    map             = natto_msgs::msg::Map ();
+    robot_footprint = natto_msgs::msg::LineSegmentArray ();
 
-    last_time = this->now();
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
+    last_time = this->now ();
+    timer_    = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
 }
 
 void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     received_commands.push_back (*msg);
 }
 
-void swerve_simulator::map_callback (const natto_msgs::msg::Map::SharedPtr msg){
+void swerve_simulator::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     map = *msg;
 }
 
-void swerve_simulator::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg){
+void swerve_simulator::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
     const auto &points = msg->polygon.points;
 
-    robot_footprint.line_segments.clear();
+    robot_footprint.line_segments.clear ();
     if (points.size () < 2) {
         return;
     }
@@ -104,9 +104,9 @@ void swerve_simulator::footprint_callback (const geometry_msgs::msg::PolygonStam
 
     if (points.size () > 2) {
         const auto is_same_point = [] (const geometry_msgs::msg::Point32 &lhs, const geometry_msgs::msg::Point32 &rhs) {
-            const double dx = static_cast<double> (lhs.x) - static_cast<double> (rhs.x);
-            const double dy = static_cast<double> (lhs.y) - static_cast<double> (rhs.y);
-            const double dz = static_cast<double> (lhs.z) - static_cast<double> (rhs.z);
+            const double     dx   = static_cast<double> (lhs.x) - static_cast<double> (rhs.x);
+            const double     dy   = static_cast<double> (lhs.y) - static_cast<double> (rhs.y);
+            const double     dz   = static_cast<double> (lhs.z) - static_cast<double> (rhs.z);
             constexpr double kEps = 1e-6;
             return (dx * dx + dy * dy + dz * dz) < kEps;
         };
@@ -122,7 +122,6 @@ void swerve_simulator::footprint_callback (const geometry_msgs::msg::PolygonStam
     }
 }
 
-
 natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::vector<natto_msgs::msg::Swerve> &commands) const {
     if (commands.empty ()) {
         throw std::runtime_error ("No commands to average.");
@@ -135,13 +134,7 @@ natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::ve
     for (const auto &cmd : commands) {
         if (cmd.wheel_speed.size () != num_wheels_ || cmd.wheel_angle.size () != num_wheels_) {
             RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
-            RCLCPP_INFO (
-                this->get_logger (),
-                "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu",
-                num_wheels_,
-                cmd.wheel_angle.size (),
-                cmd.wheel_speed.size ()
-            );
+            RCLCPP_INFO (this->get_logger (), "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, cmd.wheel_angle.size (), cmd.wheel_speed.size ());
             throw std::runtime_error ("Received command size does not match number of wheels.");
         }
 
@@ -162,12 +155,7 @@ natto_msgs::msg::Swerve swerve_simulator::compute_average_command (const std::ve
     return average_command;
 }
 
-natto_msgs::msg::Swerve swerve_simulator::apply_wheel_response (
-    double dt,
-    const natto_msgs::msg::Swerve &reference_command,
-    const natto_msgs::msg::Swerve &latest_command,
-    const natto_msgs::msg::Swerve &current_state
-) const {
+natto_msgs::msg::Swerve swerve_simulator::apply_wheel_response (double dt, const natto_msgs::msg::Swerve &reference_command, const natto_msgs::msg::Swerve &latest_command, const natto_msgs::msg::Swerve &current_state) const {
     natto_msgs::msg::Swerve updated_state = current_state;
     for (size_t i = 0; i < num_wheels_; i++) {
         double angle_error = reference_command.wheel_angle[i] - current_state.wheel_angle[i];
@@ -257,9 +245,7 @@ geometry_msgs::msg::Pose swerve_simulator::integrate_pose (const double vx, cons
     return new_pose;
 }
 
-natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
-    const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments
-) const {
+natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments) const {
     natto_msgs::msg::LineSegmentArray transformed;
     transformed.line_segments.reserve (segments.line_segments.size ());
 
@@ -268,7 +254,7 @@ natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
     tf2::Matrix3x3 rotation_matrix (orientation);
 
     const auto transform_point = [&rotation_matrix, &pose] (const geometry_msgs::msg::Point &src_point) {
-        tf2::Vector3 src_vector (src_point.x, src_point.y, src_point.z);
+        tf2::Vector3       src_vector (src_point.x, src_point.y, src_point.z);
         const tf2::Vector3 rotated = rotation_matrix * src_vector;
 
         geometry_msgs::msg::Point dst_point;
@@ -288,12 +274,11 @@ natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
     return transformed;
 }
 
-bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b){
+bool swerve_simulator::intersects (const natto_msgs::msg::LineSegment &line_a, const natto_msgs::msg::LineSegment &line_b) {
     constexpr double kEps = 1e-9;
 
     auto orientation = [] (const geometry_msgs::msg::Point &p, const geometry_msgs::msg::Point &q, const geometry_msgs::msg::Point &r, const double eps) {
-        const auto val = (q.y - p.y) * (r.x - q.x) -
-                         (q.x - p.x) * (r.y - q.y);
+        const auto val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
         if (std::abs (val) <= eps) {
             return 0;
         }
@@ -301,8 +286,7 @@ bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, c
     };
 
     auto onSegment = [] (const geometry_msgs::msg::Point &p, const geometry_msgs::msg::Point &q, const geometry_msgs::msg::Point &r, const double eps) {
-        return (q.x <= std::max (p.x, r.x) + eps && q.x >= std::min (p.x, r.x) - eps &&
-                q.y <= std::max (p.y, r.y) + eps && q.y >= std::min (p.y, r.y) - eps);
+        return (q.x <= std::max (p.x, r.x) + eps && q.x >= std::min (p.x, r.x) - eps && q.y <= std::max (p.y, r.y) + eps && q.y >= std::min (p.y, r.y) - eps);
     };
 
     const auto p1 = line_a.start;
@@ -334,9 +318,9 @@ bool swerve_simulator::intersects (const natto_msgs::msg::LineSegment &line, con
     const auto &start  = line.start;
     const auto &end    = line.end;
 
-    const double dx = end.x - start.x;
-    const double dy = end.y - start.y;
-    const double len_sq = dx * dx + dy * dy;
+    const double dx        = end.x - start.x;
+    const double dy        = end.y - start.y;
+    const double len_sq    = dx * dx + dy * dy;
     const double radius_sq = circle.radius * circle.radius;
 
     if (len_sq < kDegenerateThreshold) {
@@ -347,23 +331,23 @@ bool swerve_simulator::intersects (const natto_msgs::msg::LineSegment &line, con
 
     const double ac_x = center.x - start.x;
     const double ac_y = center.y - start.y;
-    double t = (ac_x * dx + ac_y * dy) / len_sq;
-    t = std::clamp (t, 0.0, 1.0);
+    double       t    = (ac_x * dx + ac_y * dy) / len_sq;
+    t                 = std::clamp (t, 0.0, 1.0);
 
     const double nearest_x = start.x + t * dx;
     const double nearest_y = start.y + t * dy;
-    const double diff_x = center.x - nearest_x;
-    const double diff_y = center.y - nearest_y;
-    const double dist_sq = diff_x * diff_x + diff_y * diff_y;
+    const double diff_x    = center.x - nearest_x;
+    const double diff_y    = center.y - nearest_y;
+    const double dist_sq   = diff_x * diff_x + diff_y * diff_y;
 
     return dist_sq <= radius_sq;
 }
 
-bool swerve_simulator::intersects (const natto_msgs::msg::LineSegmentArray footprint_, natto_msgs::msg::Map & map_){
+bool swerve_simulator::intersects (const natto_msgs::msg::LineSegmentArray footprint_, natto_msgs::msg::Map &map_) {
     bool has_intersection = false;
     for (const auto &robot_line : footprint_.line_segments) {
         for (const auto &map_line : map_.line_segments.line_segments) {
-            if (intersects(robot_line, map_line)) {
+            if (intersects (robot_line, map_line)) {
                 has_intersection = true;
                 break;
             }
@@ -385,10 +369,10 @@ bool swerve_simulator::intersects (const natto_msgs::msg::LineSegmentArray footp
 }
 
 void swerve_simulator::publish_pose (const geometry_msgs::msg::Pose &new_pose) {
-    auto message = geometry_msgs::msg::PoseStamped();
-    message.header.stamp = this->now ();
+    auto message            = geometry_msgs::msg::PoseStamped ();
+    message.header.stamp    = this->now ();
     message.header.frame_id = "map";
-    message.pose = new_pose;
+    message.pose            = new_pose;
     simulation_pose_publisher_->publish (message);
 }
 
@@ -406,9 +390,9 @@ void swerve_simulator::broadcast_transform (const geometry_msgs::msg::Pose &new_
 }
 
 void swerve_simulator::timer_callback () {
-    const rclcpp::Time now_time = this->now();
-    const double dt = (now_time - last_time).seconds();
-    last_time = now_time;
+    const rclcpp::Time now_time = this->now ();
+    const double       dt       = (now_time - last_time).seconds ();
+    last_time                   = now_time;
 
     // コマンド入力が空のときは最新結果で補完する
     if (received_commands.empty ()) {
@@ -426,9 +410,9 @@ void swerve_simulator::timer_callback () {
     // ホイール挙動から機体の速度を推定する
     const auto [vx, vy, vz] = estimate_body_velocity (result);
     // 推定速度を積分して現在姿勢を更新する
-    const auto new_pose = integrate_pose (vx, vy, vz, dt);
-    const auto transformed_footprint = transform_line_segments(new_pose, robot_footprint);
-    if (not intersects(transformed_footprint, map)) {
+    const auto new_pose              = integrate_pose (vx, vy, vz, dt);
+    const auto transformed_footprint = transform_line_segments (new_pose, robot_footprint);
+    if (not intersects (transformed_footprint, map)) {
         current_pose.pose = new_pose;
     }
 
