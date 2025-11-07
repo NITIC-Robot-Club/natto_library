@@ -288,41 +288,6 @@ natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
     return transformed;
 }
 
-bool swerve_simulator::intersects_circle_segment (
-    const natto_msgs::msg::Circle &circle,
-    const natto_msgs::msg::LineSegment &segment
-) const {
-    constexpr double kDegenerateThreshold = 1e-12;
-
-    const auto &center = circle.center;
-    const auto &start  = segment.start;
-    const auto &end    = segment.end;
-
-    const double dx = end.x - start.x;
-    const double dy = end.y - start.y;
-    const double len_sq = dx * dx + dy * dy;
-    const double radius_sq = circle.radius * circle.radius;
-
-    if (len_sq < kDegenerateThreshold) {
-        const double diff_x = center.x - start.x;
-        const double diff_y = center.y - start.y;
-        return (diff_x * diff_x + diff_y * diff_y) <= radius_sq;
-    }
-
-    const double ac_x = center.x - start.x;
-    const double ac_y = center.y - start.y;
-    double t = (ac_x * dx + ac_y * dy) / len_sq;
-    t = std::clamp (t, 0.0, 1.0);
-
-    const double nearest_x = start.x + t * dx;
-    const double nearest_y = start.y + t * dy;
-    const double diff_x = center.x - nearest_x;
-    const double diff_y = center.y - nearest_y;
-    const double dist_sq = diff_x * diff_x + diff_y * diff_y;
-
-    return dist_sq <= radius_sq;
-}
-
 bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b){
     constexpr double kEps = 1e-9;
 
@@ -360,6 +325,63 @@ bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, c
     if (o4 == 0 && onSegment (p2, q1, q2, kEps)) return true;
 
     return false;
+}
+
+bool swerve_simulator::intersects (const natto_msgs::msg::LineSegment &line, const natto_msgs::msg::Circle &circle) {
+    constexpr double kDegenerateThreshold = 1e-12;
+
+    const auto &center = circle.center;
+    const auto &start  = line.start;
+    const auto &end    = line.end;
+
+    const double dx = end.x - start.x;
+    const double dy = end.y - start.y;
+    const double len_sq = dx * dx + dy * dy;
+    const double radius_sq = circle.radius * circle.radius;
+
+    if (len_sq < kDegenerateThreshold) {
+        const double diff_x = center.x - start.x;
+        const double diff_y = center.y - start.y;
+        return (diff_x * diff_x + diff_y * diff_y) <= radius_sq;
+    }
+
+    const double ac_x = center.x - start.x;
+    const double ac_y = center.y - start.y;
+    double t = (ac_x * dx + ac_y * dy) / len_sq;
+    t = std::clamp (t, 0.0, 1.0);
+
+    const double nearest_x = start.x + t * dx;
+    const double nearest_y = start.y + t * dy;
+    const double diff_x = center.x - nearest_x;
+    const double diff_y = center.y - nearest_y;
+    const double dist_sq = diff_x * diff_x + diff_y * diff_y;
+
+    return dist_sq <= radius_sq;
+}
+
+bool swerve_simulator::intersects (const natto_msgs::msg::LineSegmentArray footprint_, natto_msgs::msg::Map & map_){
+    bool has_intersection = false;
+    for (const auto &robot_line : footprint_.line_segments) {
+        for (const auto &map_line : map_.line_segments.line_segments) {
+            if (intersects(robot_line, map_line)) {
+                has_intersection = true;
+                break;
+            }
+        }
+        if (has_intersection) {
+            break;
+        }
+        for (const auto &map_circle : map_.circles.circles) {
+            if (intersects (robot_line, map_circle)) {
+                has_intersection = true;
+                break;
+            }
+        }
+        if (has_intersection) {
+            break;
+        }
+    }
+    return has_intersection;
 }
 
 void swerve_simulator::publish_pose (const geometry_msgs::msg::Pose &new_pose) {
@@ -406,29 +428,7 @@ void swerve_simulator::timer_callback () {
     // 推定速度を積分して現在姿勢を更新する
     const auto new_pose = integrate_pose (vx, vy, vz, dt);
     const auto transformed_footprint = transform_line_segments(new_pose, robot_footprint);
-    bool has_intersection = false;
-    for (const auto &robot_line : transformed_footprint.line_segments) {
-        for (const auto &map_line : map.line_segments.line_segments) {
-            if (intersects(robot_line, map_line)) {
-                has_intersection = true;
-                break;
-            }
-        }
-        if (has_intersection) {
-            break;
-        }
-        for (const auto &map_circle : map.circles.circles) {
-            if (intersects_circle_segment (map_circle, robot_line)) {
-                has_intersection = true;
-                RCLCPP_INFO(this->get_logger(), "Robot footprint intersects with map lines or circles.");
-                break;
-            }
-        }
-        if (has_intersection) {
-            break;
-        }
-    }
-    if (not has_intersection) {
+    if (not intersects(transformed_footprint, map)) {
         current_pose.pose = new_pose;
     }
 
