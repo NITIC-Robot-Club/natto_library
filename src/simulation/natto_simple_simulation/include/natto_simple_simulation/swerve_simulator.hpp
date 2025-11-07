@@ -55,6 +55,7 @@ class swerve_simulator : public rclcpp::Node {
     std::array<double, 3>                estimate_body_velocity (const natto_msgs::msg::Swerve &wheel_state) const;
     geometry_msgs::msg::Pose             integrate_pose (const double vx, const double vy, const double vz, const double dt);
     bool intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b);
+    natto_msgs::msg::LineSegmentArray transform_line_segments (const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments) const;
     void                                 publish_pose (const geometry_msgs::msg::Pose &new_pose);
     void                                 broadcast_transform (const geometry_msgs::msg::Pose &new_pose);
 

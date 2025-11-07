@@ -257,6 +257,37 @@ geometry_msgs::msg::Pose swerve_simulator::integrate_pose (const double vx, cons
     return new_pose;
 }
 
+natto_msgs::msg::LineSegmentArray swerve_simulator::transform_line_segments (
+    const geometry_msgs::msg::Pose &pose, const natto_msgs::msg::LineSegmentArray &segments
+) const {
+    natto_msgs::msg::LineSegmentArray transformed;
+    transformed.line_segments.reserve (segments.line_segments.size ());
+
+    tf2::Quaternion orientation;
+    tf2::fromMsg (pose.orientation, orientation);
+    tf2::Matrix3x3 rotation_matrix (orientation);
+
+    const auto transform_point = [&rotation_matrix, &pose] (const geometry_msgs::msg::Point &src_point) {
+        tf2::Vector3 src_vector (src_point.x, src_point.y, src_point.z);
+        const tf2::Vector3 rotated = rotation_matrix * src_vector;
+
+        geometry_msgs::msg::Point dst_point;
+        dst_point.x = rotated.x () + pose.position.x;
+        dst_point.y = rotated.y () + pose.position.y;
+        dst_point.z = rotated.z () + pose.position.z;
+        return dst_point;
+    };
+
+    for (const auto &segment : segments.line_segments) {
+        natto_msgs::msg::LineSegment transformed_segment;
+        transformed_segment.start = transform_point (segment.start);
+        transformed_segment.end   = transform_point (segment.end);
+        transformed.line_segments.emplace_back (std::move (transformed_segment));
+    }
+
+    return transformed;
+}
+
 bool swerve_simulator::intersects(const natto_msgs::msg::LineSegment & line_a, const natto_msgs::msg::LineSegment & line_b){
     constexpr double kEps = 1e-9;
 
@@ -339,7 +370,25 @@ void swerve_simulator::timer_callback () {
     const auto [vx, vy, vz] = estimate_body_velocity (result);
     // 推定速度を積分して現在姿勢を更新する
     const auto new_pose = integrate_pose (vx, vy, vz, dt);
-    current_pose.pose = new_pose;
+    const auto transformed_footprint = transform_line_segments(new_pose, robot_footprint);
+    bool has_intersection = false;
+    for (const auto &robot_line : transformed_footprint.line_segments) {
+        for (const auto &map_line : map.line_segments.line_segments) {
+            if (intersects(robot_line, map_line)) {
+                has_intersection = true;
+                break;
+            }
+        }
+        if (has_intersection) {
+            break;
+        }
+    }
+    if (not has_intersection) {
+        current_pose.pose = new_pose;
+    }else{
+        RCLCPP_INFO(this->get_logger(), "Robot footprint intersects with map lines.");
+    }
+    
     // 姿勢トピックをPublsihする
     publish_pose (current_pose.pose);
     // TFを更新してbroadcastする
