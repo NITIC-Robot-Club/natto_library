@@ -20,8 +20,8 @@
 namespace map_converter {
 
 map_converter::map_converter (const rclcpp::NodeOptions &node_options) : Node ("map_converter", node_options) {
-    occupancy_grid_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", 10);
-    map_subscription_         = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&map_converter::map_callback, this, std::placeholders::_1));
+    occupancy_grid_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    map_subscription_         = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&map_converter::map_callback, this, std::placeholders::_1));
 
     resolution_ = this->declare_parameter<double> ("resolution", 0.05);
 

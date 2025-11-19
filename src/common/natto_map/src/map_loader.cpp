@@ -20,7 +20,7 @@ map_loader::map_loader (const rclcpp::NodeOptions &node_options) : Node ("map_lo
     std::string circles_path       = this->declare_parameter<std::string> ("circles_path", "");
     int         publish_period_ms  = this->declare_parameter<int> ("publish_period_ms", 1000);
 
-    map_publisher_ = this->create_publisher<natto_msgs::msg::Map> ("map", 10);
+    map_publisher_ = this->create_publisher<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
 
     if (line_segments_path != "") {
         load_line_segments (line_segments_path);
@@ -33,8 +33,9 @@ map_loader::map_loader (const rclcpp::NodeOptions &node_options) : Node ("map_lo
     } else {
         RCLCPP_WARN (this->get_logger (), "No circles path provided.");
     }
+    map_publisher_->publish (map_);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&map_loader::timer_callback, this));
+    // timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&map_loader::timer_callback, this));
 }
 
 void map_loader::load_line_segments (const std::string &path) {
