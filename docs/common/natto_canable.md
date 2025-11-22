@@ -17,6 +17,7 @@ canable ノードは、CANAble デバイスを使用して CAN 通信を行い�
 | retry_open_can | bool | true | CAN ソケット初期化のリトライを有効化 |
 | retry_write_can | bool | true | 書き込みリトライを有効化 |
 | max_retry_write_count | int | 5 | 書き込みの最大リトライ回数 |
+| use_fd | bool | false | CAN FD フレームを使用する場合は true に設定 |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -28,7 +29,7 @@ canable ノードは、CANAble デバイスを使用して CAN 通信を行い�
 | - | - | - |
 | transmit | natto_msgs/msg/Can | 送信する CAN フレーム |
 
-## 事前準備 (candlightの場合)
+## 事前準備 (Classicの場合)
 Classic CAN ~1Mbpsの場合
 
 ### ファームウェアの書き込み
@@ -83,57 +84,14 @@ Classic CAN ~1Mbpsの場合
     link/can 
     ```
 
-## 事前準備 (slcanの場合)
-FD CAN ~5Mbpsの場合やWindowsでデバッグしながら使いたい場合
+## 事前準備 (FDの場合)
+CAN FD 〜8Mbpsの場合
 
-### ファームウェアの書き込み
-1. CANAbleのボタンを押しながらUSBを接続します
-2. `USBの場所を確認します
-    ```
-    $ lsusb
-    Bus 001 Device 002: ID 16d0:117e MCS CANable2 b158aa7 github.com/normaldotcom/canable2.git
-    ```
-    の場合は `/dev/bus/usb/001/002` です
-3. 権限を設定します
-    ```
-    $ sudo chmod 0666 /dev/bus/usb/001/002
-    ```
-4. [公式サイト](https://canable.io/updater/canable2.html) にアクセスし、`candlelight`を選択し書き込みます
+[このリポジトリ](https://github.com/kazu-321/candleLight_fw_canable_v2_fd) を参考に自分でファームをビルド、書き込みしてください
+udevルールの設定に dbitrate, fd の設定を追加してください
 
-
-### udevルールの設定
-1. CANAbleのシリアル番号を確認します
-    ```
-    $ lsusb
-    Bus 001 Device 003: ID 1d50:606f OpenMoko, Inc. Geschwister Schneider CAN adapter
-    ```
-    ```
-    $ lsusb -v -d 1d50:606f | grep Serial
-    iSerial                 3 208338903136
-    ```
-    この場合`208338903136`がシリアル番号になります
-
-2. ここから先はslcanでやるが、udevで自動化したら何故かうまく行かなかったのであとでやってみる
-    ```bash
-    slcand -o -c -s8 /dev/ttyACM0 can0
-    sudo ip link set can0 up
-    sudo ip link set can0 txqueuelen 1000
-    ```
-
-## 使用方法
-1. CANの接続を確認します
-    ```bash
-    candump can0
-    ```
-    大量の通信ログが流れてきたら成功です
-2. natto_canableノードを起動します
-    ```bash
-    ros2 run natto_canable canable
-    ```
-3. CANフレームの送受信を行います
-    ```bash
-    ros2 topic echo /can/receive
-    ```
-    ```bash
-    ros2 topic pub /can/transmit natto_msgs/msg/Can "{id: 0x123, dlc: 8, data: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]}"
-    ```
+```
+SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="606f", ATTR{serial}=="004A00433136500C2039384D", SYMLINK+="can", MODE="0666", \
+RUN+="/sbin/ip link set can0 type can bitrate 1000000 dbitrate 2000000 fd on", \
+RUN+="/sbin/ip link set can0 up"
+```
