@@ -194,6 +194,22 @@
         args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
 
     <!-- 自己位置推定 -->
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
-        args="1 1 0 0 0 0 1 map odom"/>
+    <!-- <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
+        args="1 1 0 0 0 0 1 map odom"/> -->
+    <!-- MCL -->
+    <!-- <node pkg="natto_mcl" exec="mcl" name="mcl" namespace="localization/mcl">
+        <param from="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
+        <remap from="map" to="/map"/>
+        <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+        <remap from="initial_pose" to="/initialpose"/>
+        <remap from="pose" to="/localization/current_pose"/>
+    </node> -->
+
+    <node pkg="emcl2" exec="emcl2_node" name="emcl2_node" namespace="localization/emcl2">
+        <param from="$(find-pkg-share nhk2025_sample)/config/emcl2.yaml"/>
+        <remap from="map" to="/occupancy_grid"/>
+        <remap from="scan" to="/sensing/lidar/laser_scan/rear"/>
+        <remap from="initial_pose" to="/initialpose"/>
+        <remap from="pose" to="/localization/current_pose"/>
+    </node>
 </launch>
