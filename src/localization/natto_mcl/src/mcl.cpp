@@ -209,7 +209,8 @@ void mcl::resample_particles () {
 
     std::vector<particle> old (particles_);
 
-    double start = static_cast<double> (rand ()) / (RAND_MAX * particles_.size ());
+    std::uniform_real_distribution<double> dist(0.0, 1.0 / particles_.size ());
+    double start = dist(rng_);
     double step  = 1.0 / particles_.size ();
 
     std::vector<int> chosen;
