@@ -13,7 +13,7 @@
     motion_noise_theta: 0.1
     motion_noise_position : 0.02
     motion_noise_orientation : 0.02
-    expansion_radius_position: 1.0
-    expansion_radius_orientation: 3.14
+    expansion_radius_position: 0.2
+    expansion_radius_orientation: 0.2
     laser_likelihood_max_dist: 0.1
     transform_tolerance: 0.2

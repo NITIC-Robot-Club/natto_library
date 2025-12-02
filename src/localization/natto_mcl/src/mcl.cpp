@@ -205,37 +205,34 @@ void mcl::initialize_particles (double x, double y, double theta) {
     }
     RCLCPP_INFO (this->get_logger (), "Particles initialized, size: %zu", particles_.size ());
 }
-
 void mcl::resample_particles () {
-    std::vector<double> accum;
-    accum.push_back (particles_[0].weight);
-    for (size_t i = 1; i < particles_.size (); i++) {
-        accum.push_back (accum.back () + particles_[i].weight);
-    }
-
-    std::vector<particle> old (particles_);
+    std::vector<particle> old_particles (particles_);
+    std::vector<double>   cumulative_weights;
+    std::vector<int>      selected_indices;
 
     std::uniform_real_distribution<double> dist (0.0, 1.0 / particles_.size ());
-    double                                 start = dist (rng_);
-    double                                 step  = 1.0 / particles_.size ();
+    cumulative_weights.push_back (particles_[0].weight);
+    for (size_t i = 1; i < particles_.size (); i++) {
+        cumulative_weights.push_back (cumulative_weights.back () + particles_[i].weight);
+    }
 
-    std::vector<int> chosen;
+    double start_offset = dist (rng_);
+    double step         = 1.0 / particles_.size ();
 
-    size_t tick = 0;
+    size_t cumulative_index = 0;
     for (size_t i = 0; i < particles_.size (); i++) {
-        while (accum[tick] <= start + i * step) {
-            tick++;
-            if (tick == particles_.size ()) {
+        while (cumulative_weights[cumulative_index] <= start_offset + i * step) {
+            cumulative_index++;
+            if (cumulative_index == particles_.size ()) {
                 RCLCPP_FATAL (this->get_logger (), "RESAMPLING FAILED: Unable to resample particles. Initiating shutdown.");
                 rclcpp::shutdown ();
                 return;
             }
         }
-        chosen.push_back (tick);
+        selected_indices.push_back (cumulative_index);
     }
-
     for (size_t i = 0; i < particles_.size (); i++) {
-        particles_[i] = old[chosen[i]];
+        particles_[i] = old_particles[selected_indices[i]];
     }
 }
 
@@ -245,8 +242,6 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_theta) {
     std::normal_distribution<double> noise_position (0.0, motion_noise_position_);
     std::normal_distribution<double> noise_theta (0.0, motion_noise_orientation_);
     std::normal_distribution<double> normal_noise (0.0, 1.0);
-
-    // delta_theta = std::fmod (delta_theta + M_PI, 2 * M_PI) - M_PI;
 
     double x_dev     = sqrt (abs (delta_x) * motion_noise_xx_ * motion_noise_xx_ + abs (delta_y) * motion_noise_xy_ * motion_noise_xy_);
     double y_dev     = sqrt (abs (delta_x) * motion_noise_xy_ * motion_noise_xy_ + abs (delta_y) * motion_noise_yy_ * motion_noise_yy_);
