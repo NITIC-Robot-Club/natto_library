@@ -33,7 +33,6 @@ map_loader::map_loader (const rclcpp::NodeOptions &node_options) : Node ("map_lo
         RCLCPP_WARN (this->get_logger (), "No circles path provided.");
     }
     map_publisher_->publish (map_);
-
 }
 
 void map_loader::load_line_segments (const std::string &path) {
