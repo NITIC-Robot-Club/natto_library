@@ -119,7 +119,7 @@
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="planning">
             <remap from="occupancy_grid" to="/occupancy_grid"/>
             <remap from="goal_pose" to="/goal_pose"/>
-            <remap from="current_pose" to="/simulation/pose"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/robot/footprint"/>
             <param name="theta_resolution_deg" value="5"/>
@@ -130,7 +130,7 @@
         <!-- 経路追従 -->
         <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
             <param from="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
-            <remap from="current_pose" to="/simulation/pose"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
         </composable_node>
     </node_container>
@@ -193,22 +193,11 @@
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
         args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
 
-    <!-- 自己位置推定 -->
-    <!-- <node pkg="tf2_ros" exec="static_transform_publisher" name="map_to_odom" output="screen"
-        args="1 1 0 0 0 0 1 map odom"/> -->
     <!-- MCL -->
-    <!-- <node pkg="natto_mcl" exec="mcl" name="mcl" namespace="localization/mcl">
+    <node pkg="natto_mcl" exec="mcl" name="mcl" namespace="localization/mcl">
         <param from="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
-        <remap from="map" to="/map"/>
+        <remap from="occupancy_grid" to="/occupancy_grid"/>
         <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
-        <remap from="initial_pose" to="/initialpose"/>
-        <remap from="pose" to="/localization/current_pose"/>
-    </node> -->
-
-    <node pkg="emcl2" exec="emcl2_node" name="emcl2_node" namespace="localization/emcl2">
-        <param from="$(find-pkg-share nhk2025_sample)/config/emcl2.yaml"/>
-        <remap from="map" to="/occupancy_grid"/>
-        <remap from="scan" to="/sensing/lidar/laser_scan/rear"/>
         <remap from="initial_pose" to="/initialpose"/>
         <remap from="pose" to="/localization/current_pose"/>
     </node>

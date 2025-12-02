@@ -3,14 +3,14 @@
     map_frame_id: map
     odom_frame_id: odom
     base_frame_id: base_link
-    max_num_particles: 500
+    max_num_particles: 300
     min_num_particles: 100
     initial_pose_x: 1.0
     initial_pose_y: 1.0
     initial_pose_theta: 0.0
     motion_noise_position : 0.05
     motion_noise_orientation : 0.05
-    alpha_threshold: 0.1
     expansion_radius_position: 1.0
     expansion_radius_orientation: 3.14
     laser_likelihood_max_dist: 0.1
+    transform_tolerance: 0.2

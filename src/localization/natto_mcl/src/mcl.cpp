@@ -16,8 +16,7 @@
 
 namespace mcl {
 
-mcl::mcl (const rclcpp::NodeOptions &node_options)
-    : Node ("mcl", node_options), rng_ (std::random_device{}()), tf_buffer_ (std::make_shared<tf2_ros::Buffer> (this->get_clock ())), tf_listener_ (std::make_shared<tf2_ros::TransformListener> (*tf_buffer_)) {
+mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options), rng_ (std::random_device{}()) {
     pose_publisher_            = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
     particles_publisher_       = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
     occupancy_grid_subscriber_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::occupancy_grid_callback, this, std::placeholders::_1));
@@ -27,6 +26,9 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     tf_buffer_      = std::make_shared<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_    = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster> (this);
+
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS> (get_node_base_interface (), get_node_timers_interface (), create_callback_group (rclcpp::CallbackGroupType::MutuallyExclusive, false));
+    tf_buffer_->setCreateTimerInterface (timer_interface);
 
     map_frame_id_                 = this->declare_parameter<std::string> ("map_frame_id", "map");
     odom_frame_id_                = this->declare_parameter<std::string> ("odom_frame_id", "odom");
@@ -41,7 +43,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     expansion_radius_position_    = this->declare_parameter<double> ("expansion_radius_position", 1.0);
     expansion_radius_orientation_ = this->declare_parameter<double> ("expansion_radius_orientation", 3.14);
     laser_likelihood_max_dist_    = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
-    transform_tolerance_          = this->declare_parameter<double> ("transform_tolerance", 0.1);
+    transform_tolerance_          = this->declare_parameter<double> ("transform_tolerance", 0.2);
 
     RCLCPP_INFO (this->get_logger (), "MCL node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
@@ -71,8 +73,6 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     map_to_odom.transform.rotation = tf2::toMsg (q);
     tf_broadcaster_->sendTransform (map_to_odom);
     initialize_particles (initial_pose_x_, initial_pose_y_, initial_pose_theta_);
-
-    likelihood_field_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("likelihood_field", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
 }
 
 void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -105,18 +105,6 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
             }
         }
     }
-
-    nav_msgs::msg::OccupancyGrid likelihood_field_msg;
-    likelihood_field_msg.header = msg->header;
-    likelihood_field_msg.info   = msg->info;
-    likelihood_field_msg.data.resize (msg->info.width * msg->info.height);
-    for (int x = 0; x < msg->info.width; ++x) {
-        for (int y = 0; y < msg->info.height; ++y) {
-            int index                        = y * msg->info.width + x;
-            likelihood_field_msg.data[index] = static_cast<int8_t> (likelihood_field_[x][y]);
-        }
-    }
-    likelihood_field_publisher_->publish (likelihood_field_msg);
 }
 
 void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
