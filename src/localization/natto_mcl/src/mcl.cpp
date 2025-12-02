@@ -33,11 +33,14 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     map_frame_id_                 = this->declare_parameter<std::string> ("map_frame_id", "map");
     odom_frame_id_                = this->declare_parameter<std::string> ("odom_frame_id", "odom");
     base_frame_id_                = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    max_num_particles_            = this->declare_parameter<int> ("max_num_particles", 1000);
-    min_num_particles_            = this->declare_parameter<int> ("min_num_particles", 100);
+    num_particles_                = this->declare_parameter<int> ("num_particles", 500);
     initial_pose_x_               = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_               = this->declare_parameter<double> ("initial_pose_y", 0.0);
     initial_pose_theta_           = this->declare_parameter<double> ("initial_pose_theta", 0.0);
+    motion_noise_xx_              = this->declare_parameter<double> ("motion_noise_xx", 0.02);
+    motion_noise_xy_              = this->declare_parameter<double> ("motion_noise_xy", 0.0);
+    motion_noise_yy_              = this->declare_parameter<double> ("motion_noise_yy", 0.02);
+    motion_noise_theta_           = this->declare_parameter<double> ("motion_noise_theta", 0.01);
     motion_noise_position_        = this->declare_parameter<double> ("motion_noise_position", 0.01);
     motion_noise_orientation_     = this->declare_parameter<double> ("motion_noise_orientation", 0.01);
     expansion_radius_position_    = this->declare_parameter<double> ("expansion_radius_position", 1.0);
@@ -49,11 +52,14 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "odom_frame_id: %s", odom_frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "base_frame_id: %s", base_frame_id_.c_str ());
-    RCLCPP_INFO (this->get_logger (), "max_num_particles: %d", max_num_particles_);
-    RCLCPP_INFO (this->get_logger (), "min_num_particles: %d", min_num_particles_);
+    RCLCPP_INFO (this->get_logger (), "num_particles: %d", num_particles_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_x: %f", initial_pose_x_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_y: %f", initial_pose_y_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_theta: %f", initial_pose_theta_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_xx: %f", motion_noise_xx_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_xy: %f", motion_noise_xy_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_yy: %f", motion_noise_yy_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_theta: %f", motion_noise_theta_);
     RCLCPP_INFO (this->get_logger (), "motion_noise_position: %f", motion_noise_position_);
     RCLCPP_INFO (this->get_logger (), "motion_noise_orientation: %f", motion_noise_orientation_);
     RCLCPP_INFO (this->get_logger (), "expansion_radius_position: %f", expansion_radius_position_);
@@ -188,13 +194,13 @@ void mcl::initialize_particles (double x, double y, double theta) {
     std::uniform_real_distribution<double> dy (-expansion_radius_position_, expansion_radius_position_);
     std::uniform_real_distribution<double> dtheta (-expansion_radius_orientation_, expansion_radius_orientation_);
 
-    RCLCPP_INFO (this->get_logger (), "Initializing %d particles", max_num_particles_);
-    for (int i = 0; i < max_num_particles_; i++) {
+    RCLCPP_INFO (this->get_logger (), "Initializing %d particles", num_particles_);
+    for (int i = 0; i < num_particles_; i++) {
         particle p;
         p.x      = x + dx (rng_);
         p.y      = y + dy (rng_);
         p.theta  = theta + dtheta (rng_);
-        p.weight = 1.0 / max_num_particles_;
+        p.weight = 1.0 / num_particles_;
         particles_.push_back (p);
     }
     RCLCPP_INFO (this->get_logger (), "Particles initialized, size: %zu", particles_.size ());
@@ -236,14 +242,20 @@ void mcl::resample_particles () {
 void mcl::motion_update (double delta_x, double delta_y, double delta_theta) {
     if (particles_.empty ()) return;
 
-    std::normal_distribution<double> noise_x (0.0, motion_noise_position_);
-    std::normal_distribution<double> noise_y (0.0, motion_noise_position_);
+    std::normal_distribution<double> noise_position (0.0, motion_noise_position_);
     std::normal_distribution<double> noise_theta (0.0, motion_noise_orientation_);
+    std::normal_distribution<double> normal_noise (0.0, 1.0);
+
+    // delta_theta = std::fmod (delta_theta + M_PI, 2 * M_PI) - M_PI;
+
+    double x_dev     = sqrt (abs (delta_x) * motion_noise_xx_ * motion_noise_xx_ + abs (delta_y) * motion_noise_xy_ * motion_noise_xy_);
+    double y_dev     = sqrt (abs (delta_x) * motion_noise_xy_ * motion_noise_xy_ + abs (delta_y) * motion_noise_yy_ * motion_noise_yy_);
+    double theta_dev = sqrt (abs (delta_theta) * motion_noise_theta_ * motion_noise_theta_);
 
     for (auto &p : particles_) {
-        double nx     = noise_x (rng_);
-        double ny     = noise_y (rng_);
-        double ntheta = noise_theta (rng_);
+        double nx     = noise_position (rng_) + normal_noise (rng_) * x_dev;
+        double ny     = noise_position (rng_) + normal_noise (rng_) * y_dev;
+        double ntheta = noise_theta (rng_) + normal_noise (rng_) * theta_dev;
 
         p.x += delta_x + nx;
         p.y += delta_y + ny;

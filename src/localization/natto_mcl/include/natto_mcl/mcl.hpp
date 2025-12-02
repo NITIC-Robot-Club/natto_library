@@ -48,8 +48,12 @@ class mcl : public rclcpp::Node {
 
    private:
     std::string map_frame_id_, odom_frame_id_, base_frame_id_;
-    int         max_num_particles_, min_num_particles_;
-    double      initial_pose_x_, initial_pose_y_, initial_pose_theta_, motion_noise_position_, motion_noise_orientation_, expansion_radius_position_, expansion_radius_orientation_, laser_likelihood_max_dist_, transform_tolerance_, resolution_;
+    int         num_particles_;
+    double      initial_pose_x_, initial_pose_y_, initial_pose_theta_;
+    double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_theta_;
+    double      motion_noise_position_, motion_noise_orientation_, expansion_radius_position_, expansion_radius_orientation_;
+    double      laser_likelihood_max_dist_, transform_tolerance_;
+    double      resolution_;
 
     std::vector<particle>             particles_;
     geometry_msgs::msg::Transform     last_odom_transform_;
