@@ -220,8 +220,9 @@ void mcl::resample_particles () {
         while (accum[tick] <= start + i * step) {
             tick++;
             if (tick == particles_.size ()) {
-                RCLCPP_ERROR (this->get_logger (), "RESAMPLING FAILED");
-                exit (1);
+                RCLCPP_FATAL (this->get_logger (), "RESAMPLING FAILED: Unable to resample particles. Initiating shutdown.");
+                rclcpp::shutdown();
+                return;
             }
         }
         chosen.push_back (tick);
