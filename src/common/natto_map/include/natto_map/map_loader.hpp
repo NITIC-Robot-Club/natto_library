@@ -30,15 +30,12 @@ class map_loader : public rclcpp::Node {
     map_loader (const rclcpp::NodeOptions &node_options);
 
    private:
-    void timer_callback ();
-
     void load_line_segments (const std::string &path);
     void load_circles (const std::string &path);
 
     natto_msgs::msg::Map map_;
 
     rclcpp::Publisher<natto_msgs::msg::Map>::SharedPtr map_publisher_;
-    rclcpp::TimerBase::SharedPtr                       timer_;
 };
 }  // namespace map_loader
 
