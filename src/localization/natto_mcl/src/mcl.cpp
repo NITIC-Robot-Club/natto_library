@@ -18,10 +18,10 @@ namespace mcl {
 
 mcl::mcl (const rclcpp::NodeOptions &node_options)
     : Node ("mcl", node_options), rng_ (std::random_device{}()), tf_buffer_ (std::make_shared<tf2_ros::Buffer> (this->get_clock ())), tf_listener_ (std::make_shared<tf2_ros::TransformListener> (*tf_buffer_)) {
-    pose_publisher_                          = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
-    particles_publisher_                     = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
-    map_subscriber_                          = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::map_callback, this, std::placeholders::_1));
-    pointcloud2_subscriber_                  = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 1, std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
+    pose_publisher_            = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    particles_publisher_       = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
+    occupancy_grid_subscriber_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::occupancy_grid_callback, this, std::placeholders::_1));
+    pointcloud2_subscriber_    = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 1, std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
     initial_pose_with_covariance_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped> ("initial_pose", 10, std::bind (&mcl::initial_pose_with_covariance_callback, this, std::placeholders::_1));
 
     tf_buffer_      = std::make_shared<tf2_ros::Buffer> (this->get_clock ());
@@ -38,10 +38,10 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     initial_pose_theta_           = this->declare_parameter<double> ("initial_pose_theta", 0.0);
     motion_noise_position_        = this->declare_parameter<double> ("motion_noise_position", 0.01);
     motion_noise_orientation_     = this->declare_parameter<double> ("motion_noise_orientation", 0.01);
-    alpha_threshold_              = this->declare_parameter<double> ("alpha_threshold", 0.5);
     expansion_radius_position_    = this->declare_parameter<double> ("expansion_radius_position", 1.0);
     expansion_radius_orientation_ = this->declare_parameter<double> ("expansion_radius_orientation", 3.14);
     laser_likelihood_max_dist_    = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
+    transform_tolerance_          = this->declare_parameter<double> ("transform_tolerance", 0.1);
 
     RCLCPP_INFO (this->get_logger (), "MCL node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
@@ -52,15 +52,17 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     RCLCPP_INFO (this->get_logger (), "initial_pose_x: %f", initial_pose_x_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_y: %f", initial_pose_y_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_theta: %f", initial_pose_theta_);
-    RCLCPP_INFO (this->get_logger (), "alpha_threshold: %f", alpha_threshold_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_position: %f", motion_noise_position_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_orientation: %f", motion_noise_orientation_);
     RCLCPP_INFO (this->get_logger (), "expansion_radius_position: %f", expansion_radius_position_);
     RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation: %f", expansion_radius_orientation_);
     RCLCPP_INFO (this->get_logger (), "laser_likelihood_max_dist: %f", laser_likelihood_max_dist_);
+    RCLCPP_INFO (this->get_logger (), "transform_tolerance: %f", transform_tolerance_);
 
     geometry_msgs::msg::TransformStamped map_to_odom;
     map_to_odom.header.frame_id         = map_frame_id_;
     map_to_odom.child_frame_id          = odom_frame_id_;
-    map_to_odom.header.stamp            = this->now ();
+    map_to_odom.header.stamp            = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
     map_to_odom.transform.translation.x = initial_pose_x_;
     map_to_odom.transform.translation.y = initial_pose_y_;
     map_to_odom.transform.translation.z = 0.0;
@@ -68,11 +70,53 @@ mcl::mcl (const rclcpp::NodeOptions &node_options)
     q.setRPY (0, 0, initial_pose_theta_);
     map_to_odom.transform.rotation = tf2::toMsg (q);
     tf_broadcaster_->sendTransform (map_to_odom);
+    initialize_particles (initial_pose_x_, initial_pose_y_, initial_pose_theta_);
+
+    likelihood_field_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("likelihood_field", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
 }
 
-void mcl::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
-    map_ = *msg;
-    initialize_particles (initial_pose_x_, initial_pose_y_, initial_pose_theta_);
+void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+    RCLCPP_INFO (this->get_logger (), "Received occupancy grid map.");
+    likelihood_field_.clear ();
+    likelihood_field_.resize (msg->info.width, std::vector<uint8_t> (msg->info.height));
+    resolution_  = msg->info.resolution;
+    int cell_num = static_cast<int> (ceil (laser_likelihood_max_dist_ / resolution_));
+
+    std::vector<uint8_t> weights;
+    for (int i = 0; i <= cell_num; i++) {
+        weights.push_back (static_cast<uint8_t> (255 * (1.0 - static_cast<double> (i) / cell_num)));
+    }
+    for (int x = 0; x < msg->info.width; ++x) {
+        for (int y = 0; y < msg->info.height; ++y) {
+            int index = y * msg->info.width + x;
+            if (msg->data[index] == -1) {
+                likelihood_field_[x][y] = 0;
+            } else if (msg->data[index] > 50) {
+                for (int i = -cell_num; i <= cell_num; i++) {
+                    for (int j = -cell_num; j <= cell_num; j++) {
+                        if (i + x >= 0 && j + y >= 0 && i + x < msg->info.width && j + y < msg->info.height) {
+                            likelihood_field_[i + x][j + y] = std::max (likelihood_field_[i + x][j + y], std::min (weights[abs (i)], weights[abs (j)]));
+                        }
+                    }
+                }
+
+            } else {
+                likelihood_field_[x][y] = 0;
+            }
+        }
+    }
+
+    nav_msgs::msg::OccupancyGrid likelihood_field_msg;
+    likelihood_field_msg.header = msg->header;
+    likelihood_field_msg.info   = msg->info;
+    likelihood_field_msg.data.resize (msg->info.width * msg->info.height);
+    for (int x = 0; x < msg->info.width; ++x) {
+        for (int y = 0; y < msg->info.height; ++y) {
+            int index                        = y * msg->info.width + x;
+            likelihood_field_msg.data[index] = static_cast<int8_t> (likelihood_field_[x][y]);
+        }
+    }
+    likelihood_field_publisher_->publish (likelihood_field_msg);
 }
 
 void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
@@ -93,12 +137,20 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
 
     double total_weight = 0.0;
     for (auto &p : particles_) {
-        p.weight = compute_laser_likelihood (*msg, p);
+        p.weight *= compute_laser_likelihood (*msg, p);
         total_weight += p.weight;
     }
 
-    if (total_weight < alpha_threshold_) {
+    for (auto &p : particles_) {
+        p.weight /= total_weight;
+    }
+
+    if (total_weight > 0.000001) {
         resample_particles ();
+    } else {
+        for (auto &p : particles_) {
+            p.weight = 1.0 / particles_.size ();
+        }
     }
 
     geometry_msgs::msg::Pose mean_pose = get_mean_pose ();
@@ -110,7 +162,7 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
     tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
 
     geometry_msgs::msg::TransformStamped map_to_odom_msg;
-    map_to_odom_msg.header.stamp    = this->now ();
+    map_to_odom_msg.header.stamp    = builtin_interfaces::msg::Time (rclcpp::Time (msg->header.stamp) + rclcpp::Duration::from_seconds (transform_tolerance_));
     map_to_odom_msg.header.frame_id = map_frame_id_;
     map_to_odom_msg.child_frame_id  = odom_frame_id_;
     map_to_odom_msg.transform       = tf2::toMsg (tf_map_to_odom);
@@ -149,7 +201,7 @@ void mcl::initialize_particles (double x, double y, double theta) {
     std::uniform_real_distribution<double> dtheta (-expansion_radius_orientation_, expansion_radius_orientation_);
 
     RCLCPP_INFO (this->get_logger (), "Initializing %d particles", max_num_particles_);
-    for (int i = 0; i < max_num_particles_; ++i) {
+    for (int i = 0; i < max_num_particles_; i++) {
         particle p;
         p.x      = x + dx (rng_);
         p.y      = y + dy (rng_);
@@ -161,38 +213,34 @@ void mcl::initialize_particles (double x, double y, double theta) {
 }
 
 void mcl::resample_particles () {
-    if (particles_.empty ()) return;
-    size_t N = particles_.size ();
-
-    double total_weight = 0.0;
-    for (auto &p : particles_) total_weight += p.weight;
-    if (total_weight <= 0.0) {
-        for (auto &p : particles_) p.weight = 1.0 / N;
-        total_weight = 1.0;
+    std::vector<double> accum;
+    accum.push_back (particles_[0].weight);
+    for (size_t i = 1; i < particles_.size (); i++) {
+        accum.push_back (accum.back () + particles_[i].weight);
     }
-    for (auto &p : particles_) p.weight /= total_weight;
 
-    std::vector<particle> new_particles;
-    new_particles.reserve (N);
+    std::vector<particle> old (particles_);
 
-    double                                 step = 1.0 / N;
-    std::uniform_real_distribution<double> dist (0.0, step);
-    double                                 r = dist (rng_);
+    double start = static_cast<double> (rand ()) / (RAND_MAX * particles_.size ());
+    double step  = 1.0 / particles_.size ();
 
-    size_t idx = 0;
-    double c   = particles_[0].weight;
+    std::vector<int> chosen;
 
-    for (size_t m = 0; m < N; ++m) {
-        double U = r + m * step;
-        while (U > c && idx < N - 1) {
-            idx++;
-            c += particles_[idx].weight;
+    size_t tick = 0;
+    for (size_t i = 0; i < particles_.size (); i++) {
+        while (accum[tick] <= start + i * step) {
+            tick++;
+            if (tick == particles_.size ()) {
+                RCLCPP_ERROR (this->get_logger (), "RESAMPLING FAILED");
+                exit (1);
+            }
         }
-        new_particles.push_back (particles_[idx]);
-        new_particles.back ().weight = 1.0 / N;
+        chosen.push_back (tick);
     }
 
-    particles_ = std::move (new_particles);
+    for (size_t i = 0; i < particles_.size (); i++) {
+        particles_[i] = old[chosen[i]];
+    }
 }
 
 void mcl::motion_update (double delta_x, double delta_y, double delta_theta) {
@@ -210,8 +258,7 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_theta) {
         p.x += delta_x + nx;
         p.y += delta_y + ny;
         p.theta += delta_theta + ntheta;
-
-        p.theta = std::atan2 (std::sin (p.theta), std::cos (p.theta));
+        p.theta = std::fmod (p.theta + M_PI, 2 * M_PI) - M_PI;
     }
 }
 
@@ -237,62 +284,28 @@ geometry_msgs::msg::Pose mcl::get_mean_pose () {
 
     return pose;
 }
+
 double mcl::compute_laser_likelihood (const sensor_msgs::msg::PointCloud2 &scan, const particle &p) {
-    const float    max_dist   = laser_likelihood_max_dist_;
-    const int      point_step = scan.point_step;
-    const uint8_t *data_ptr   = scan.data.data ();
-    const int      width      = scan.width;
+    double likelihood = 0.0;
 
-    const double sigma        = 0.05;
-    const double inv_2_sigma2 = 1.0 / (2.0 * sigma * sigma);
+    sensor_msgs::PointCloud2ConstIterator<float> iter_x (scan, "x");
+    sensor_msgs::PointCloud2ConstIterator<float> iter_y (scan, "y");
 
-    const int skip = 5;
+    for (; iter_x != iter_x.end () && iter_y != iter_y.end (); ++iter_x, ++iter_y) {
+        double x = *iter_x;
+        double y = *iter_y;
 
-    double log_likelihood = 0.0;
+        double lx = p.x + (x * cos (p.theta) - y * sin (p.theta));
+        double ly = p.y + (x * sin (p.theta) + y * cos (p.theta));
 
-    for (int i = 0; i < width; i += skip) {
-        const float *point = reinterpret_cast<const float *> (data_ptr + i * point_step);
-        const double x     = point[0];
-        const double y     = point[1];
-
-        const double cos_t = std::cos (p.theta);
-        const double sin_t = std::sin (p.theta);
-
-        const double px = cos_t * x - sin_t * y + p.x;
-        const double py = sin_t * x + cos_t * y + p.y;
-
-        double min_dist = max_dist;
-
-        for (const auto &ls : map_.line_segments.line_segments) {
-            const double dx    = ls.end.x - ls.start.x;
-            const double dy    = ls.end.y - ls.start.y;
-            const double denom = dx * dx + dy * dy;
-
-            double t = ((px - ls.start.x) * dx + (py - ls.start.y) * dy) / denom;
-            t        = std::clamp (t, 0.0, 1.0);
-
-            const double cx = ls.start.x + t * dx;
-            const double cy = ls.start.y + t * dy;
-
-            const double d = std::hypot (px - cx, py - cy);
-            if (d < min_dist) {
-                min_dist = d;
-                if (min_dist < 0.01) break;
-            }
+        int ix = static_cast<int> (lx / resolution_);
+        int iy = static_cast<int> (ly / resolution_);
+        if (ix < 0 || iy < 0 || ix >= static_cast<int> (likelihood_field_.size ()) || iy >= static_cast<int> (likelihood_field_[0].size ())) {
+            continue;
         }
-
-        for (const auto &c : map_.circles.circles) {
-            const double d = std::abs (std::hypot (px - c.center.x, py - c.center.y) - c.radius);
-            if (d < min_dist) {
-                min_dist = d;
-                if (min_dist < 0.01) break;
-            }
-        }
-
-        log_likelihood += -min_dist * min_dist * inv_2_sigma2;
+        likelihood += likelihood_field_[ix][iy];
     }
-
-    return std::exp (log_likelihood);
+    return likelihood;
 }
 
 }  // namespace mcl
