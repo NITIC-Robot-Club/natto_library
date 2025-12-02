@@ -221,7 +221,7 @@ void mcl::resample_particles () {
             tick++;
             if (tick == particles_.size ()) {
                 RCLCPP_FATAL (this->get_logger (), "RESAMPLING FAILED: Unable to resample particles. Initiating shutdown.");
-                rclcpp::shutdown();
+                rclcpp::shutdown ();
                 return;
             }
         }
