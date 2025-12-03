@@ -584,17 +584,17 @@ Visualization Manager:
     - Class: rviz_common/Group
       Displays:
         - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
+          Enabled: false
           Name: Command
           Namespaces:
-            omni_wheel: true
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /visualization/omni/command
-          Value: true
+          Value: false
         - Class: rviz_default_plugins/MarkerArray
           Enabled: true
           Name: Result
@@ -655,7 +655,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 12.571993827819824
+      Distance: 9.73575210571289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
