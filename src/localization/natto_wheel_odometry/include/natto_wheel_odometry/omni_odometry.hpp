@@ -48,7 +48,7 @@ class omni_odometry : public rclcpp::Node {
     // メンバ変数宣言例:
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr  pose_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::Omni>::SharedPtr       omni_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::Omni>::SharedPtr         omni_subscriber_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                 tf_broadcaster_;
 };
 }  // namespace omni_odometry
