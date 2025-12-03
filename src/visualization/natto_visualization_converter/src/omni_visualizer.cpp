@@ -64,10 +64,10 @@ void omni_visualizer::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg)
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
-        double wheel_x     = wheel_position_x[i];
-        double wheel_y     = wheel_position_y[i];
+        double wheel_x         = wheel_position_x[i];
+        double wheel_y         = wheel_position_y[i];
         double wheel_angle_rad = wheel_angle[i] * M_PI / 180.0;
-        double wheel_speed = msg->wheel_speed[i];
+        double wheel_speed     = msg->wheel_speed[i];
 
         if (std::signbit (wheel_speed)) {
             wheel_angle_rad += M_PI;

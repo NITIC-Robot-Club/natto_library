@@ -32,7 +32,7 @@ class omni_calculator : public rclcpp::Node {
     std::vector<double> wheel_position_x;
     std::vector<double> wheel_position_y;
     std::vector<double> wheel_angle;
-    
+
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
     rclcpp::Publisher<natto_msgs::msg::Omni>::SharedPtr               omni_command_publisher_;
