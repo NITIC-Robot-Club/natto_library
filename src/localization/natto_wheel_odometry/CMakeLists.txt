@@ -9,6 +9,11 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "omni_odometry::omni_odometry"
+    EXECUTABLE omni_odometry
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "swerve_odometry::swerve_odometry"
     EXECUTABLE swerve_odometry
 )

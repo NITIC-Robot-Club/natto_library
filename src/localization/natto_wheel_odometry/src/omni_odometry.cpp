@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_wheel_odometry/swerve_odometry.hpp"
+#include "natto_wheel_odometry/omni_odometry.hpp"
 
-namespace swerve_odometry {
+namespace omni_odometry {
 
-swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Node ("swerve_odometry", node_options) {
-    twist_publisher_   = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
-    pose_publisher_    = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
-    swerve_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_result", 10, std::bind (&swerve_odometry::swerve_callback, this, std::placeholders::_1));
-    tf_broadcaster_    = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+omni_odometry::omni_odometry (const rclcpp::NodeOptions &node_options) : Node ("omni_odometry", node_options) {
+    twist_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
+    pose_publisher_  = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    omni_subscriber_ = this->create_subscription<natto_msgs::msg::Omni> ("omni_result", 10, std::bind (&omni_odometry::omni_callback, this, std::placeholders::_1));
+    tf_broadcaster_  = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle", {-45.0, 45.0, 135.0, -135.0});
     frame_id_        = this->declare_parameter<std::string> ("frame_id", "odom");
     child_frame_id_  = this->declare_parameter<std::string> ("child_frame_id", "base_link");
     publish_tf_      = this->declare_parameter<bool> ("publish_tf", true);
@@ -34,12 +35,16 @@ swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Nod
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
+    if (wheel_angle.size () != num_wheels_) {
+        RCLCPP_ERROR (this->get_logger (), "wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
+        throw std::runtime_error ("wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
+    }
 
-    RCLCPP_INFO (this->get_logger (), "swerve_odometry node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "omni_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f), angle: %.2f", i, wheel_position_x[i], wheel_position_y[i], wheel_angle[i]);
     }
     RCLCPP_INFO (this->get_logger (), "frame id : %s", frame_id_.c_str ());
 
@@ -47,9 +52,9 @@ swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Nod
     last_pose.header.stamp    = this->now ();
 }
 
-void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
-    if (msg->wheel_angle.size () != num_wheels_ || msg->wheel_speed.size () != num_wheels_) {
-        RCLCPP_ERROR (this->get_logger (), "Received swerve message with incorrect number of wheels.");
+void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
+    if (msg->wheel_speed.size () != num_wheels_) {
+        RCLCPP_ERROR (this->get_logger (), "Received omni message with incorrect number of wheels.");
         return;
     }
 
@@ -57,22 +62,22 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     double ATb[3]    = {};  // A^T * b
 
     for (int i = 0; i < num_wheels_; i++) {
-        double angle = msg->wheel_angle[i];
+        double angle = wheel_angle[i] * M_PI / 180.0;
         double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
-        double ax[3] = {1.0, 0.0, -wheel_position_y[i]};
-        double ay[3] = {0.0, 1.0, +wheel_position_x[i]};
-
-        double bx = speed * std::cos (angle);
-        double by = speed * std::sin (angle);
+        double c     = std::cos (angle);
+        double s     = std::sin (angle);
+        double ax[3] = {c, s, (-wheel_position_y[i] * c + wheel_position_x[i] * s)};
+        double b     = speed;
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
-                ATA[row][col] += ax[row] * ax[col] + ay[row] * ay[col];
+                ATA[row][col] += ax[row] * ax[col];
             }
-            ATb[row] += ax[row] * bx + ay[row] * by;
+            ATb[row] += ax[row] * b;
         }
     }
+
     double A[3][4] = {
         {ATA[0][0], ATA[0][1], ATA[0][2], ATb[0]},
         {ATA[1][0], ATA[1][1], ATA[1][2], ATb[1]},
@@ -81,18 +86,14 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
 
     for (int i = 0; i < 3; ++i) {
         double pivot = A[i][i];
-        for (int j = i; j < 4; ++j) {
-            A[i][j] /= pivot;
-        }
+        if (std::fabs (pivot) < 1e-9) return;
+        for (int j = i; j < 4; ++j) A[i][j] /= pivot;
         for (int k = 0; k < 3; ++k) {
             if (k == i) continue;
             double factor = A[k][i];
-            for (int j = i; j < 4; ++j) {
-                A[k][j] -= factor * A[i][j];
-            }
+            for (int j = i; j < 4; ++j) A[k][j] -= factor * A[i][j];
         }
     }
-
     double vx = A[0][3];
     double vy = A[1][3];
     double vz = A[2][3];
@@ -134,7 +135,7 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     tf_broadcaster_->sendTransform (tf_msg);
 }
 
-}  // namespace swerve_odometry
+}  // namespace omni_odometry
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (swerve_odometry::swerve_odometry)
+RCLCPP_COMPONENTS_REGISTER_NODE (omni_odometry::omni_odometry)
