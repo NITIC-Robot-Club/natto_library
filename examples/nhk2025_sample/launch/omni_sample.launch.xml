@@ -1,4 +1,3 @@
-<!-- ros2 topic pub /control/command_velocity geometry_msgs/msg/TwistStamped "{twist: {linear: {x: 0.0, y: 0.0}, angular: {z: 0.0}}}" -r 100 -->
 <launch>
     <!-- コモンコンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/">
@@ -25,17 +24,15 @@
 
     <!-- シミュレーションコンテナー -->
     <node_container pkg="rclcpp_components" exec="component_container" name="simulation_container" namespace="control">
-        <!-- 独ステシミュレーター -->
-        <composable_node pkg="natto_simple_simulation" plugin="swerve_simulator::swerve_simulator" name="simulator" namespace="swerve">
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <param name="angle_gain_p" value="300.0"/>
-            <param name="angle_gain_d" value="100.0"/>
-            <param name="speed_gain_p" value="300.0"/>
-            <param name="speed_gain_d" value="100.0"/>
-            <remap from="swerve_command" to="/swerve/command"/>
-            <remap from="swerve_result" to="/swerve/result"/>
+        <!-- オムニシミュレーター -->
+        <!-- <composable_node pkg="natto_simple_simulation" plugin="omni_simulator::omni_simulator" name="simulator" namespace="omni">
+            <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
+            <param name="wheel_speed_gain_p" value="300.0"/>
+            <param name="wheel_speed_gain_d" value="100.0"/>
+            <remap from="omni_command" to="/omni/command"/>
+            <remap from="omni_result" to="/omni/result"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
-        </composable_node>
+        </composable_node> -->
 
         <!-- LiDARシミュレーター -->
         <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_front" namespace="lidar">
@@ -94,24 +91,13 @@
         </composable_node>
     </node_container>
 
-    <!-- 自己位置推定 -->
-    <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
-        <!-- 独ステオドメトリ -->
-        <composable_node pkg="natto_wheel_odometry" plugin="swerve_odometry::swerve_odometry" name="swerve_odometry" namespace="localization/swerve_odometry">
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <param name="frame_id" value="odom"/>
-            <param name="child_frame_id" value="base_link"/>
-            <remap from="swerve" to="/swerve/result"/>
-        </composable_node>
-    </node_container>
-
     <!-- コントロールコンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
-        <!-- 独ステ目標計算 -->
-        <composable_node pkg="natto_swerve_calculator" plugin="swerve_calculator::swerve_calculator" name="calculator" namespace="swerve">
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <remap from="swerve_command" to="/swerve/command"/>
-            <remap from="swerve_result" to="/swerve/result"/>
+        <!-- オムニ目標計算 -->
+        <composable_node pkg="natto_omni_calculator" plugin="omni_calculator::omni_calculator" name="calculator" namespace="omni">
+            <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
+            <remap from="omni_command" to="/omni/command"/>
+            <remap from="omni_result" to="/omni/result"/>
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
 
@@ -144,26 +130,24 @@
             <remap from="marker_array" to="/visualization/map"/>
         </composable_node>
 
-        <!-- 独ステ表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="command" namespace="visualization/swerve">
+        <composable_node pkg="natto_visualization_converter" plugin="omni_visualizer::omni_visualizer" name="command" namespace="visualization/omni">
             <param name="arrow_r" value="0.0"/>
             <param name="arrow_g" value="0.0"/>
             <param name="arrow_b" value="1.0"/>
             <param name="publish_period_ms" value="10"/>
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <remap from="swerve" to="/swerve/command"/>
-            <remap from="marker_array" to="/visualization/swerve/command"/>
+            <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
+            <remap from="omni" to="/omni/command"/>
+            <remap from="marker_array" to="/visualization/omni/command"/>
         </composable_node>
-
-        <!-- 独ステ表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="result" namespace="visualization/swerve">
-            <param name="publish_period_ms" value="10"/>
-            <param name="arrow_r" value="1.0"/>
+        
+        <composable_node pkg="natto_visualization_converter" plugin="omni_visualizer::omni_visualizer" name="result" namespace="visualization/omni">
+            <param name="arrow_r" value="0.0"/>
             <param name="arrow_g" value="0.0"/>
-            <param name="arrow_b" value="0.0"/>
-            <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
-            <remap from="swerve" to="/swerve/result"/>
-            <remap from="marker_array" to="/visualization/swerve/result"/>
+            <param name="arrow_b" value="1.0"/>
+            <param name="publish_period_ms" value="10"/>
+            <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
+            <remap from="omni" to="/omni/result"/>
+            <remap from="marker_array" to="/visualization/omni/result"/>
         </composable_node>
 
         <!-- 直線表示 -->
@@ -185,7 +169,7 @@
 
     <!-- RViz2 -->
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
-        args="-d $(find-pkg-share nhk2025_sample)/rviz/sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
+        args="-d $(find-pkg-share nhk2025_sample)/rviz/swerve_sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
 
     <!-- TF -->
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"

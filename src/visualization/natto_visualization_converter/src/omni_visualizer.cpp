@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_visualization_converter/swerve_visualizer.hpp"
+#include "natto_visualization_converter/omni_visualizer.hpp"
 
-namespace swerve_visualizer {
+namespace omni_visualizer {
 
-swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) : Node ("swerve_visualizer", node_options) {
-    marker_publisher_    = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    swerve_subscription_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_visualizer::swerve_callback, this, std::placeholders::_1));
+omni_visualizer::omni_visualizer (const rclcpp::NodeOptions &node_options) : Node ("omni_visualizer", node_options) {
+    marker_publisher_  = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
+    omni_subscription_ = this->create_subscription<natto_msgs::msg::Omni> ("omni", 10, std::bind (&omni_visualizer::omni_callback, this, std::placeholders::_1));
 
     int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
     arrow_r               = this->declare_parameter<double> ("arrow_r", 0.0);
@@ -29,42 +29,48 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
 
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle", {-45.0, 45.0, 135.0, -135.0});
 
-    timer_      = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&swerve_visualizer::timer_callback, this));
+    timer_      = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&omni_visualizer::timer_callback, this));
     num_wheels_ = wheel_position_x.size ();
     if (wheel_position_y.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
-    RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
+    if (wheel_angle.size () != num_wheels_) {
+        RCLCPP_ERROR (this->get_logger (), "wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
+        throw std::runtime_error ("wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
+    }
+
+    RCLCPP_INFO (this->get_logger (), "omni_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "Publish period (ms): %d", publish_period_ms);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "Arrow color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
     RCLCPP_INFO (this->get_logger (), "Arrow scale: %.2f", arrow_scale);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f), angle: %.2f deg", i, wheel_position_x[i], wheel_position_y[i], wheel_angle[i]);
     }
 }
 
-void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
+void omni_visualizer::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     marker_array_.markers.clear ();
     for (int i = 0; i < num_wheels_; i++) {
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "base_link";
         marker.header.stamp    = this->now ();
-        marker.ns              = "swerve_wheel";
+        marker.ns              = "omni_wheel";
         marker.id              = i;
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
         double wheel_x     = wheel_position_x[i];
         double wheel_y     = wheel_position_y[i];
-        double wheel_angle = msg->wheel_angle[i];
+        double wheel_angle_rad = wheel_angle[i] * M_PI / 180.0;
         double wheel_speed = msg->wheel_speed[i];
 
         if (std::signbit (wheel_speed)) {
-            wheel_angle += M_PI;
+            wheel_angle_rad += M_PI;
         }
 
         wheel_speed = std::abs (wheel_speed);
@@ -74,7 +80,7 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
         marker.pose.position.z = 0.0;
 
         tf2::Quaternion q;
-        q.setRPY (0, 0, wheel_angle);
+        q.setRPY (0, 0, wheel_angle_rad);
         marker.pose.orientation.x = q.x ();
         marker.pose.orientation.y = q.y ();
         marker.pose.orientation.z = q.z ();
@@ -93,11 +99,11 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
     }
 }
 
-void swerve_visualizer::timer_callback () {
+void omni_visualizer::timer_callback () {
     marker_publisher_->publish (marker_array_);
 }
 
-}  // namespace swerve_visualizer
+}  // namespace omni_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (swerve_visualizer::swerve_visualizer)
+RCLCPP_COMPONENTS_REGISTER_NODE (omni_visualizer::omni_visualizer)

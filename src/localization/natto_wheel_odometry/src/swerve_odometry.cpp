@@ -19,7 +19,7 @@ namespace swerve_odometry {
 swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Node ("swerve_odometry", node_options) {
     twist_publisher_   = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
     pose_publisher_    = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
-    swerve_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_odometry::swerve_callback, this, std::placeholders::_1));
+    swerve_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_result", 10, std::bind (&swerve_odometry::swerve_callback, this, std::placeholders::_1));
     tf_broadcaster_    = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
