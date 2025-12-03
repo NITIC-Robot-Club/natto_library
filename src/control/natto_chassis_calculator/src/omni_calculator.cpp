@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_omni_calculator/omni_calculator.hpp"
+#include "natto_chassis_calculator/omni_calculator.hpp"
 
 namespace omni_calculator {
 

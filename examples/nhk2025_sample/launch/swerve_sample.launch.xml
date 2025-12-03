@@ -104,7 +104,7 @@
         </composable_node>
 
         <!-- 独ステ目標計算 -->
-        <composable_node pkg="natto_swerve_calculator" plugin="swerve_calculator::swerve_calculator" name="calculator" namespace="swerve">
+        <composable_node pkg="natto_chassis_calculator" plugin="swerve_calculator::swerve_calculator" name="calculator" namespace="swerve">
             <param from="$(find-pkg-share nhk2025_sample)/config/swerve_params.yaml"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>

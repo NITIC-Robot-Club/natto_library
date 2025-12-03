@@ -94,7 +94,7 @@
     <!-- コントロールコンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- オムニ目標計算 -->
-        <composable_node pkg="natto_omni_calculator" plugin="omni_calculator::omni_calculator" name="calculator" namespace="omni">
+        <composable_node pkg="natto_chassis_calculator" plugin="omni_calculator::omni_calculator" name="calculator" namespace="omni">
             <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
             <remap from="omni_command" to="/omni/command"/>
             <remap from="omni_result" to="/omni/result"/>

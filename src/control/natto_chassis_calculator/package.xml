@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>natto_omni_calculator</name>
+  <name>natto_chassis_calculator</name>
   <version>1.0.0</version>
-  <description>オムニホイールの計算</description>
+  <description>足回りの計算</description>
   <maintainer email="kzs321kzs@gmail.com">Kazusa Hashimoto</maintainer>
   <license>Apache-2.0</license>
 
