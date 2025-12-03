@@ -14,6 +14,11 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "omni_simulator::omni_simulator"
+    EXECUTABLE omni_simulator
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "lidar_simulator::lidar_simulator"
     EXECUTABLE lidar_simulator
 )

@@ -25,14 +25,14 @@
     <!-- シミュレーションコンテナー -->
     <node_container pkg="rclcpp_components" exec="component_container" name="simulation_container" namespace="control">
         <!-- オムニシミュレーター -->
-        <!-- <composable_node pkg="natto_simple_simulation" plugin="omni_simulator::omni_simulator" name="simulator" namespace="omni">
+        <composable_node pkg="natto_simple_simulation" plugin="omni_simulator::omni_simulator" name="simulator" namespace="omni">
             <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
             <param name="wheel_speed_gain_p" value="300.0"/>
             <param name="wheel_speed_gain_d" value="100.0"/>
             <remap from="omni_command" to="/omni/command"/>
             <remap from="omni_result" to="/omni/result"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
-        </composable_node> -->
+        </composable_node>
 
         <!-- LiDARシミュレーター -->
         <composable_node pkg="natto_simple_simulation" plugin="lidar_simulator::lidar_simulator" name="simulator_front" namespace="lidar">
@@ -101,6 +101,13 @@
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
 
+        <composable_node pkg="natto_wheel_odometry" plugin="omni_odometry::omni_odometry" name="omni_odometry" namespace="localization/omni_odometry">
+            <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
+            <param name="frame_id" value="odom"/>
+            <param name="child_frame_id" value="base_link"/>
+            <remap from="omni_result" to="/omni/result"/>
+        </composable_node>
+
         <!-- 経路計算 -->
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="planning">
             <remap from="occupancy_grid" to="/occupancy_grid"/>
@@ -141,9 +148,9 @@
         </composable_node>
         
         <composable_node pkg="natto_visualization_converter" plugin="omni_visualizer::omni_visualizer" name="result" namespace="visualization/omni">
-            <param name="arrow_r" value="0.0"/>
+            <param name="arrow_r" value="1.0"/>
             <param name="arrow_g" value="0.0"/>
-            <param name="arrow_b" value="1.0"/>
+            <param name="arrow_b" value="0.0"/>
             <param name="publish_period_ms" value="10"/>
             <param from="$(find-pkg-share nhk2025_sample)/config/omni_params.yaml"/>
             <remap from="omni" to="/omni/result"/>
@@ -169,7 +176,7 @@
 
     <!-- RViz2 -->
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
-        args="-d $(find-pkg-share nhk2025_sample)/rviz/swerve_sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
+        args="-d $(find-pkg-share nhk2025_sample)/rviz/omni_sample.rviz --stylesheet $(find-pkg-share nhk2025_sample)/rviz/dark.qss"/>
 
     <!-- TF -->
     <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"
