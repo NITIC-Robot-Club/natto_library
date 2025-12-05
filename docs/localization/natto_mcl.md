@@ -17,14 +17,14 @@ natto_mcl パッケージは、モンテカルロ局所化（MCL）アルゴリ�
 | initial_pose_x | double | 0.0 | 初期位置のX座標 |
 | initial_pose_y | double | 0.0 | 初期位置のY座標 |
 | initial_pose_theta | double | 0.0 | 初期姿勢の角度（ラジアン） |
-| motion_noise_xx | double | 0.02 | | 動作モデルのノイズ（X方向） |
-| motion_noise_xy | double | 0.0 | 動作モデルのノイズ（XY方向） |
-| motion_noise_yy | double | 0.02 | 動作モデルのノイズ（Y方向） |
-| motion_noise_theta | double | 0.01 | 動作モデルのノイズ（角度） |
-| motion_noise_position | double | 0.01 | 位置ノイズの大きさ |
-| motion_noise_orientation | double | 0.01 | 姿勢ノイズの大きさ |
+| motion_noise_xx | double | 0.2 | | 動作モデルのノイズ（X方向） |
+| motion_noise_xy | double | 0.1 | 動作モデルのノイズ（XY方向） |
+| motion_noise_yy | double | 0.2 | 動作モデルのノイズ（Y方向） |
+| motion_noise_theta | double | 0.1 | 動作モデルのノイズ（角度） |
+| normal_noise_position | double | 0.01 | 通常時位置ノイズの大きさ |
+| normal_noise_orientation | double | 0.01 | 通常時姿勢ノイズの大きさ |
 | expansion_radius_position | double | 1.0 | 位置の拡張半径 |
-| expansion_radius_orientation | double | 3.14 | 姿勢の拡張半径 |
+| expansion_radius_orientation | double | 1.0 | 姿勢の拡張半径 |
 | laser_likelihood_max_dist | double | 0.2 | レーザーセンサの尤度計算における最大距離 |
 | transform_tolerance | double | 0.2 | 変換の許容時間 |
 

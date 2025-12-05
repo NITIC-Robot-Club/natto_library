@@ -51,13 +51,19 @@ class mcl : public rclcpp::Node {
     int         num_particles_;
     double      initial_pose_x_, initial_pose_y_, initial_pose_theta_;
     double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_theta_;
-    double      motion_noise_position_, motion_noise_orientation_, expansion_radius_position_, expansion_radius_orientation_;
+    double      normal_noise_position_, normal_noise_orientation_, expansion_radius_position_, expansion_radius_orientation_;
     double      laser_likelihood_max_dist_, transform_tolerance_;
     double      resolution_;
+    int         width_, height_;
+
+    double last_map_to_odom_theta_;
 
     std::vector<particle>             particles_;
-    geometry_msgs::msg::Transform     last_odom_transform_;
+    geometry_msgs::msg::Transform     last_odom_to_base_transform_;
     std::vector<std::vector<uint8_t>> likelihood_field_;
+
+    std::vector<float> scan_x_, scan_y_;
+    int                scan_size_;
 
     void   occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void   pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
@@ -65,9 +71,13 @@ class mcl : public rclcpp::Node {
     void   initialize_particles (double x, double y, double theta);
     void   motion_update (double delta_x, double delta_y, double delta_theta);
     void   resample_particles ();
-    double compute_laser_likelihood (const sensor_msgs::msg::PointCloud2 &scan, const particle &p);
+    double compute_laser_likelihood (const particle &p);
 
-    geometry_msgs::msg::Pose get_mean_pose ();
+    uint16_t get_16bit_theta (double theta);
+    double   cos_[(1 << 16)];
+    double   sin_[(1 << 16)];
+
+    geometry_msgs::msg::PoseWithCovariance get_mean_pose ();
 
     std::default_random_engine rng_;
 
@@ -79,6 +89,7 @@ class mcl : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr                    particles_publisher_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr                  occupancy_grid_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr                 pointcloud2_subscriber_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr    pose_with_covariance_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_with_covariance_subscriber_;
 };
 }  // namespace mcl

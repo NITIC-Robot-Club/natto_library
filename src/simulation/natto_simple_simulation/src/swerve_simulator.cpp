@@ -33,6 +33,11 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     period_ms                    = this->declare_parameter<int> ("simulation_period_ms", 1);
     current_pose.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
     current_pose.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
+    double yaw                   = this->declare_parameter<double> ("initial_pose_theta", 0.0);
+
+    tf2::Quaternion q;
+    q.setRPY (0.0, 0.0, yaw);
+    current_pose.pose.orientation = tf2::toMsg (q);
 
     num_wheels_ = wheel_position_x.size ();
     if (wheel_position_y.size () != num_wheels_) {

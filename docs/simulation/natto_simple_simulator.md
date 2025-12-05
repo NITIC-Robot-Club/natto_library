@@ -52,6 +52,7 @@ N輪独立ステアリングロボットの動作を模擬します。
 | simulation_period_ms | int | 1 | シミュレーションの周期（ms） |
 | initial_pose_x | double | 1.0 | 初期位置のx座標（m） |
 | initial_pose_y | double | 1.0 | 初期位置のy座標（m） |
+| initial_pose_theta | double | 0.0 | 初期位置の姿勢角（rad） |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |

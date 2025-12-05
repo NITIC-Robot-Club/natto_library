@@ -8,12 +8,12 @@
     initial_pose_y: 1.0
     initial_pose_theta: 0.0
     motion_noise_xx: 0.2
-    motion_noise_xy: 0.1
+    motion_noise_xy: 0.05
     motion_noise_yy: 0.2
-    motion_noise_theta: 0.1
-    motion_noise_position : 0.02
-    motion_noise_orientation : 0.02
-    expansion_radius_position: 0.2
+    motion_noise_theta: 0.3
+    normal_noise_position : 0.01
+    normal_noise_orientation : 0.01
+    expansion_radius_position: 0.1
     expansion_radius_orientation: 0.2
-    laser_likelihood_max_dist: 0.1
+    laser_likelihood_max_dist: 0.5
     transform_tolerance: 0.2

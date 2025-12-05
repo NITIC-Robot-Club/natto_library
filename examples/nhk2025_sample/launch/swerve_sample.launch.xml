@@ -31,6 +31,9 @@
             <param name="angle_gain_d" value="100.0"/>
             <param name="speed_gain_p" value="300.0"/>
             <param name="speed_gain_d" value="100.0"/>
+            <param name="initial_pose_x" value="1.0"/>
+            <param name="initial_pose_y" value="1.0"/>
+            <param name="initial_pose_theta" value="0.0"/>
             <remap from="swerve_command" to="/swerve/command"/>
             <remap from="swerve_result" to="/swerve/result"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
@@ -41,6 +44,7 @@
             <param name="position_x" value="+0.4"/>
             <param name="position_y" value="0.0"/>
             <param name="angle" value="0.0"/>
+            <param name="scan_frequency" value="40"/>
             <param name="frame_id" value="lidar_front"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
             <remap from="map" to="/map"/>
@@ -50,6 +54,7 @@
             <param name="position_x" value="-0.4"/>
             <param name="position_y" value="0.0"/>
             <param name="angle" value="3.1415926"/>
+            <param name="scan_frequency" value="40"/>
             <param name="frame_id" value="lidar_rear"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
             <remap from="map" to="/map"/>
@@ -115,7 +120,8 @@
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="planning">
             <remap from="occupancy_grid" to="/occupancy_grid"/>
             <remap from="goal_pose" to="/goal_pose"/>
-            <remap from="current_pose" to="/localization/current_pose"/>
+            <!-- <remap from="current_pose" to="/localization/current_pose"/> -->
+            <remap from="current_pose" to="/simulation/pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/robot/footprint"/>
             <param name="theta_resolution_deg" value="5"/>
@@ -126,7 +132,8 @@
         <!-- 経路追従 -->
         <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
             <param from="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
-            <remap from="current_pose" to="/localization/current_pose"/>
+            <!-- <remap from="current_pose" to="/localization/current_pose"/> -->
+            <remap from="current_pose" to="/simulation/pose"/>
             <remap from="path" to="/planning/path"/>
         </composable_node>
     </node_container>
@@ -197,4 +204,12 @@
         <remap from="initial_pose" to="/initialpose"/>
         <remap from="pose" to="/localization/current_pose"/>
     </node>
+
+    <!-- <node pkg="emcl2" exec="emcl2_node" name="emcl2_node" namespace="localization/emcl2">
+        <param from="$(find-pkg-share nhk2025_sample)/config/emcl2.yaml"/>
+        <remap from="map" to="/occupancy_grid"/>
+        <remap from="scan" to="/sensing/lidar/laser_scan/rear"/>
+        <remap from="initial_pose" to="/initialpose"/>
+        <remap from="pose" to="/localization/current_pose"/>
+    </node> -->
 </launch>
