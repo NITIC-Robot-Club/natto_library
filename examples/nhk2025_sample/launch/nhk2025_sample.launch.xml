@@ -30,6 +30,7 @@
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="control_param_path" value="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
+        <arg name="use_joy_control" value="true"/>
     </include>
 
     <!-- 表示 -->
