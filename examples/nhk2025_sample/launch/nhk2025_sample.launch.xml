@@ -1,0 +1,49 @@
+<launch>
+    <arg name="chassis_type" default="swerve"/>
+    <arg name="chassis_param_name" default="$(var chassis_type)_params.yaml"/>
+    <let name="chassis_param_path" value="$(find-pkg-share nhk2025_sample)/config/$(var chassis_param_name)"/>
+
+
+    <!-- コモン -->
+    <include file="$(find-pkg-share natto_launch)/launch/common.launch.xml">
+        <arg name="line_segments_path" value="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
+        <arg name="circles_path" value="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
+        <arg name="occupancy_grid_resolution" value="0.05"/>
+        <arg name="footprint_param_path" value="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
+    </include>
+
+    <!-- シミュレーション -->
+    <include file="$(find-pkg-share natto_launch)/launch/simulation.launch.xml">
+        <arg name="chassis_type" value="$(var chassis_type)"/>
+        <arg name="initial_pose_x" value="1.0"/>
+        <arg name="initial_pose_y" value="1.0"/>
+        <arg name="initial_pose_yaw_deg" value="0.0"/>
+        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
+        <arg name="lidar_param_path" value="$(find-pkg-share nhk2025_sample)/config/lidar_params.yaml"/>
+    </include>
+
+    <!-- センシング -->
+    <include file="$(find-pkg-share natto_launch)/launch/sensing.launch.xml"/>
+
+    <!-- コントロール -->
+    <include file="$(find-pkg-share natto_launch)/launch/control.launch.xml">
+        <arg name="chassis_type" value="$(var chassis_type)"/>
+        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
+        <arg name="control_param_path" value="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
+    </include>
+
+    <!-- 表示 -->
+    <include file="$(find-pkg-share natto_launch)/launch/visualization.launch.xml">
+        <arg name="chassis_type" value="$(var chassis_type)"/>
+    </include>
+
+    <include file="$(find-pkg-share natto_launch)/launch/localization.launch.xml">
+        <arg name="localization_param_path" value="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
+    </include>
+
+    <!-- TF -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"
+        args="+0.4 0 0 0 0 0 1 base_link lidar_front"/>
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
+        args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
+</launch>

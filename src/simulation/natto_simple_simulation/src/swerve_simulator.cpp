@@ -26,17 +26,17 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x             = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y             = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    angle_gain_p_                = this->declare_parameter<double> ("angle_gain_p", 100.0);
-    angle_gain_d_                = this->declare_parameter<double> ("angle_gain_d", 0.0);
-    speed_gain_p_                = this->declare_parameter<double> ("speed_gain_p", 100.0);
-    speed_gain_d_                = this->declare_parameter<double> ("speed_gain_d", 0.0);
+    angle_gain_p_                = this->declare_parameter<double> ("angle_gain_p", 300.0);
+    angle_gain_d_                = this->declare_parameter<double> ("angle_gain_d", 100.0);
+    speed_gain_p_                = this->declare_parameter<double> ("speed_gain_p", 300.0);
+    speed_gain_d_                = this->declare_parameter<double> ("speed_gain_d", 100.0);
     period_ms                    = this->declare_parameter<int> ("simulation_period_ms", 1);
     current_pose.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
     current_pose.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
-    double yaw                   = this->declare_parameter<double> ("initial_pose_theta", 0.0);
+    double yaw                   = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
 
     tf2::Quaternion q;
-    q.setRPY (0.0, 0.0, yaw);
+    q.setRPY (0.0, 0.0, yaw * M_PI / 180.0);
     current_pose.pose.orientation = tf2::toMsg (q);
 
     num_wheels_ = wheel_position_x.size ();

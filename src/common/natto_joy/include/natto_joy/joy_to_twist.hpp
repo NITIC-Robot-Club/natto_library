@@ -13,7 +13,7 @@ class joy_to_twist : public rclcpp::Node {
 
    private:
     double max_xy_speed_m_s_;
-    double max_theta_speed_rad_s_;
+    double max_yaw_speed_rad_s_;
 
     void joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg);
 

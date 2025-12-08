@@ -38,7 +38,7 @@ namespace mcl {
 struct particle {
     double x;
     double y;
-    double theta;
+    double yaw;
     double weight;
 };
 
@@ -49,9 +49,9 @@ class mcl : public rclcpp::Node {
    private:
     std::string map_frame_id_, odom_frame_id_, base_frame_id_;
     int         num_particles_;
-    double      initial_pose_x_, initial_pose_y_, initial_pose_theta_;
-    double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_theta_;
-    double      normal_noise_position_, normal_noise_orientation_, expansion_radius_position_, expansion_radius_orientation_;
+    double      initial_pose_x_, initial_pose_y_, initial_pose_yaw_deg_;
+    double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_yaw_deg_;
+    double      normal_noise_position_, normal_noise_orientation_deg_, expansion_radius_position_, expansion_radius_orientation_deg_;
     double      laser_likelihood_max_dist_, transform_tolerance_;
     double      resolution_;
     int         width_, height_;
@@ -68,8 +68,8 @@ class mcl : public rclcpp::Node {
     void   occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void   pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
     void   initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-    void   initialize_particles (double x, double y, double theta);
-    void   motion_update (double delta_x, double delta_y, double delta_theta);
+    void   initialize_particles (double x, double y, double yaw);
+    void   motion_update (double delta_x, double delta_y, double delta_yaw);
     void   resample_particles ();
     double compute_laser_likelihood (const particle &p);
 

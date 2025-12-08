@@ -39,16 +39,16 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     double angle_decceleration_p_;         // 角度減速用の比例ゲイン
     double max_speed_xy_m_s_;              // 最大並進速度
     double min_speed_xy_m_s_;              // 最小並進速度
-    double max_speed_z_deg_s_;             // 最大回転速度
-    double min_speed_z_deg_s_;             // 最小回転速度
+    double max_speed_yaw_deg_s_;             // 最大回転速度
+    double min_speed_yaw_deg_s_;             // 最小回転速度
     double max_acceleration_xy_m_s2_;      // 最大加速度
-    double max_acceleration_z_deg_s2_;     // 最大角加速度 [deg/s^2]
+    double max_acceleration_yaw_deg_s2_;     // 最大角加速度 [deg/s^2]
     double goal_deceleration_m_s2_;        // ゴール減速用の減速度 [m/s^2]
     double goal_deceleration_distance_p_;  // ゴール減速用の距離比例ゲイン
     double goal_position_tolerance_;       // ゴール位置許容誤差 [m]
     double goal_yaw_tolerance_deg_;        // ゴールヨー許容誤差 [deg]
     double goal_speed_tolerance_xy_m_s_;   // ゴール速度許容誤差 [m/s]
-    double goal_speed_tolerance_z_deg_s_;  // ゴール速度許容誤差 [deg/s]
+    double goal_speed_tolerance_yaw_deg_s_;  // ゴール速度許容誤差 [deg/s]
 
     double                           lookahead_distance_;
     geometry_msgs::msg::PoseStamped  current_pose_;

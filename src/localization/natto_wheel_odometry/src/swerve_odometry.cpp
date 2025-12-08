@@ -95,12 +95,12 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
 
     double vx = A[0][3];
     double vy = A[1][3];
-    double vz = A[2][3];
+    double vyaw = A[2][3];
 
     double delta_t   = (this->now () - last_pose.header.stamp).seconds ();
     double delta_x   = vx * delta_t;
     double delta_y   = vy * delta_t;
-    double delta_yaw = vz * delta_t;
+    double delta_yaw = vyaw * delta_t;
 
     double          last_yaw = tf2::getYaw (last_pose.pose.orientation);
     double          new_yaw  = last_yaw + delta_yaw;
@@ -120,7 +120,7 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     twist.header.stamp    = this->now ();
     twist.twist.linear.x  = vx;
     twist.twist.linear.y  = vy;
-    twist.twist.angular.z = vz;
+    twist.twist.angular.z = vyaw;
     twist_publisher_->publish (twist);
 
     geometry_msgs::msg::TransformStamped tf_msg;

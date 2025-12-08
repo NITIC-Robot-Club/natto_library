@@ -1,0 +1,11 @@
+<launch>
+    <arg name="localization_param_path" default=""/>
+
+    <node pkg="natto_mcl" exec="mcl" name="mcl" namespace="localization/mcl">
+        <param from="$(var localization_param_path)"/>
+        <remap from="occupancy_grid" to="/common/occupancy_grid"/>
+        <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+        <remap from="initial_pose" to="/initialpose"/>
+        <remap from="pose" to="/localization/current_pose"/>
+    </node>
+</launch>

@@ -31,8 +31,7 @@ laserscan_to_pointcloud2::laserscan_to_pointcloud2 (const rclcpp::NodeOptions &n
 
 void laserscan_to_pointcloud2::laser_scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
     sensor_msgs::msg::PointCloud2 pointcloud2;
-    pointcloud2.header.stamp    = msg->header.stamp;
-    pointcloud2.header.frame_id = frame_id_;
+    pointcloud2.header = msg->header;
 
     sensor_msgs::PointCloud2Modifier pointcloud2_modifier (pointcloud2);
     pointcloud2_modifier.setPointCloud2FieldsByString (1, "xyz");

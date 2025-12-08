@@ -29,7 +29,7 @@ omni_visualizer::omni_visualizer (const rclcpp::NodeOptions &node_options) : Nod
 
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle", {-45.0, 45.0, 135.0, -135.0});
+    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
 
     timer_      = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&omni_visualizer::timer_callback, this));
     num_wheels_ = wheel_position_x.size ();

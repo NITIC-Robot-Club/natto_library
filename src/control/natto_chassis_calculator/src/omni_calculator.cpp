@@ -23,7 +23,7 @@ omni_calculator::omni_calculator (const rclcpp::NodeOptions &node_options) : Nod
     wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle", {-45.0, 45.0, 135.0, -135.0});
+    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
 
     num_wheels_ = wheel_position_x.size ();
     if (wheel_position_y.size () != num_wheels_) {

@@ -18,7 +18,7 @@ namespace astar_planner {
 
 astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("astar_planner", node_options) {
     path_publisher_    = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
-    costmap_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", 10);
+    costmap_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
     occupancy_grid_subscription_ =
         this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
     goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
@@ -46,11 +46,11 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
 }
 
 void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-    if (raw_map_.data == msg->data) return;
     raw_map_ = *msg;
     create_costmap ();
     create_obstacle_costmap ();
     create_path ();
+    costmap_publisher_->publish (costmap_);
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {

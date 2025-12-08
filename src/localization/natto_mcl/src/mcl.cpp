@@ -31,23 +31,23 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS> (get_node_base_interface (), get_node_timers_interface (), create_callback_group (rclcpp::CallbackGroupType::MutuallyExclusive, false));
     tf_buffer_->setCreateTimerInterface (timer_interface);
 
-    map_frame_id_                 = this->declare_parameter<std::string> ("map_frame_id", "map");
-    odom_frame_id_                = this->declare_parameter<std::string> ("odom_frame_id", "odom");
-    base_frame_id_                = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    num_particles_                = this->declare_parameter<int> ("num_particles", 500);
-    initial_pose_x_               = this->declare_parameter<double> ("initial_pose_x", 0.0);
-    initial_pose_y_               = this->declare_parameter<double> ("initial_pose_y", 0.0);
-    initial_pose_theta_           = this->declare_parameter<double> ("initial_pose_theta", 0.0);
-    motion_noise_xx_              = this->declare_parameter<double> ("motion_noise_xx", 0.2);
-    motion_noise_xy_              = this->declare_parameter<double> ("motion_noise_xy", 0.1);
-    motion_noise_yy_              = this->declare_parameter<double> ("motion_noise_yy", 0.2);
-    motion_noise_theta_           = this->declare_parameter<double> ("motion_noise_theta", 0.1);
-    normal_noise_position_        = this->declare_parameter<double> ("normal_noise_position", 0.01);
-    normal_noise_orientation_     = this->declare_parameter<double> ("normal_noise_orientation", 0.01);
-    expansion_radius_position_    = this->declare_parameter<double> ("expansion_radius_position", 1.0);
-    expansion_radius_orientation_ = this->declare_parameter<double> ("expansion_radius_orientation", 1.0);
-    laser_likelihood_max_dist_    = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
-    transform_tolerance_          = this->declare_parameter<double> ("transform_tolerance", 0.2);
+    map_frame_id_                     = this->declare_parameter<std::string> ("map_frame_id", "map");
+    odom_frame_id_                    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    base_frame_id_                    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
+    num_particles_                    = this->declare_parameter<int> ("num_particles", 500);
+    initial_pose_x_                   = this->declare_parameter<double> ("initial_pose_x", 0.0);
+    initial_pose_y_                   = this->declare_parameter<double> ("initial_pose_y", 0.0);
+    initial_pose_yaw_deg_             = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
+    motion_noise_xx_                  = this->declare_parameter<double> ("motion_noise_xx", 0.2);
+    motion_noise_xy_                  = this->declare_parameter<double> ("motion_noise_xy", 0.1);
+    motion_noise_yy_                  = this->declare_parameter<double> ("motion_noise_yy", 0.2);
+    motion_noise_yaw_deg_             = this->declare_parameter<double> ("motion_noise_yaw_deg", 0.1);
+    normal_noise_position_            = this->declare_parameter<double> ("normal_noise_position", 0.01);
+    normal_noise_orientation_deg_     = this->declare_parameter<double> ("normal_noise_orientation_deg", 1.0);
+    expansion_radius_position_        = this->declare_parameter<double> ("expansion_radius_position", 1.0);
+    expansion_radius_orientation_deg_ = this->declare_parameter<double> ("expansion_radius_orientation_deg", 30.0);
+    laser_likelihood_max_dist_        = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
+    transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
 
     RCLCPP_INFO (this->get_logger (), "MCL node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
@@ -56,15 +56,15 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     RCLCPP_INFO (this->get_logger (), "num_particles: %d", num_particles_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_x: %f", initial_pose_x_);
     RCLCPP_INFO (this->get_logger (), "initial_pose_y: %f", initial_pose_y_);
-    RCLCPP_INFO (this->get_logger (), "initial_pose_theta: %f", initial_pose_theta_);
+    RCLCPP_INFO (this->get_logger (), "initial_pose_yaw_deg: %f", initial_pose_yaw_deg_);
     RCLCPP_INFO (this->get_logger (), "motion_noise_xx: %f", motion_noise_xx_);
     RCLCPP_INFO (this->get_logger (), "motion_noise_xy: %f", motion_noise_xy_);
     RCLCPP_INFO (this->get_logger (), "motion_noise_yy: %f", motion_noise_yy_);
-    RCLCPP_INFO (this->get_logger (), "motion_noise_theta: %f", motion_noise_theta_);
+    RCLCPP_INFO (this->get_logger (), "motion_noise_yaw_deg: %f", motion_noise_yaw_deg_);
     RCLCPP_INFO (this->get_logger (), "normal_noise_position: %f", normal_noise_position_);
-    RCLCPP_INFO (this->get_logger (), "normal_noise_orientation: %f", normal_noise_orientation_);
+    RCLCPP_INFO (this->get_logger (), "normal_noise_orientation_deg: %f", normal_noise_orientation_deg_);
     RCLCPP_INFO (this->get_logger (), "expansion_radius_position: %f", expansion_radius_position_);
-    RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation: %f", expansion_radius_orientation_);
+    RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation_deg: %f", expansion_radius_orientation_deg_);
     RCLCPP_INFO (this->get_logger (), "laser_likelihood_max_dist: %f", laser_likelihood_max_dist_);
     RCLCPP_INFO (this->get_logger (), "transform_tolerance: %f", transform_tolerance_);
 
@@ -76,7 +76,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     map_to_odom.transform.translation.y = initial_pose_y_;
     map_to_odom.transform.translation.z = 0.0;
     tf2::Quaternion q;
-    q.setRPY (0, 0, initial_pose_theta_);
+    q.setRPY (0, 0, initial_pose_yaw_deg_ * M_PI / 180.0);
     map_to_odom.transform.rotation = tf2::toMsg (q);
     tf_broadcaster_->sendTransform (map_to_odom);
 
@@ -85,7 +85,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
         sin_[i] = sin (M_PI * i / (1 << 15));
     }
 
-    initialize_particles (initial_pose_x_, initial_pose_y_, initial_pose_theta_);
+    initialize_particles (initial_pose_x_, initial_pose_y_, initial_pose_yaw_deg_ * M_PI / 180.0);
 }
 
 void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -206,7 +206,7 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         pose.position.y = p.y;
         pose.position.z = 0.0;
         tf2::Quaternion q;
-        q.setRPY (0, 0, p.theta);
+        q.setRPY (0, 0, p.yaw);
         pose.orientation = tf2::toMsg (q);
         particles_msg.poses.push_back (pose);
     }
@@ -217,18 +217,18 @@ void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseW
     initialize_particles (msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw (msg->pose.pose.orientation));
 }
 
-void mcl::initialize_particles (double x, double y, double theta) {
+void mcl::initialize_particles (double x, double y, double yaw) {
     particles_.clear ();
     std::uniform_real_distribution<double> dx (-expansion_radius_position_, expansion_radius_position_);
     std::uniform_real_distribution<double> dy (-expansion_radius_position_, expansion_radius_position_);
-    std::uniform_real_distribution<double> dtheta (-expansion_radius_orientation_, expansion_radius_orientation_);
+    std::uniform_real_distribution<double> dyaw (-expansion_radius_orientation_deg_ * M_PI / 180.0, expansion_radius_orientation_deg_ * M_PI / 180.0);
 
     RCLCPP_INFO (this->get_logger (), "Initializing %d particles", num_particles_);
     for (int i = 0; i < num_particles_; i++) {
         particle p;
         p.x      = x + dx (rng_);
         p.y      = y + dy (rng_);
-        p.theta  = theta + dtheta (rng_);
+        p.yaw    = yaw + dyaw (rng_);
         p.weight = 1.0 / num_particles_;
         particles_.push_back (p);
     }
@@ -265,26 +265,26 @@ void mcl::resample_particles () {
     }
 }
 
-void mcl::motion_update (double delta_x, double delta_y, double delta_theta) {
+void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
     if (particles_.empty ()) return;
 
     std::normal_distribution<double> noise_position (0.0, normal_noise_position_);
-    std::normal_distribution<double> noise_theta (0.0, normal_noise_orientation_);
+    std::normal_distribution<double> noise_yaw (0.0, normal_noise_orientation_deg_ * M_PI / 180.0);
     std::normal_distribution<double> normal_noise (0.0, 1.0);
 
-    double x_dev     = sqrt (abs (delta_x) * motion_noise_xx_ * motion_noise_xx_ + abs (delta_y) * motion_noise_xy_ * motion_noise_xy_);
-    double y_dev     = sqrt (abs (delta_x) * motion_noise_xy_ * motion_noise_xy_ + abs (delta_y) * motion_noise_yy_ * motion_noise_yy_);
-    double theta_dev = sqrt (abs (delta_theta) * motion_noise_theta_ * motion_noise_theta_);
+    double x_dev   = sqrt (abs (delta_x) * motion_noise_xx_ * motion_noise_xx_ + abs (delta_y) * motion_noise_xy_ * motion_noise_xy_);
+    double y_dev   = sqrt (abs (delta_x) * motion_noise_xy_ * motion_noise_xy_ + abs (delta_y) * motion_noise_yy_ * motion_noise_yy_);
+    double yaw_dev = sqrt (abs (delta_yaw) * motion_noise_yaw_deg_ * motion_noise_yaw_deg_);
 
     for (auto &p : particles_) {
         double nx     = noise_position (rng_) + normal_noise (rng_) * x_dev;
         double ny     = noise_position (rng_) + normal_noise (rng_) * y_dev;
-        double ntheta = noise_theta (rng_) + normal_noise (rng_) * theta_dev;
+        double nyaw = noise_yaw (rng_) + normal_noise (rng_) * yaw_dev;
 
         p.x += delta_x + nx;
         p.y += delta_y + ny;
-        p.theta += delta_theta + ntheta;
-        p.theta = std::fmod (p.theta + M_PI, 2 * M_PI) - M_PI;
+        p.yaw += delta_yaw + nyaw;
+        p.yaw = std::fmod (p.yaw + M_PI, 2 * M_PI) - M_PI;
     }
 }
 
@@ -298,7 +298,7 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
     for (auto &p : particles_) {
         x_sum += p.x;
         y_sum += p.y;
-        uint16_t theta_16bit = get_16bit_theta (p.theta);
+        uint16_t theta_16bit = get_16bit_theta (p.yaw);
         s_sum += sin_[theta_16bit];
         c_sum += cos_[theta_16bit];
     }
@@ -307,25 +307,25 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
     double y_mean     = y_sum / particles_.size ();
     double s_mean     = s_sum / particles_.size ();
     double c_mean     = c_sum / particles_.size ();
-    double theta_mean = std::atan2 (s_mean, c_mean);
+    double yaw_mean = std::atan2 (s_mean, c_mean);
 
     for (auto &p : particles_) {
         xx_sum += pow (p.x - x_mean, 2);
         yy_sum += pow (p.y - y_mean, 2);
-        ss_sum += pow (sin_[get_16bit_theta (p.theta)] - s_mean, 2);
-        cc_sum += pow (cos_[get_16bit_theta (p.theta)] - c_mean, 2);
+        ss_sum += pow (sin_[get_16bit_theta (p.yaw)] - s_mean, 2);
+        cc_sum += pow (cos_[get_16bit_theta (p.yaw)] - c_mean, 2);
     }
 
     double x_dev     = xx_sum / (particles_.size () - 1);
     double y_dev     = yy_sum / (particles_.size () - 1);
     double s_dev     = ss_sum / (particles_.size () - 1);
     double c_dev     = cc_sum / (particles_.size () - 1);
-    double theta_dev = (s_dev + c_dev) / 2.0;
+    double yaw_dev = (s_dev + c_dev) / 2.0;
 
     for (auto &p : particles_) {
         xy_sum += (p.x - x_mean) * (p.y - y_mean);
-        xt_sum += (p.x - x_mean) * (p.theta - theta_mean);
-        yt_sum += (p.y - y_mean) * (p.theta - theta_mean);
+        xt_sum += (p.x - x_mean) * (p.yaw - yaw_mean);
+        yt_sum += (p.y - y_mean) * (p.yaw - yaw_mean);
     }
 
     double xy_cov = xy_sum / (particles_.size () - 1);
@@ -337,12 +337,12 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
     pose_with_covariance.pose.position.z = 0.0;
 
     tf2::Quaternion q;
-    q.setRPY (0, 0, theta_mean);
+    q.setRPY (0, 0, yaw_mean);
     pose_with_covariance.pose.orientation = tf2::toMsg (q);
 
     pose_with_covariance.covariance[6 * 0 + 0] = x_dev;
     pose_with_covariance.covariance[6 * 1 + 1] = y_dev;
-    pose_with_covariance.covariance[6 * 2 + 2] = theta_dev;
+    pose_with_covariance.covariance[6 * 2 + 2] = yaw_dev;
     pose_with_covariance.covariance[6 * 0 + 1] = xy_cov;
     pose_with_covariance.covariance[6 * 1 + 0] = xy_cov;
     pose_with_covariance.covariance[6 * 0 + 5] = xt_cov;
@@ -356,7 +356,7 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
 double mcl::compute_laser_likelihood (const particle &p) {
     double likelihood = 0.0;
 
-    uint16_t theta_16bit = get_16bit_theta (p.theta);
+    uint16_t theta_16bit = get_16bit_theta (p.yaw);
     double   sin_theta   = sin_[theta_16bit];
     double   cos_theta   = cos_[theta_16bit];
 

@@ -1,0 +1,42 @@
+<launch>
+    <arg name="chassis_type" default=""/>
+    <arg name="chassis_param_path" default=""/>
+    <arg name="control_param_path" default=""/>
+
+    <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
+        <!-- オドメトリ -->
+        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/$(var chassis_type)_odometry">
+            <param from="$(var chassis_param_path)"/>
+            <param name="frame_id" value="odom"/>
+            <param name="child_frame_id" value="base_link"/>
+            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
+        </composable_node>
+
+        <!-- 目標計算 -->
+        <composable_node pkg="natto_chassis_calculator" plugin="$(var chassis_type)_calculator::$(var chassis_type)_calculator" name="calculator" namespace="/control/$(var chassis_type)">
+            <param from="$(var chassis_param_path)"/>
+            <remap from="$(var chassis_type)_command" to="/$(var chassis_type)/command"/>
+            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
+            <remap from="command_velocity" to="/control/command_velocity"/>
+        </composable_node>
+
+        <!-- 経路計算 -->
+        <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="/planning">
+            <remap from="occupancy_grid" to="/common/occupancy_grid"/>
+            <remap from="goal_pose" to="/goal_pose"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
+            <remap from="path" to="/planning/path"/>
+            <remap from="footprint" to="/common/footprint"/>
+            <param name="theta_resolution_deg" value="5"/>
+            <param name="xy_inflation" value="0.5"/>
+            <param name="xy_offset" value="0.5"/>
+        </composable_node>
+
+        <!-- 経路追従 -->
+        <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
+            <param from="$(var control_param_path)"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
+            <remap from="path" to="/planning/path"/>
+        </composable_node>
+    </node_container>
+</launch>

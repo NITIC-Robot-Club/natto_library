@@ -33,16 +33,16 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     angle_decceleration_p_        = this->declare_parameter ("angle_decceleration_p", 1.0);
     max_speed_xy_m_s_             = this->declare_parameter ("max_speed_xy_m_s", 3.0);
     min_speed_xy_m_s_             = this->declare_parameter ("min_speed_xy_m_s", 0.1);
-    max_speed_z_deg_s_            = this->declare_parameter ("max_speed_z_deg_s", 180.0);
-    min_speed_z_deg_s_            = this->declare_parameter ("min_speed_z_deg_s", 18.0);
+    max_speed_yaw_deg_s_            = this->declare_parameter ("max_speed_yaw_deg_s", 180.0);
+    min_speed_yaw_deg_s_            = this->declare_parameter ("min_speed_yaw_deg_s", 18.0);
     max_acceleration_xy_m_s2_     = this->declare_parameter ("max_acceleration_xy_m_s2_", 10.0);
-    max_acceleration_z_deg_s2_    = this->declare_parameter ("max_acceleration_z_deg_s2", 500.0);
+    max_acceleration_yaw_deg_s2_    = this->declare_parameter ("max_acceleration_yaw_deg_s2", 500.0);
     goal_deceleration_m_s2_       = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
     goal_deceleration_distance_p_ = this->declare_parameter ("goal_deceleration_distance_p", 1.0);
     goal_position_tolerance_      = this->declare_parameter ("goal_position_tolerance_m", 0.03);
     goal_yaw_tolerance_deg_       = this->declare_parameter ("goal_yaw_tolerance_deg", 10.0);
     goal_speed_tolerance_xy_m_s_  = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
-    goal_speed_tolerance_z_deg_s_ = this->declare_parameter ("goal_speed_tolerance_z_deg_s", 30.0);
+    goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter ("goal_speed_tolerance_yaw_deg_s", 30.0);
 
     RCLCPP_INFO (this->get_logger (), "Holonomic Pure Pursuit Node has been started.");
     RCLCPP_INFO (this->get_logger (), "lookahead_time : %f", lookahead_time_);
@@ -54,15 +54,15 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     RCLCPP_INFO (this->get_logger (), "angle_decceleration_p : %f", angle_decceleration_p_);
     RCLCPP_INFO (this->get_logger (), "max_speed_xy_m_s : %f", max_speed_xy_m_s_);
     RCLCPP_INFO (this->get_logger (), "min_speed_xy_m_s : %f", min_speed_xy_m_s_);
-    RCLCPP_INFO (this->get_logger (), "max_speed_z_deg_s : %f", max_speed_z_deg_s_);
-    RCLCPP_INFO (this->get_logger (), "min_speed_z_deg_s : %f", min_speed_z_deg_s_);
+    RCLCPP_INFO (this->get_logger (), "max_speed_yaw_deg_s : %f", max_speed_yaw_deg_s_);
+    RCLCPP_INFO (this->get_logger (), "min_speed_yaw_deg_s : %f", min_speed_yaw_deg_s_);
     RCLCPP_INFO (this->get_logger (), "max_acceleration_xy_m_s2_ : %f", max_acceleration_xy_m_s2_);
-    RCLCPP_INFO (this->get_logger (), "max_acceleration_z_deg_s2 : %f", max_acceleration_z_deg_s2_);
+    RCLCPP_INFO (this->get_logger (), "max_acceleration_yaw_deg_s2 : %f", max_acceleration_yaw_deg_s2_);
     RCLCPP_INFO (this->get_logger (), "goal_deceleration_m_s2 : %f", goal_deceleration_m_s2_);
     RCLCPP_INFO (this->get_logger (), "goal_position_tolerance_m : %f", goal_position_tolerance_);
     RCLCPP_INFO (this->get_logger (), "goal_yaw_tolerance_deg : %f", goal_yaw_tolerance_deg_);
     RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_xy_m_s : %f", goal_speed_tolerance_xy_m_s_);
-    RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_z_deg_s : %f", goal_speed_tolerance_z_deg_s_);
+    RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_yaw_deg_s : %f", goal_speed_tolerance_yaw_deg_s_);
 }
 
 void holonomic_pure_pursuit::pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -97,8 +97,8 @@ void holonomic_pure_pursuit::timer_callback () {
 
     double current_speed_xy      = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
     bool   goal_speed_xy_reached = (current_speed_xy < goal_speed_tolerance_xy_m_s_);
-    double current_speed_z       = std::abs (last_cmd_vel_.twist.angular.z);
-    bool   goal_speed_z_reached  = (current_speed_z < goal_speed_tolerance_z_deg_s_ * M_PI / 180.0);
+    double current_speed_yaw       = std::abs (last_cmd_vel_.twist.angular.z);
+    bool   goal_speed_yaw_reached  = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
     // 最近傍点の探索
     double min_distance  = std::numeric_limits<double>::max ();
@@ -192,9 +192,9 @@ void holonomic_pure_pursuit::timer_callback () {
     double yaw_speed = yaw_diff / lookahead_time_ * angle_speed_p_;
     // 加速度を考慮
     double angle_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s;
-    angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_z_deg_s2_ * M_PI / 180.0, max_acceleration_z_deg_s2_ * M_PI / 180.0);
+    angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
     yaw_speed                 = last_cmd_vel_.twist.angular.z + angle_acceleration * delta_t_s;
-    yaw_speed                 = std::clamp (yaw_speed, -max_speed_z_deg_s_ * M_PI / 180.0, max_speed_z_deg_s_ * M_PI / 180.0);
+    yaw_speed                 = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
     // if (!goal_yaw_reached) {
     //     if (yaw_speed < 0) {
@@ -208,7 +208,7 @@ void holonomic_pure_pursuit::timer_callback () {
         speed = 0.0;
     }
 
-    if (goal_yaw_reached && goal_speed_z_reached) {
+    if (goal_yaw_reached && goal_speed_yaw_reached) {
         yaw_speed = 0.0;
     }
 
