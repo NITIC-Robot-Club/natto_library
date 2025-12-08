@@ -94,8 +94,8 @@ void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
             for (int j = i; j < 4; ++j) A[k][j] -= factor * A[i][j];
         }
     }
-    double vx = A[0][3];
-    double vy = A[1][3];
+    double vx   = A[0][3];
+    double vy   = A[1][3];
     double vyaw = A[2][3];
 
     double delta_t   = (this->now () - last_pose.header.stamp).seconds ();

@@ -24,24 +24,24 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
 
     timer_ = this->create_wall_timer (std::chrono::milliseconds (50), std::bind (&holonomic_pure_pursuit::timer_callback, this));
 
-    lookahead_time_               = this->declare_parameter ("lookahead_time", 1.0);
-    min_lookahead_distance_       = this->declare_parameter ("min_lookahead_distance", 0.1);
-    max_lookahead_distance_       = this->declare_parameter ("max_lookahead_distance", 1.0);
-    angle_speed_p_                = this->declare_parameter ("angle_speed_p", 1.0);
-    curvature_decceleration_p_    = this->declare_parameter ("curvature_decceleration_p", 1.0);
-    min_curvature_speed_m_s_      = this->declare_parameter ("min_curvature_speed_m_s", 0.3);
-    angle_decceleration_p_        = this->declare_parameter ("angle_decceleration_p", 1.0);
-    max_speed_xy_m_s_             = this->declare_parameter ("max_speed_xy_m_s", 3.0);
-    min_speed_xy_m_s_             = this->declare_parameter ("min_speed_xy_m_s", 0.1);
+    lookahead_time_                 = this->declare_parameter ("lookahead_time", 1.0);
+    min_lookahead_distance_         = this->declare_parameter ("min_lookahead_distance", 0.1);
+    max_lookahead_distance_         = this->declare_parameter ("max_lookahead_distance", 1.0);
+    angle_speed_p_                  = this->declare_parameter ("angle_speed_p", 1.0);
+    curvature_decceleration_p_      = this->declare_parameter ("curvature_decceleration_p", 1.0);
+    min_curvature_speed_m_s_        = this->declare_parameter ("min_curvature_speed_m_s", 0.3);
+    angle_decceleration_p_          = this->declare_parameter ("angle_decceleration_p", 1.0);
+    max_speed_xy_m_s_               = this->declare_parameter ("max_speed_xy_m_s", 3.0);
+    min_speed_xy_m_s_               = this->declare_parameter ("min_speed_xy_m_s", 0.1);
     max_speed_yaw_deg_s_            = this->declare_parameter ("max_speed_yaw_deg_s", 180.0);
     min_speed_yaw_deg_s_            = this->declare_parameter ("min_speed_yaw_deg_s", 18.0);
-    max_acceleration_xy_m_s2_     = this->declare_parameter ("max_acceleration_xy_m_s2_", 10.0);
+    max_acceleration_xy_m_s2_       = this->declare_parameter ("max_acceleration_xy_m_s2_", 10.0);
     max_acceleration_yaw_deg_s2_    = this->declare_parameter ("max_acceleration_yaw_deg_s2", 500.0);
-    goal_deceleration_m_s2_       = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
-    goal_deceleration_distance_p_ = this->declare_parameter ("goal_deceleration_distance_p", 1.0);
-    goal_position_tolerance_      = this->declare_parameter ("goal_position_tolerance_m", 0.03);
-    goal_yaw_tolerance_deg_       = this->declare_parameter ("goal_yaw_tolerance_deg", 10.0);
-    goal_speed_tolerance_xy_m_s_  = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
+    goal_deceleration_m_s2_         = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
+    goal_deceleration_distance_p_   = this->declare_parameter ("goal_deceleration_distance_p", 1.0);
+    goal_position_tolerance_        = this->declare_parameter ("goal_position_tolerance_m", 0.03);
+    goal_yaw_tolerance_deg_         = this->declare_parameter ("goal_yaw_tolerance_deg", 10.0);
+    goal_speed_tolerance_xy_m_s_    = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
     goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter ("goal_speed_tolerance_yaw_deg_s", 30.0);
 
     RCLCPP_INFO (this->get_logger (), "Holonomic Pure Pursuit Node has been started.");
@@ -95,10 +95,10 @@ void holonomic_pure_pursuit::timer_callback () {
     yaw_error             = std::abs (yaw_error);
     bool goal_yaw_reached = (yaw_error < goal_yaw_tolerance_deg_ * M_PI / 180.0);
 
-    double current_speed_xy      = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
-    bool   goal_speed_xy_reached = (current_speed_xy < goal_speed_tolerance_xy_m_s_);
-    double current_speed_yaw       = std::abs (last_cmd_vel_.twist.angular.z);
-    bool   goal_speed_yaw_reached  = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
+    double current_speed_xy       = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
+    bool   goal_speed_xy_reached  = (current_speed_xy < goal_speed_tolerance_xy_m_s_);
+    double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
+    bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
     // 最近傍点の探索
     double min_distance  = std::numeric_limits<double>::max ();

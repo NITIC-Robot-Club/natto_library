@@ -93,8 +93,8 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
         }
     }
 
-    double vx = A[0][3];
-    double vy = A[1][3];
+    double vx   = A[0][3];
+    double vy   = A[1][3];
     double vyaw = A[2][3];
 
     double delta_t   = (this->now () - last_pose.header.stamp).seconds ();
