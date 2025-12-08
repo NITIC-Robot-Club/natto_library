@@ -30,7 +30,7 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
     angle_min_             = this->declare_parameter<double> ("angle_min", -1.57);
     angle_max_             = this->declare_parameter<double> ("angle_max", 1.57);
     simulation_resolution_ = this->declare_parameter<double> ("simulation_resolution", 0.01);
-    point_rate_             = this->declare_parameter<int> ("point_rate", 43200);
+    point_rate_            = this->declare_parameter<int> ("point_rate", 43200);
     scan_frequency_        = this->declare_parameter<double> ("scan_frequency", 30);
     frame_id_              = this->declare_parameter<std::string> ("frame_id", "laser_frame");
 
@@ -50,7 +50,7 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
     distribution_ = std::uniform_real_distribution<double> (-simulation_resolution_, simulation_resolution_);
 
     // タイマー宣言例:
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int>(1000 / scan_frequency_)), std::bind (&lidar_simulator::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000 / scan_frequency_)), std::bind (&lidar_simulator::timer_callback, this));
 }
 
 void lidar_simulator::simulation_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {

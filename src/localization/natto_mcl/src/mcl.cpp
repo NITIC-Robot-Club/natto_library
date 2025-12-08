@@ -277,8 +277,8 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
     double yaw_dev = sqrt (abs (delta_yaw) * motion_noise_yaw_deg_ * motion_noise_yaw_deg_);
 
     for (auto &p : particles_) {
-        double nx     = noise_position (rng_) + normal_noise (rng_) * x_dev;
-        double ny     = noise_position (rng_) + normal_noise (rng_) * y_dev;
+        double nx   = noise_position (rng_) + normal_noise (rng_) * x_dev;
+        double ny   = noise_position (rng_) + normal_noise (rng_) * y_dev;
         double nyaw = noise_yaw (rng_) + normal_noise (rng_) * yaw_dev;
 
         p.x += delta_x + nx;
@@ -303,10 +303,10 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
         c_sum += cos_[theta_16bit];
     }
 
-    double x_mean     = x_sum / particles_.size ();
-    double y_mean     = y_sum / particles_.size ();
-    double s_mean     = s_sum / particles_.size ();
-    double c_mean     = c_sum / particles_.size ();
+    double x_mean   = x_sum / particles_.size ();
+    double y_mean   = y_sum / particles_.size ();
+    double s_mean   = s_sum / particles_.size ();
+    double c_mean   = c_sum / particles_.size ();
     double yaw_mean = std::atan2 (s_mean, c_mean);
 
     for (auto &p : particles_) {
@@ -316,10 +316,10 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
         cc_sum += pow (cos_[get_16bit_theta (p.yaw)] - c_mean, 2);
     }
 
-    double x_dev     = xx_sum / (particles_.size () - 1);
-    double y_dev     = yy_sum / (particles_.size () - 1);
-    double s_dev     = ss_sum / (particles_.size () - 1);
-    double c_dev     = cc_sum / (particles_.size () - 1);
+    double x_dev   = xx_sum / (particles_.size () - 1);
+    double y_dev   = yy_sum / (particles_.size () - 1);
+    double s_dev   = ss_sum / (particles_.size () - 1);
+    double c_dev   = cc_sum / (particles_.size () - 1);
     double yaw_dev = (s_dev + c_dev) / 2.0;
 
     for (auto &p : particles_) {

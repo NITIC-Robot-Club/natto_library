@@ -30,24 +30,24 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     holonomic_pure_pursuit (const rclcpp::NodeOptions &options);
 
    private:
-    double lookahead_time_;                // 速度スケーリング用の時間 [s]
-    double min_lookahead_distance_;        // 最小lookahead距離 [m]
-    double max_lookahead_distance_;        // 最大lookahead距離 [m]
-    double angle_speed_p_;                 // 角度比例ゲイン
-    double curvature_decceleration_p_;     // 曲率減速用の比例ゲイン
-    double min_curvature_speed_m_s_;       // 曲率減速用の最低速度 [m/s]
-    double angle_decceleration_p_;         // 角度減速用の比例ゲイン
-    double max_speed_xy_m_s_;              // 最大並進速度
-    double min_speed_xy_m_s_;              // 最小並進速度
+    double lookahead_time_;                  // 速度スケーリング用の時間 [s]
+    double min_lookahead_distance_;          // 最小lookahead距離 [m]
+    double max_lookahead_distance_;          // 最大lookahead距離 [m]
+    double angle_speed_p_;                   // 角度比例ゲイン
+    double curvature_decceleration_p_;       // 曲率減速用の比例ゲイン
+    double min_curvature_speed_m_s_;         // 曲率減速用の最低速度 [m/s]
+    double angle_decceleration_p_;           // 角度減速用の比例ゲイン
+    double max_speed_xy_m_s_;                // 最大並進速度
+    double min_speed_xy_m_s_;                // 最小並進速度
     double max_speed_yaw_deg_s_;             // 最大回転速度
     double min_speed_yaw_deg_s_;             // 最小回転速度
-    double max_acceleration_xy_m_s2_;      // 最大加速度
+    double max_acceleration_xy_m_s2_;        // 最大加速度
     double max_acceleration_yaw_deg_s2_;     // 最大角加速度 [deg/s^2]
-    double goal_deceleration_m_s2_;        // ゴール減速用の減速度 [m/s^2]
-    double goal_deceleration_distance_p_;  // ゴール減速用の距離比例ゲイン
-    double goal_position_tolerance_;       // ゴール位置許容誤差 [m]
-    double goal_yaw_tolerance_deg_;        // ゴールヨー許容誤差 [deg]
-    double goal_speed_tolerance_xy_m_s_;   // ゴール速度許容誤差 [m/s]
+    double goal_deceleration_m_s2_;          // ゴール減速用の減速度 [m/s^2]
+    double goal_deceleration_distance_p_;    // ゴール減速用の距離比例ゲイン
+    double goal_position_tolerance_;         // ゴール位置許容誤差 [m]
+    double goal_yaw_tolerance_deg_;          // ゴールヨー許容誤差 [deg]
+    double goal_speed_tolerance_xy_m_s_;     // ゴール速度許容誤差 [m/s]
     double goal_speed_tolerance_yaw_deg_s_;  // ゴール速度許容誤差 [deg/s]
 
     double                           lookahead_distance_;

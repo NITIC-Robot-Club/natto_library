@@ -6,7 +6,7 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions& node_options) : Node ("jo
     twist_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped> ("command_velocity", 1);
     joy_subscriber_  = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 1, std::bind (&joy_to_twist::joy_callback, this, std::placeholders::_1));
 
-    max_xy_speed_m_s_      = this->declare_parameter<double> ("max_xy_speed_m_s", 2.0);
+    max_xy_speed_m_s_    = this->declare_parameter<double> ("max_xy_speed_m_s", 2.0);
     max_yaw_speed_rad_s_ = this->declare_parameter<double> ("max_yaw_speed_rad_s", 3.1415);
 }
 
