@@ -30,7 +30,8 @@
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="control_param_path" value="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
-        <arg name="use_joy_control" value="true"/>
+        <arg name="planning_param_path" value="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
+        <arg name="use_joy_control" value="false"/>
     </include>
 
     <!-- 表示 -->
@@ -38,6 +39,7 @@
         <arg name="chassis_type" value="$(var chassis_type)"/>
     </include>
 
+    <!-- 自己位置 -->
     <include file="$(find-pkg-share natto_launch)/launch/localization.launch.xml">
         <arg name="localization_param_path" value="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
     </include>

@@ -1,12 +1,14 @@
 <launch>
+    <arg name="use_laserscan_convert" default="true"/>
+
     <node_container pkg="rclcpp_components" exec="component_container" name="sensing_container" namespace="/sensing">
         <!-- LiDAR点変換 -->
-        <composable_node pkg="natto_lidar_converter" plugin="laserscan_to_pointcloud2::laserscan_to_pointcloud2" name="laserscan_to_pointcloud2_front" namespace="/sensing/lidar">
+        <composable_node pkg="natto_lidar_converter" plugin="laserscan_to_pointcloud2::laserscan_to_pointcloud2" name="laserscan_to_pointcloud2_front" namespace="/sensing/lidar" if="$(var use_laserscan_convert)">
             <param name="frame_id" value="lidar_front"/>
             <remap from="laserscan" to="/sensing/lidar/laser_scan/front"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/front"/>
         </composable_node>
-        <composable_node pkg="natto_lidar_converter" plugin="laserscan_to_pointcloud2::laserscan_to_pointcloud2" name="laserscan_to_pointcloud2_rear" namespace="/sensing/lidar">
+        <composable_node pkg="natto_lidar_converter" plugin="laserscan_to_pointcloud2::laserscan_to_pointcloud2" name="laserscan_to_pointcloud2_rear" namespace="/sensing/lidar" if="$(var use_laserscan_convert)">
             <param name="frame_id" value="lidar_rear"/>
             <remap from="laserscan" to="/sensing/lidar/laser_scan/rear"/>
             <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/rear"/>

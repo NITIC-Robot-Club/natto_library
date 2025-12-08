@@ -2,6 +2,7 @@
     <arg name="chassis_type" default=""/>
     <arg name="chassis_param_path" default=""/>
     <arg name="control_param_path" default=""/>
+    <arg name="planning_param_path" default=""/>
     <arg name="current_pose_topic" default="/localization/current_pose"/>
     <arg name="use_joy_control" default="false"/>
 
@@ -27,14 +28,12 @@
 
         <!-- 経路計算 -->
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="/planning">
+            <param from="$(var planning_param_path)"/>
             <remap from="occupancy_grid" to="/common/occupancy_grid"/>
             <remap from="goal_pose" to="/goal_pose"/>
             <remap from="current_pose" to="$(var current_pose_topic)"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/common/footprint"/>
-            <param name="theta_resolution_deg" value="5"/>
-            <param name="xy_inflation" value="0.5"/>
-            <param name="xy_offset" value="0.5"/>
         </composable_node>
 
         <!-- 経路追従 -->
