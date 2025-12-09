@@ -17,69 +17,75 @@
 namespace pointcloud2_merger {
 
 pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options) : Node ("pointcloud2_merger", node_options) {
-    pointcloud2_publisher_         = this->create_publisher<sensor_msgs::msg::PointCloud2> ("merged_pointcloud2", 10);
-    pointcloud2_first_subscriber_  = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2_first", 10, std::bind (&pointcloud2_merger::pointcloud2_callback_first, this, std::placeholders::_1));
-    pointcloud2_second_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2_second", 10, std::bind (&pointcloud2_merger::pointcloud2_callback_second, this, std::placeholders::_1));
-    footprint_subscriber_          = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&pointcloud2_merger::footprint_callback, this, std::placeholders::_1));
+    pointcloud2_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2> ("merged_pointcloud2", 10);
+    footprint_subscriber_  = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&pointcloud2_merger::footprint_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
+
+    std::vector<std::string> lidar_topics = this->declare_parameter<std::vector<std::string>> ("lidar_topics", {"/lidar1_pointcloud2", "/lidar2_pointcloud2"});
+
+    num_lidars_ = lidar_topics.size ();
+    latest_pointclouds_.resize (num_lidars_);
+
+    for (int i = 0; i < num_lidars_; ++i) {
+        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], 10, [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
+    }
 
     frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
 
     RCLCPP_INFO (this->get_logger (), "pointcloud2_merger node has been started.");
     RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
-}
 
-void pointcloud2_merger::pointcloud2_callback_first (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-    first_pointcloud2_ = *msg;
-    publish_pointcloud2 ();
-}
+    double frequency = this->declare_parameter<double> ("publish_frequency", 40.0);
 
-void pointcloud2_merger::pointcloud2_callback_second (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-    second_pointcloud2_ = *msg;
-    publish_pointcloud2 ();
+    publish_timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int>(1000 / frequency)), std::bind (&pointcloud2_merger::publish_pointcloud2, this));
 }
 
 void pointcloud2_merger::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
     footprint_ = *msg;
 }
-
 void pointcloud2_merger::publish_pointcloud2 () {
-    if (first_pointcloud2_.data.empty () || second_pointcloud2_.data.empty ()) return;
-
-    sensor_msgs::msg::PointCloud2 first_tf, second_tf;
-    try {
-        auto tf_first = tf_buffer_->lookupTransform (frame_id_, first_pointcloud2_.header.frame_id, first_pointcloud2_.header.stamp);
-        tf2::doTransform (first_pointcloud2_, first_tf, tf_first);
-
-        // 2つ目のLiDAR
-        auto tf_second = tf_buffer_->lookupTransform (frame_id_, second_pointcloud2_.header.frame_id, second_pointcloud2_.header.stamp);
-        tf2::doTransform (second_pointcloud2_, second_tf, tf_second);
-
-    } catch (tf2::TransformException &ex) {
-        RCLCPP_WARN (this->get_logger (), "TF transform failed: %s", ex.what ());
+    bool available = false;
+    for (auto &pc : latest_pointclouds_) {
+        if (!pc.data.empty ()) {
+            available = true;
+            break;
+        }
+    }
+    if (!available) {
+        RCLCPP_WARN (this->get_logger (), "No pointclouds received yet.");
         return;
     }
+
     std::vector<std::array<float, 3>> merged_points;
 
-    auto extract_points = [&] (const sensor_msgs::msg::PointCloud2 &cloud) {
-        sensor_msgs::PointCloud2ConstIterator<float> iter_x (cloud, "x");
-        sensor_msgs::PointCloud2ConstIterator<float> iter_y (cloud, "y");
-        sensor_msgs::PointCloud2ConstIterator<float> iter_z (cloud, "z");
-        for (; iter_x != iter_x.end (); ++iter_x, ++iter_y, ++iter_z) {
-            merged_points.push_back ({*iter_x, *iter_y, *iter_z});
+    for (auto &pc : latest_pointclouds_) {
+        if (pc.data.empty ()) continue;
+
+        sensor_msgs::msg::PointCloud2 pc_tf;
+        try {
+            auto tf = tf_buffer_->lookupTransform (frame_id_, pc.header.frame_id, pc.header.stamp);
+            tf2::doTransform (pc, pc_tf, tf);
+        } catch (tf2::TransformException &ex) {
+            RCLCPP_WARN (this->get_logger (), "TF transform failed: %s", ex.what ());
+            continue;
         }
-    };
 
-    extract_points (first_tf);
-    extract_points (second_tf);
+        sensor_msgs::PointCloud2ConstIterator<float> it_x (pc_tf, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> it_y (pc_tf, "y");
+        sensor_msgs::PointCloud2ConstIterator<float> it_z (pc_tf, "z");
 
+        for (; it_x != it_x.end (); ++it_x, ++it_y, ++it_z) {
+            merged_points.push_back ({*it_x, *it_y, *it_z});
+        }
+    }
+
+    // --- footprintをtf変換 ---
     std::vector<geometry_msgs::msg::Point32> footprint_points_tf;
-
     if (!footprint_.polygon.points.empty ()) {
         try {
-            geometry_msgs::msg::TransformStamped tf_poly = tf_buffer_->lookupTransform (frame_id_, footprint_.header.frame_id, footprint_.header.stamp);
+            auto tf_poly = tf_buffer_->lookupTransform (frame_id_, footprint_.header.frame_id, footprint_.header.stamp);
 
             for (const auto &pt : footprint_.polygon.points) {
                 geometry_msgs::msg::PointStamped p_in, p_out;
@@ -90,9 +96,9 @@ void pointcloud2_merger::publish_pointcloud2 () {
                 tf2::doTransform (p_in, p_out, tf_poly);
 
                 geometry_msgs::msg::Point32 p_tf;
-                p_tf.x = static_cast<float> (p_out.point.x);
-                p_tf.y = static_cast<float> (p_out.point.y);
-                p_tf.z = static_cast<float> (p_out.point.z);
+                p_tf.x = (float)p_out.point.x;
+                p_tf.y = (float)p_out.point.y;
+                p_tf.z = (float)p_out.point.z;
                 footprint_points_tf.push_back (p_tf);
             }
         } catch (tf2::TransformException &ex) {
@@ -120,6 +126,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
         if (!is_inside (p[0], p[1])) filtered.push_back (p);
     }
 
+    // --- PointCloud2生成 ---
     sensor_msgs::msg::PointCloud2 output;
     output.header.stamp    = this->get_clock ()->now ();
     output.header.frame_id = frame_id_;
@@ -132,20 +139,19 @@ void pointcloud2_merger::publish_pointcloud2 () {
     modifier.setPointCloud2FieldsByString (1, "xyz");
     modifier.resize (filtered.size ());
 
-    sensor_msgs::PointCloud2Iterator<float> out_x (output, "x");
-    sensor_msgs::PointCloud2Iterator<float> out_y (output, "y");
-    sensor_msgs::PointCloud2Iterator<float> out_z (output, "z");
+    sensor_msgs::PointCloud2Iterator<float> it_out_x (output, "x");
+    sensor_msgs::PointCloud2Iterator<float> it_out_y (output, "y");
+    sensor_msgs::PointCloud2Iterator<float> it_out_z (output, "z");
 
     for (auto &p : filtered) {
-        *out_x = p[0];
-        *out_y = p[1];
-        *out_z = p[2];
-        ++out_x;
-        ++out_y;
-        ++out_z;
+        *it_out_x = p[0];
+        *it_out_y = p[1];
+        *it_out_z = p[2];
+        ++it_out_x;
+        ++it_out_y;
+        ++it_out_z;
     }
 
-    // --- publish ---
     pointcloud2_publisher_->publish (output);
 }
 

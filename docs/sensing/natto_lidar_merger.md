@@ -12,6 +12,8 @@
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | frame_id | std::string | "merged_pointcloud2_frame" | 統合後のPointCloud2メッセージのフレームID |
+| publish_frequency | double | 10.0 | PointCloud2メッセージのパブリッシュ頻度（Hz） |
+| lidar_topics | std::vector<std::string> | ["/lidar1/pointcloud2", "/lidar2/pointcloud2"] | 統合するLiDARのPointCloud2トピック名のリスト |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -21,6 +23,4 @@
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| pointcloud2_first | sensor_msgs/PointCloud2 | 統合する最初のPointCloud2データ |
-| pointcloud2_second | sensor_msgs/PointCloud2 | 統合する二番目のPointCloud2データ |
 | footprint | geometry_msgs/PolygonStamped | ロボットのフットプリント情報 |
