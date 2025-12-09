@@ -1,4 +1,4 @@
-# Repository Guidelines
+# MapBuilder Guidelines
 
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript application; entry flow starts at `main.tsx` and renders `App.tsx`. Keep new components in feature folders under `src/` with colocated styles when helpful.
