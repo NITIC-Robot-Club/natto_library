@@ -34,7 +34,7 @@ class laserscan_to_pointcloud2 : public rclcpp::Node {
    private:
     std::string frame_id_;
 
-    void laser_scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg);
+    void laserscan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg);
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

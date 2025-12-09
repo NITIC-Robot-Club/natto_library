@@ -389,7 +389,7 @@ Visualization Manager:
                     Filter size: 10
                     History Policy: Keep Last
                     Reliability Policy: Reliable
-                    Value: /sensing/lidar/laser_scan/front
+                    Value: /sensing/lidar/laserscan/front
                   Use Fixed Frame: true
                   Use rainbow: false
                   Value: true
@@ -423,7 +423,7 @@ Visualization Manager:
                     Filter size: 10
                     History Policy: Keep Last
                     Reliability Policy: Reliable
-                    Value: /sensing/lidar/laser_scan/rear
+                    Value: /sensing/lidar/laserscan/rear
                   Use Fixed Frame: true
                   Use rainbow: false
                   Value: true

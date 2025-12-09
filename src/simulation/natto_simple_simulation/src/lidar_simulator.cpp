@@ -17,7 +17,7 @@
 namespace lidar_simulator {
 
 lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Node ("lidar_simulator", node_options) {
-    laser_publisher_            = this->create_publisher<sensor_msgs::msg::LaserScan> ("laser_scan", 10);
+    laser_publisher_            = this->create_publisher<sensor_msgs::msg::LaserScan> ("laserscan", 10);
     simulation_pose_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10, std::bind (&lidar_simulator::simulation_pose_callback, this, std::placeholders::_1));
     map_subscriber_             = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&lidar_simulator::map_callback, this, std::placeholders::_1));
 
