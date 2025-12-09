@@ -86,9 +86,8 @@ class mcl : public rclcpp::Node {
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr trajectory_publisher_;
-    geometry_msgs::msg::PoseArray trajectory_msg_;
-    size_t max_trajectory_length_;
-
+    geometry_msgs::msg::PoseArray                               trajectory_msg_;
+    size_t                                                      max_trajectory_length_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr                  pose_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr                    particles_publisher_;
