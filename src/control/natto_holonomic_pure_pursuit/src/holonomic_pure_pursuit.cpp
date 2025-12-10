@@ -17,12 +17,16 @@
 namespace holonomic_pure_pursuit {
 
 holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &options) : Node ("holonomic_pure_pursuit", options) {
-    cmd_vel_publisher_   = this->create_publisher<geometry_msgs::msg::TwistStamped> ("command_velocity", 1);
-    lookahead_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("lookahead", 1);
-    pose_subscriber_     = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 1, std::bind (&holonomic_pure_pursuit::pose_callback, this, std::placeholders::_1));
-    path_subscriber_     = this->create_subscription<nav_msgs::msg::Path> ("path", 1, std::bind (&holonomic_pure_pursuit::path_callback, this, std::placeholders::_1));
+    cmd_vel_publisher_      = this->create_publisher<geometry_msgs::msg::TwistStamped> ("command_velocity", 1);
+    lookahead_publisher_    = this->create_publisher<geometry_msgs::msg::PoseStamped> ("lookahead", 1);
+    goal_reached_publisher_ = this->create_publisher<std_msgs::msg::Bool> ("goal_reached", 1);
+    pose_subscriber_        = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 1, std::bind (&holonomic_pure_pursuit::pose_callback, this, std::placeholders::_1));
+    path_subscriber_        = this->create_subscription<nav_msgs::msg::Path> ("path", 1, std::bind (&holonomic_pure_pursuit::path_callback, this, std::placeholders::_1));
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (50), std::bind (&holonomic_pure_pursuit::timer_callback, this));
+    double frequency = this->declare_parameter ("control_frequency", 50.0);
+    delta_t_s_       = 1.0 / frequency;
+
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000.0 / frequency)), std::bind (&holonomic_pure_pursuit::timer_callback, this));
 
     lookahead_time_                 = this->declare_parameter ("lookahead_time", 1.0);
     min_lookahead_distance_         = this->declare_parameter ("min_lookahead_distance", 0.1);
@@ -74,8 +78,6 @@ void holonomic_pure_pursuit::path_callback (const nav_msgs::msg::Path::SharedPtr
 }
 
 void holonomic_pure_pursuit::timer_callback () {
-    // パラメータ取得
-
     if (path_.poses.empty ()) {
         geometry_msgs::msg::TwistStamped cmd_vel;
         cmd_vel.header.stamp    = this->now ();
@@ -100,7 +102,6 @@ void holonomic_pure_pursuit::timer_callback () {
     double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
     bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
-    // 最近傍点の探索
     double min_distance  = std::numeric_limits<double>::max ();
     int    closest_index = -1;
     for (int i = 0; i < path_.poses.size (); i++) {
@@ -114,53 +115,59 @@ void holonomic_pure_pursuit::timer_callback () {
     if (closest_index == -1) return;
     if (closest_index + 1 >= path_.poses.size ()) closest_index = path_.poses.size () - 2;
 
-    // ゴール位置
     geometry_msgs::msg::Pose goal_pose     = path_.poses.back ().pose;
     double                   goal_distance = std::hypot (goal_pose.position.x - current_pose_.pose.position.x, goal_pose.position.y - current_pose_.pose.position.y);
 
-    double last_speed = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
-    // double predict_dt = std::min (lookahead_time_, 0.5);  // 最大0.5s先まで予測
-    double predicted_speed = last_speed + max_acceleration_xy_m_s2_ * lookahead_time_;
+    double last_speed      = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
+    double predicted_speed = last_speed + max_acceleration_xy_m_s2_ * delta_t_s_;
     predicted_speed        = std::clamp (predicted_speed, 0.0, max_speed_xy_m_s_);
     lookahead_distance_    = std::clamp (lookahead_time_ * predicted_speed, min_lookahead_distance_, max_lookahead_distance_);
 
-    int    lookahead_index = closest_index;
-    double acc_dist        = 0.0;
-    double prev_x          = current_pose_.pose.position.x;
-    double prev_y          = current_pose_.pose.position.y;
+    int    lookahead_index  = closest_index;
+    double nearest_distance = std::numeric_limits<double>::max ();
     for (int i = closest_index; i < path_.poses.size (); i++) {
-        double px  = path_.poses[i].pose.position.x;
-        double py  = path_.poses[i].pose.position.y;
-        double seg = std::hypot (px - prev_x, py - prev_y);
-        acc_dist += seg;
-        prev_x          = px;
-        prev_y          = py;
-        lookahead_index = i;
-        if (acc_dist >= lookahead_distance_) break;
+        double distance = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
+        double diff     = std::abs (distance - lookahead_distance_);
+        if (diff < nearest_distance) {
+            nearest_distance = diff;
+            lookahead_index  = i;
+        }
     }
 
-    if (goal_position_reached) {
+    if (lookahead_distance_ > goal_distance) {
         lookahead_index = path_.poses.size () - 1;
     }
-
-    double dx = path_.poses[lookahead_index].pose.position.x - current_pose_.pose.position.x;
-    double dy = path_.poses[lookahead_index].pose.position.y - current_pose_.pose.position.y;
+    int next_index = std::min (lookahead_index + 1, static_cast<int> (path_.poses.size () - 1));
 
     double current_yaw = tf2::getYaw (current_pose_.pose.orientation);
-    double angle_diff  = std::atan2 (dy, dx) - current_yaw;
+    double dxy1        = std::hypot (path_.poses[lookahead_index].pose.position.x - current_pose_.pose.position.x, path_.poses[lookahead_index].pose.position.y - current_pose_.pose.position.y);
+    double dxy2        = std::hypot (path_.poses[next_index].pose.position.x - current_pose_.pose.position.x, path_.poses[next_index].pose.position.y - current_pose_.pose.position.y);
+    double dyaw1       = tf2::getYaw (path_.poses[lookahead_index].pose.orientation) - current_yaw;
+    double dyaw2       = tf2::getYaw (path_.poses[next_index].pose.orientation) - current_yaw;
+    while (dyaw1 > +M_PI) dyaw1 -= 2.0 * M_PI;
+    while (dyaw1 < -M_PI) dyaw1 += 2.0 * M_PI;
+    while (dyaw2 > +M_PI) dyaw2 -= 2.0 * M_PI;
+    while (dyaw2 < -M_PI) dyaw2 += 2.0 * M_PI;
 
-    // 加速度制限付き速度推定
+    double xy_ratio  = std::clamp ((lookahead_distance_ - dxy1) / (dxy2 - dxy1), 0.0, 1.0);
+    double yaw_ratio = std::clamp ((lookahead_distance_ - dxy1) / (dxy2 - dxy1), 0.0, 1.0);
+
+    double lookahead_x   = path_.poses[lookahead_index].pose.position.x + (path_.poses[next_index].pose.position.x - path_.poses[lookahead_index].pose.position.x) * xy_ratio;
+    double lookahead_y   = path_.poses[lookahead_index].pose.position.y + (path_.poses[next_index].pose.position.y - path_.poses[lookahead_index].pose.position.y) * xy_ratio;
+    double lookahead_yaw = tf2::getYaw (path_.poses[lookahead_index].pose.orientation) + (tf2::getYaw (path_.poses[next_index].pose.orientation) - tf2::getYaw (path_.poses[lookahead_index].pose.orientation)) * yaw_ratio;
+
+    double dx = lookahead_x - current_pose_.pose.position.x;
+    double dy = lookahead_y - current_pose_.pose.position.y;
+
+    double angle_diff   = std::atan2 (dy, dx) - current_yaw;
     double target_speed = std::hypot (dx, dy) / lookahead_time_;
-    // 最大速度制限
-    target_speed = std::clamp (target_speed, 0.0, max_speed_xy_m_s_);
+    target_speed        = std::clamp (target_speed, 0.0, max_speed_xy_m_s_);
 
     double d = std::max (goal_distance, 0.0);
 
-    // // ここでさらに物理的に止まれる最大速度で上限をかける（安全側）
     double max_stop_speed = std::sqrt (2.0 * std::min (goal_deceleration_m_s2_, max_acceleration_xy_m_s2_) * std::max (0.0, d / goal_deceleration_distance_p_));
     target_speed          = std::min (target_speed, max_stop_speed);
 
-    // 曲率に応じた速度制限
     int p1 = closest_index;
     int p2 = (lookahead_index + closest_index) / 2;
     int p3 = lookahead_index;
@@ -181,28 +188,19 @@ void holonomic_pure_pursuit::timer_callback () {
 
     target_speed = std::max (target_speed, min_speed_xy_m_s_);
 
-    double delta_t_s    = 0.05;
-    double acceleration = (target_speed - last_speed) / delta_t_s;
+    double acceleration = (target_speed - last_speed) / delta_t_s_;
     acceleration        = std::clamp (acceleration, -max_acceleration_xy_m_s2_, max_acceleration_xy_m_s2_);
-    double speed        = last_speed + acceleration * delta_t_s;
+    double speed        = last_speed + acceleration * delta_t_s_;
 
-    double yaw_diff = tf2::getYaw (path_.poses[lookahead_index].pose.orientation) - current_yaw;
+    double yaw_diff = lookahead_yaw - current_yaw;
     while (yaw_diff > +M_PI) yaw_diff -= 2.0 * M_PI;
     while (yaw_diff < -M_PI) yaw_diff += 2.0 * M_PI;
     double yaw_speed = yaw_diff / lookahead_time_ * angle_speed_p_;
-    // 加速度を考慮
-    double angle_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s;
-    angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
-    yaw_speed                 = last_cmd_vel_.twist.angular.z + angle_acceleration * delta_t_s;
-    yaw_speed                 = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
-    // if (!goal_yaw_reached) {
-    //     if (yaw_speed < 0) {
-    //         yaw_speed = std::min (yaw_speed, -min_speed_z_deg_s_ * M_PI / 180.0);
-    //     } else {
-    //         yaw_speed = std::max (yaw_speed, min_speed_z_deg_s_ * M_PI / 180.0);
-    //     }
-    // }
+    double angle_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
+    angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
+    yaw_speed                 = last_cmd_vel_.twist.angular.z + angle_acceleration * delta_t_s_;
+    yaw_speed                 = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
     if (goal_position_reached && goal_speed_xy_reached) {
         speed = 0.0;
@@ -212,7 +210,10 @@ void holonomic_pure_pursuit::timer_callback () {
         yaw_speed = 0.0;
     }
 
-    // Twist 発行
+    std_msgs::msg::Bool goal_reached_msg;
+    goal_reached_msg.data = goal_position_reached && goal_speed_xy_reached && goal_yaw_reached && goal_speed_yaw_reached;
+    goal_reached_publisher_->publish (goal_reached_msg);
+
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.stamp    = this->now ();
     cmd_vel.header.frame_id = "base_link";
@@ -221,11 +222,14 @@ void holonomic_pure_pursuit::timer_callback () {
     cmd_vel.twist.angular.z = yaw_speed;
     cmd_vel_publisher_->publish (cmd_vel);
 
-    // lookahead可視化
     geometry_msgs::msg::PoseStamped lookahead_msg;
     lookahead_msg.header.stamp    = this->now ();
     lookahead_msg.header.frame_id = "map";
-    lookahead_msg.pose            = path_.poses[lookahead_index].pose;
+    lookahead_msg.pose.position.x = lookahead_x;
+    lookahead_msg.pose.position.y = lookahead_y;
+    tf2::Quaternion q;
+    q.setRPY (0.0, 0.0, lookahead_yaw);
+    lookahead_msg.pose.orientation = tf2::toMsg (q);
     lookahead_publisher_->publish (lookahead_msg);
     last_cmd_vel_ = cmd_vel;
 }
