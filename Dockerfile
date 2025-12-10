@@ -27,4 +27,4 @@ SHELL ["/bin/bash", "-c"]
 
 RUN rosdep install -y --from-paths src --ignore-src && \
     source /opt/ros/humble/setup.bash && \
-    colcon build --symlink-install
+    colcon build --symlink-install --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
