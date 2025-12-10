@@ -27,12 +27,15 @@ natto_mcl パッケージは、モンテカルロ局所化（MCL）アルゴリ�
 | expansion_radius_orientation | double | 1.0 | 姿勢の拡張半径 |
 | laser_likelihood_max_dist | double | 0.2 | レーザーセンサの尤度計算における最大距離 |
 | transform_tolerance | double | 0.2 | 変換の許容時間 |
+| max_trajectory_length_ | int | 1000 | 軌跡の保持の最大数 |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | pose | geometry_msgs/msg/PoseStamped | 推定されたロボットの位置 |
 | particles | geometry_msgs/msg/PoseArray | パーティクルの位置 |
+| trajectory | geometry_msgs/msg/PoseArray | 軌跡の履歴 |
+
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |

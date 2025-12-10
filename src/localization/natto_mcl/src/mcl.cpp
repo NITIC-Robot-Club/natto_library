@@ -49,6 +49,11 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     laser_likelihood_max_dist_        = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
     transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
 
+    max_trajectory_length_ = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
+    trajectory_publisher_  = this->create_publisher<geometry_msgs::msg::PoseArray> ("trajectory", 10);
+
+    trajectory_msg_.header.frame_id = map_frame_id_;
+
     RCLCPP_INFO (this->get_logger (), "MCL node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "odom_frame_id: %s", odom_frame_id_.c_str ());
@@ -211,9 +216,25 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         particles_msg.poses.push_back (pose);
     }
     particles_publisher_->publish (particles_msg);
+
+    geometry_msgs::msg::Pose pose_for_traj;
+    pose_for_traj.position    = pose_msg.pose.position;
+    pose_for_traj.orientation = pose_msg.pose.orientation;
+
+    trajectory_msg_.poses.push_back (pose_for_traj);
+
+    if (trajectory_msg_.poses.size () > max_trajectory_length_) {
+        size_t remove_count = trajectory_msg_.poses.size () - max_trajectory_length_;
+        trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + remove_count);
+    }
+
+    trajectory_msg_.header.stamp    = this->now ();
+    trajectory_msg_.header.frame_id = map_frame_id_;
+    trajectory_publisher_->publish (trajectory_msg_);
 }
 
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    trajectory_msg_.poses.clear ();
     initialize_particles (msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw (msg->pose.pose.orientation));
 }
 
