@@ -17,8 +17,8 @@
 namespace pointcloud2_to_laserscan {
 
 pointcloud2_to_laserscan::pointcloud2_to_laserscan (const rclcpp::NodeOptions &node_options) : Node ("pointcloud2_to_laserscan", node_options) {
-    laserscan_publisher_    = this->create_publisher<sensor_msgs::msg::LaserScan> ("laserscan", rclcpp::SensorDataQoS());
-    pointcloud2_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS(), std::bind (&pointcloud2_to_laserscan::pointcloud2_callback, this, std::placeholders::_1));
+    laserscan_publisher_    = this->create_publisher<sensor_msgs::msg::LaserScan> ("laserscan", rclcpp::SensorDataQoS ());
+    pointcloud2_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&pointcloud2_to_laserscan::pointcloud2_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);

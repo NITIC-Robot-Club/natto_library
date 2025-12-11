@@ -17,8 +17,8 @@
 namespace laser_filter {
 
 laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("laser_filter", node_options) {
-    publisher_  = this->create_publisher<sensor_msgs::msg::LaserScan> ("output", rclcpp::SensorDataQoS());
-    subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", rclcpp::SensorDataQoS(), std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
+    publisher_  = this->create_publisher<sensor_msgs::msg::LaserScan> ("output", rclcpp::SensorDataQoS ());
+    subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", rclcpp::SensorDataQoS (), std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
 
     threshold_ = this->declare_parameter<double> ("threshold", 0.83);
     RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");

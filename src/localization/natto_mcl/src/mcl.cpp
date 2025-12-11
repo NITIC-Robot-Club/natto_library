@@ -22,12 +22,12 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     pose_with_covariance_publisher_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped> ("pose_with_covariance", 10);
 
     occupancy_grid_subscriber_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::occupancy_grid_callback, this, std::placeholders::_1));
-    pointcloud2_subscriber_    = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS(), std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
+    pointcloud2_subscriber_    = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
     initial_pose_with_covariance_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped> ("initial_pose", 1, std::bind (&mcl::initial_pose_with_covariance_callback, this, std::placeholders::_1));
 
     use_odom_tf_ = this->declare_parameter<bool> ("use_odom_tf", false);
     if (!use_odom_tf_) {
-        odometry_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS(), std::bind (&mcl::odometry_callback, this, std::placeholders::_1));
+        odometry_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS (), std::bind (&mcl::odometry_callback, this, std::placeholders::_1));
     }
 
     tf_buffer_      = std::make_shared<tf2_ros::Buffer> (this->get_clock ());
