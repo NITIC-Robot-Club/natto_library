@@ -137,7 +137,9 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
     double odom_to_base_link_theta = tf2::getYaw (odom_to_base_link.transform.rotation);
     double last_odom_theta         = tf2::getYaw (last_odom_to_base_transform_.rotation);
     double delta_theta             = odom_to_base_link_theta - last_odom_theta;
-    last_odom_to_base_transform_   = odom_to_base_link.transform;
+    while (delta_theta > +M_PI) delta_theta -= 2 * M_PI;
+    while (delta_theta < -M_PI) delta_theta += 2 * M_PI;
+    last_odom_to_base_transform_ = odom_to_base_link.transform;
 
     double delta_x = cos (last_map_to_odom_theta_ - odom_to_base_link_theta) * delta_x_in_odom - sin (last_map_to_odom_theta_ - odom_to_base_link_theta) * delta_y_in_odom;
     double delta_y = sin (last_map_to_odom_theta_ - odom_to_base_link_theta) * delta_x_in_odom + cos (last_map_to_odom_theta_ - odom_to_base_link_theta) * delta_y_in_odom;
@@ -305,7 +307,6 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
         p.x += delta_x + nx;
         p.y += delta_y + ny;
         p.yaw += delta_yaw + nyaw;
-        p.yaw = std::fmod (p.yaw + M_PI, 2 * M_PI) - M_PI;
     }
 }
 
