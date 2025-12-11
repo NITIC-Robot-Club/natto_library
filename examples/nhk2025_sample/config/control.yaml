@@ -11,7 +11,7 @@
     max_acceleration_xy_m_s2_: 10.0
     max_speed_xy_m_s: 7.0
     min_speed_xy_m_s: 0.1
-    max_speed_yaw_deg_s: 180.0
+    max_speed_yaw_deg_s: 200.0
     min_speed_yaw_deg_s: 70.0
     max_acceleration_yaw_deg_s2: 1000.0
     goal_deceleration_m_s2: 5.0

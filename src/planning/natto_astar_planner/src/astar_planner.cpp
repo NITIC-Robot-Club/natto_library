@@ -571,15 +571,15 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
 
 nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &angular_path) {
     if (angular_path.poses.size () < 3) return angular_path;
-    int                 N         = angular_path.poses.size ();
-    int                 num_theta = std::max (1, 360 / theta_resolution_deg_);
+    int                 N = angular_path.poses.size ();
     std::vector<double> thetas (N);
+    std::vector<double> orig (N);
     for (int i = 0; i < N; ++i) {
         double yaw = tf2::getYaw (angular_path.poses[i].pose.orientation);
-        yaw        = wrap_to_2pi (yaw);
+        orig[i]    = yaw;
         thetas[i]  = yaw;
     }
-    const int max_iter = 50;
+    const int max_iter = N*10;
     for (int it = 0; it < max_iter; ++it) {
         for (int i = 1; i + 1 < N; ++i) {
             double a    = thetas[i - 1];
@@ -588,17 +588,19 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &
             double my   = std::sin (a) + std::sin (b);
             double mid  = std::atan2 (my, mx);
             double diff = thetas[i] - mid;
+            diff        = fix_angle (diff);
 
-            if (diff > M_PI) diff -= 2 * M_PI;
-            if (diff < -M_PI) diff += 2 * M_PI;
-            thetas[i] -= diff * 0.5;
-            thetas[i]                      = wrap_to_2pi (thetas[i]);
+            double new_theta = thetas[i] - diff * 0.5;
+
             geometry_msgs::msg::Pose probe = angular_path.poses[i].pose;
-            probe.orientation.z            = std::sin (thetas[i] / 2.0);
-            probe.orientation.w            = std::cos (thetas[i] / 2.0);
-            if (rectangle_is_collision_free (probe)) {
-                thetas[i] = angular_path.poses[i].pose.orientation.w;
+            probe.orientation.z            = std::sin (new_theta / 2.0);
+            probe.orientation.w            = std::cos (new_theta / 2.0);
+
+            if (!rectangle_is_collision_free (probe)) {
+                new_theta = orig[i];
             }
+
+            thetas[i] = fix_angle (new_theta);
         }
     }
     nav_msgs::msg::Path out = angular_path;
@@ -664,9 +666,9 @@ std::pair<int, int> astar_planner::to_grid (double x, double y) {
     return std::make_pair (gx, gy);
 }
 
-double astar_planner::wrap_to_2pi (double angle) {
-    while (angle < 0) angle += 2 * M_PI;
-    while (angle >= 2 * M_PI) angle -= 2 * M_PI;
+double astar_planner::fix_angle (double angle) {
+    while (angle > +M_PI) angle -= 2.0 * M_PI;
+    while (angle < -M_PI) angle += 2.0 * M_PI;
     return angle;
 }
 

@@ -21,7 +21,7 @@ line_detector::line_detector (const rclcpp::NodeOptions &node_options) : Node ("
     line_segments_publisher_ = this->create_publisher<natto_msgs::msg::LineSegmentArray> ("line_segments", 10);
     corners_publisher_       = this->create_publisher<geometry_msgs::msg::PoseArray> ("corners", 10);
 
-    pointcloud_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 10, std::bind (&line_detector::pointcloud_callback, this, std::placeholders::_1));
+    pointcloud_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&line_detector::pointcloud_callback, this, std::placeholders::_1));
 
     max_iterations_        = this->declare_parameter<int> ("max_iterations", 100);
     max_lines_             = this->declare_parameter<int> ("max_lines", 10);
