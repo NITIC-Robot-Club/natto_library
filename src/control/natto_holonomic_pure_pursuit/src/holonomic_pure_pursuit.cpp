@@ -185,12 +185,11 @@ void holonomic_pure_pursuit::timer_callback () {
     double curvature_speed = target_speed / (std::abs (curvature * curvature_decceleration_p_) + 1e-6);
 
     target_speed = std::min (target_speed, std::max (curvature_speed, min_curvature_speed_m_s_));
-    
+
     double yaw_diff = lookahead_yaw - current_yaw;
     while (yaw_diff > +M_PI) yaw_diff -= 2.0 * M_PI;
     while (yaw_diff < -M_PI) yaw_diff += 2.0 * M_PI;
     double yaw_speed = yaw_diff / lookahead_time_ * angle_speed_p_;
-
 
     double required_yaw         = std::abs (yaw_diff);
     double max_yaw_change       = std::abs (last_cmd_vel_.twist.angular.z) * lookahead_time_ + 0.5 * (max_acceleration_yaw_deg_s2_ * M_PI / 180.0) * lookahead_time_ * lookahead_time_;
@@ -208,7 +207,6 @@ void holonomic_pure_pursuit::timer_callback () {
     double acceleration = (target_speed - last_speed) / delta_t_s_;
     acceleration        = std::clamp (acceleration, -max_acceleration_xy_m_s2_, max_acceleration_xy_m_s2_);
     double speed        = last_speed + acceleration * delta_t_s_;
-
 
     double angle_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
     angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
