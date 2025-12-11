@@ -21,6 +21,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace holonomic_pure_pursuit {
@@ -50,7 +51,9 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     double goal_speed_tolerance_xy_m_s_;     // ゴール速度許容誤差 [m/s]
     double goal_speed_tolerance_yaw_deg_s_;  // ゴール速度許容誤差 [deg/s]
 
-    double                           lookahead_distance_;
+    double lookahead_distance_;
+    double delta_t_s_;
+
     geometry_msgs::msg::PoseStamped  current_pose_;
     geometry_msgs::msg::TwistStamped last_cmd_vel_;
     nav_msgs::msg::Path              path_;
@@ -62,6 +65,7 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr                                     timer_;
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr   cmd_vel_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr    lookahead_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                goal_reached_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscriber_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr             path_subscriber_;
 };

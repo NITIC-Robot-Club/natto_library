@@ -11,8 +11,8 @@
     motion_noise_xy: 0.05
     motion_noise_yy: 0.2
     motion_noise_yaw_deg: 1.0
-    normal_noise_position : 0.01
-    normal_noise_orientation_deg : 1.0
+    normal_noise_position : 0.003
+    normal_noise_orientation_deg : 0.1
     expansion_radius_position: 0.1
     expansion_radius_orientation_deg: 30.0
     laser_likelihood_max_dist: 0.5
