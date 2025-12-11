@@ -17,8 +17,10 @@
 namespace omni_odometry {
 
 omni_odometry::omni_odometry (const rclcpp::NodeOptions &node_options) : Node ("omni_odometry", node_options) {
-    twist_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
-    pose_publisher_  = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
+    pose_publisher_     = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS());
+
     omni_subscriber_ = this->create_subscription<natto_msgs::msg::Omni> ("omni_result", 10, std::bind (&omni_odometry::omni_callback, this, std::placeholders::_1));
     tf_broadcaster_  = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
@@ -26,8 +28,8 @@ omni_odometry::omni_odometry (const rclcpp::NodeOptions &node_options) : Node ("
     wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
     wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
-    frame_id_        = this->declare_parameter<std::string> ("frame_id", "odom");
-    child_frame_id_  = this->declare_parameter<std::string> ("child_frame_id", "base_link");
+    frame_id_        = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    child_frame_id_  = this->declare_parameter<std::string> ("base_frame_id", "base_link");
     publish_tf_      = this->declare_parameter<bool> ("publish_tf", true);
 
     num_wheels_ = wheel_position_x.size ();
@@ -124,15 +126,25 @@ void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     twist.twist.angular.z = vyaw;
     twist_publisher_->publish (twist);
 
-    geometry_msgs::msg::TransformStamped tf_msg;
-    tf_msg.header.stamp            = this->now ();
-    tf_msg.header.frame_id         = frame_id_;
-    tf_msg.child_frame_id          = child_frame_id_;
-    tf_msg.transform.translation.x = last_pose.pose.position.x;
-    tf_msg.transform.translation.y = last_pose.pose.position.y;
-    tf_msg.transform.translation.z = last_pose.pose.position.z;
-    tf_msg.transform.rotation      = last_pose.pose.orientation;
-    tf_broadcaster_->sendTransform (tf_msg);
+    nav_msgs::msg::Odometry odom;
+    odom.header.frame_id = frame_id_;
+    odom.child_frame_id  = child_frame_id_;
+    odom.header.stamp    = this->now ();
+    odom.pose.pose       = last_pose.pose;
+    odom.twist.twist     = twist.twist;
+    odometry_publisher_->publish (odom);
+
+    if (publish_tf_) {
+        geometry_msgs::msg::TransformStamped tf_msg;
+        tf_msg.header.stamp            = this->now ();
+        tf_msg.header.frame_id         = frame_id_;
+        tf_msg.child_frame_id          = child_frame_id_;
+        tf_msg.transform.translation.x = last_pose.pose.position.x;
+        tf_msg.transform.translation.y = last_pose.pose.position.y;
+        tf_msg.transform.translation.z = last_pose.pose.position.z;
+        tf_msg.transform.rotation      = last_pose.pose.orientation;
+        tf_broadcaster_->sendTransform (tf_msg);
+    }
 }
 
 }  // namespace omni_odometry

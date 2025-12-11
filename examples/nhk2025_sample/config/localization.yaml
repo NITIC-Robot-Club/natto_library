@@ -1,5 +1,7 @@
 /**:
   ros__parameters:
+    use_odom_tf: true
+    frequency: 100.0
     map_frame_id: map
     odom_frame_id: odom
     base_frame_id: base_link

@@ -5,16 +5,18 @@
     <arg name="planning_param_path" default=""/>
     <arg name="current_pose_topic" default="/localization/current_pose"/>
     <arg name="use_joy_control" default="false"/>
+    <arg name="publish_odom_tf" default="true"/>
 
     <let name="control_source_topic" value="/control/command_velocity" unless="$(var use_joy_control)"/>
     <let name="control_source_topic" value="/controller/command_velocity" if="$(var use_joy_control)"/>
 
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- オドメトリ -->
-        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/$(var chassis_type)_odometry">
+        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/wheel_odometry">
             <param from="$(var chassis_param_path)"/>
-            <param name="frame_id" value="odom"/>
-            <param name="child_frame_id" value="base_link"/>
+            <param name="publish_tf" value="$(var publish_odom_tf)"/>
+            <param name="odom_frame_id" value="odom"/>
+            <param name="base_frame_id" value="base_link"/>
             <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
         </composable_node>
 

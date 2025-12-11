@@ -23,6 +23,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "natto_msgs/msg/swerve.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace swerve_odometry {
@@ -47,6 +48,7 @@ class swerve_odometry : public rclcpp::Node {
     // メンバ変数宣言例:
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr  pose_publisher_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr          odometry_publisher_;
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr       swerve_subscriber_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                 tf_broadcaster_;
 };

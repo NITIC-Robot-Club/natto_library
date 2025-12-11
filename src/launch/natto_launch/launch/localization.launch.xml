@@ -7,5 +7,6 @@
         <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
         <remap from="initial_pose" to="/initialpose"/>
         <remap from="pose" to="/localization/current_pose"/>
+        <remap from="odometry" to="/localization/wheel_odometry/odometry"/>
     </node>
 </launch>

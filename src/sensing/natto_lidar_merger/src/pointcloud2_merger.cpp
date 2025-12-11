@@ -17,8 +17,8 @@
 namespace pointcloud2_merger {
 
 pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options) : Node ("pointcloud2_merger", node_options) {
-    pointcloud2_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2> ("merged_pointcloud2", 10);
-    footprint_subscriber_  = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&pointcloud2_merger::footprint_callback, this, std::placeholders::_1));
+    pointcloud2_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2> ("merged_pointcloud2", rclcpp::SensorDataQoS());
+    footprint_subscriber_  = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 1, std::bind (&pointcloud2_merger::footprint_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -29,7 +29,7 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
     latest_pointclouds_.resize (num_lidars_);
 
     for (int i = 0; i < num_lidars_; ++i) {
-        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], 10, [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
+        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], rclcpp::SensorDataQoS(), [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
     }
 
     frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
