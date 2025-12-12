@@ -2,12 +2,12 @@
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
     <arg name="lidar_param_path" default=""/>
-    <arg name="publish_frequency" default="40.0"/>
+    <arg name="merged_lidar_publish_frequency" default="40.0"/>
 
-    <include file="$(find-pkg-share natto_launch)/launch/sensing.launch.py">
+    <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.py">
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
         <arg name="use_ransac" value="$(var use_ransac)"/>
-        <arg name="publish_frequency" value="$(var publish_frequency)"/>
+        <arg name="merged_lidar_publish_frequency" value="$(var merged_lidar_publish_frequency)"/>
         <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
     </include>
 </launch>

@@ -42,11 +42,11 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{
                 "frame_id": "base_link",
                 "lidar_topics": [f"/sensing/lidar/pointcloud2/{n}" for n in name],
-                "publish_frequency": float(LaunchConfiguration("publish_frequency").perform(context)),
+                "publish_frequency": float(LaunchConfiguration("merged_lidar_publish_frequency").perform(context)),
             }],
             remappings=[
                 ("merged_pointcloud2", "/sensing/lidar/pointcloud2/merged"),
-                ("footprint", "/robot/footprint"),
+                ("footprint", "/common/footprint"),
             ],
         )
     )
@@ -89,6 +89,6 @@ def generate_launch_description():
         DeclareLaunchArgument("lidar_param_path", default_value=""),
         DeclareLaunchArgument("use_laserscan_convert", default_value="true"),
         DeclareLaunchArgument("use_ransac", default_value="true"),
-        DeclareLaunchArgument("publish_frequency", default_value="40.0"),
+        DeclareLaunchArgument("merged_lidar_publish_frequency", default_value="40.0"),
         OpaqueFunction(function=launch_setup),
     ])

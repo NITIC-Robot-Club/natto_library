@@ -579,7 +579,7 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &
         orig[i]    = yaw;
         thetas[i]  = yaw;
     }
-    const int max_iter = N * 10;
+    const int max_iter = 1000;
     for (int it = 0; it < max_iter; ++it) {
         for (int i = 1; i + 1 < N; ++i) {
             double a    = thetas[i - 1];

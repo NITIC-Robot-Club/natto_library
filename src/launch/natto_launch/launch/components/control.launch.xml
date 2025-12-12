@@ -5,7 +5,7 @@
     <arg name="planning_param_path" default=""/>
     <arg name="current_pose_topic" default="/localization/current_pose"/>
     <arg name="use_joy_control" default="false"/>
-    <arg name="publish_odom_tf" default="true"/>
+    <arg name="publish_odom_tf" default="false"/>
 
     <let name="control_source_topic" value="/control/command_velocity" unless="$(var use_joy_control)"/>
     <let name="control_source_topic" value="/controller/command_velocity" if="$(var use_joy_control)"/>

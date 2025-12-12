@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    use_odom_tf: true
+    use_odom_tf: false
     frequency: 100.0
     map_frame_id: map
     odom_frame_id: odom
@@ -18,4 +18,4 @@
     expansion_radius_position: 0.1
     expansion_radius_orientation_deg: 30.0
     laser_likelihood_max_dist: 0.5
-    transform_tolerance: 0.2
+    transform_tolerance: 0.0

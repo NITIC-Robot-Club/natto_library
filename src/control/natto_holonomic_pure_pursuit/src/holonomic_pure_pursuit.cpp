@@ -198,7 +198,7 @@ void holonomic_pure_pursuit::timer_callback () {
 
     if (required_yaw > max_yaw_change) {
         double ratio = max_yaw_change / required_yaw;
-        ratio        = std::clamp (ratio, 0.0, 1.0);
+        ratio        = std::clamp (ratio / angle_decceleration_p_, 0.0, 1.0);
         target_speed *= ratio;
     }
 
@@ -228,8 +228,8 @@ void holonomic_pure_pursuit::timer_callback () {
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.stamp    = this->now ();
     cmd_vel.header.frame_id = "base_link";
-    cmd_vel.twist.linear.x  = speed * std::cos (angle_diff - yaw_speed * lookahead_time_ * angle_decceleration_p_);
-    cmd_vel.twist.linear.y  = speed * std::sin (angle_diff - yaw_speed * lookahead_time_ * angle_decceleration_p_);
+    cmd_vel.twist.linear.x  = speed * std::cos (angle_diff);
+    cmd_vel.twist.linear.y  = speed * std::sin (angle_diff);
     cmd_vel.twist.angular.z = yaw_speed;
     cmd_vel_publisher_->publish (cmd_vel);
 

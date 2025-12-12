@@ -20,7 +20,7 @@
 2. ワークスペースをビルドします
    ```bash
    cd natto_library
-   colcon build --symlink-install --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+   ./colcon_build.sh
    ```
 3. 環境をセットアップします
    ```bash
