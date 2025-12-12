@@ -1,7 +1,7 @@
 <launch>
     <arg name="chassis_type" default=""/>
     <arg name="chassis_param_path" default=""/>
-    <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
+    <arg name="rviz_path" default=""/>
     <arg name="use_dark_rviz" default="true"/>
 
     <!-- 表示コンテナ -->

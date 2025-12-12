@@ -12,13 +12,21 @@
     <arg name="circles_path" default=""/>
     <arg name="footprint_param_path" default=""/>
     <arg name="lidar_param_path" default=""/>
+    <arg name="localization_param_path" default=""/>
     <arg name="control_param_path" default=""/>
     <arg name="planning_param_path" default=""/>
-    <arg name="localization_param_path" default=""/>
-    <arg name="simulation_param_path" default="s"/>
+    <arg name="simulation_param_path" default=""/>
+    <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
+
+    <arg name="launch_common" default="true"/>
+    <arg name="launch_simulation" default="true"/>
+    <arg name="launch_sensing" default="true"/>
+    <arg name="launch_localization" default="true"/>
+    <arg name="launch_control" default="true"/>
+    <arg name="launch_visualization" default="true"/>
 
     <!-- コモン -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/common.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/components/common.launch.xml" if="$(var launch_common)">
         <arg name="line_segments_path" value="$(var line_segments_path)"/>
         <arg name="circles_path" value="$(var circles_path)"/>
         <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
@@ -26,7 +34,7 @@
     </include>
 
     <!-- シミュレーション -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/simulation.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/components/simulation.launch.xml" if="$(var launch_simulation)">
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
@@ -34,15 +42,20 @@
     </include>
 
     <!-- センシング -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)">
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
         <arg name="use_ransac" value="true"/>
         <arg name="merged_lidar_publish_frequency" value="$(var merged_lidar_publish_frequency)"/>
         <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
     </include>
 
+    <!-- 自己位置 -->
+    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
+        <arg name="localization_param_path" value="$(var localization_param_path)"/>
+    </include>
+
     <!-- コントロール -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)">
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="control_param_path" value="$(var control_param_path)"/>
@@ -52,12 +65,9 @@
     </include>
 
     <!-- 表示 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/visualization.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/components/visualization.launch.xml" if="$(var launch_visualization)">
         <arg name="chassis_type" value="$(var chassis_type)"/>
-    </include>
-
-    <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml">
-        <arg name="localization_param_path" value="$(var localization_param_path)"/>
+        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
+        <arg name="rviz_path" value="$(var rviz_path)"/>
     </include>
 </launch>
