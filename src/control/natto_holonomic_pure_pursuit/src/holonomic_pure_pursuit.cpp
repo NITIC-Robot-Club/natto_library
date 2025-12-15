@@ -104,11 +104,11 @@ void holonomic_pure_pursuit::timer_callback () {
 
     double min_distance  = std::numeric_limits<double>::max ();
     int    closest_index = -1;
-    for (int i = 0; i < path_.poses.size (); i++) {
+    for (size_t i = 0; i < path_.poses.size (); i++) {
         double dist = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         if (dist < min_distance) {
             min_distance  = dist;
-            closest_index = i;
+            closest_index = static_cast<int> (i);
         }
     }
 
@@ -125,12 +125,12 @@ void holonomic_pure_pursuit::timer_callback () {
 
     int    lookahead_index  = closest_index;
     double nearest_distance = std::numeric_limits<double>::max ();
-    for (int i = closest_index; i < path_.poses.size (); i++) {
+    for (size_t i = static_cast<size_t> (closest_index); i < path_.poses.size (); i++) {
         double distance = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         double diff     = std::abs (distance - lookahead_distance_);
         if (diff < nearest_distance) {
             nearest_distance = diff;
-            lookahead_index  = i;
+            lookahead_index  = static_cast<int> (i);
         }
     }
 

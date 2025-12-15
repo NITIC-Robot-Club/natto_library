@@ -68,7 +68,7 @@ void omni_simulator::timer_callback () {
     }
     natto_msgs::msg::Omni command_sum;
     command_sum.wheel_speed.resize (num_wheels_, 0.0);
-    for (int i = 0; i < received_commands_.size (); i++) {
+    for (size_t i = 0; i < received_commands_.size (); i++) {
         for (int j = 0; j < num_wheels_; j++) {
             if (received_commands_[i].wheel_speed.size () != num_wheels_) {
                 RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
