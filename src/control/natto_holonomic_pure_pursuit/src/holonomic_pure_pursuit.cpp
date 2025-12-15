@@ -32,9 +32,9 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     min_lookahead_distance_         = this->declare_parameter<double> ("min_lookahead_distance_m", 0.1);
     max_lookahead_distance_         = this->declare_parameter<double> ("max_lookahead_distance_m", 1.0);
     yaw_speed_p_                    = this->declare_parameter<double> ("yaw_speed_p", 1.0);
-    curvature_deceleration_p_      = this->declare_parameter<double> ("curvature_deceleration_p", 1.0);
+    curvature_deceleration_p_       = this->declare_parameter<double> ("curvature_deceleration_p", 1.0);
     min_curvature_speed_m_s_        = this->declare_parameter<double> ("min_curvature_speed_m_s", 0.3);
-    yaw_deceleration_p_            = this->declare_parameter<double> ("yaw_deceleration_p", 1.0);
+    yaw_deceleration_p_             = this->declare_parameter<double> ("yaw_deceleration_p", 1.0);
     max_speed_xy_m_s_               = this->declare_parameter<double> ("max_speed_xy_m_s", 3.0);
     min_speed_xy_m_s_               = this->declare_parameter<double> ("min_speed_xy_m_s", 0.1);
     max_speed_yaw_deg_s_            = this->declare_parameter<double> ("max_speed_yaw_deg_s", 180.0);
