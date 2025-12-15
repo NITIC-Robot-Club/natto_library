@@ -39,7 +39,7 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     min_speed_xy_m_s_               = this->declare_parameter ("min_speed_xy_m_s", 0.1);
     max_speed_yaw_deg_s_            = this->declare_parameter ("max_speed_yaw_deg_s", 180.0);
     min_speed_yaw_deg_s_            = this->declare_parameter ("min_speed_yaw_deg_s", 18.0);
-    max_acceleration_xy_m_s2_       = this->declare_parameter ("max_acceleration_xy_m_s2_", 10.0);
+    max_acceleration_xy_m_s2_       = this->declare_parameter ("max_acceleration_xy_m_s2", 10.0);
     max_acceleration_yaw_deg_s2_    = this->declare_parameter ("max_acceleration_yaw_deg_s2", 500.0);
     goal_deceleration_m_s2_         = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
     goal_deceleration_distance_p_   = this->declare_parameter ("goal_deceleration_distance_p", 1.0);

@@ -21,7 +21,7 @@ natto_holonomic_pure_pursuit パッケージは、ホロノミックロボット
 | min_speed_xy_m_s | double | 0.1 | XY方向の最低速度（メートル毎秒） |
 | max_speed_yaw_deg_s | double | 180.0 | ヨー方向の最高速度（度毎秒） |
 | min_speed_yaw_deg_s | double | 18.0 | ヨー方向の最低速度（度毎秒） |
-| max_acceleration_xy_m_s2_ | double | 10.0 | XY方向の最高加速度（メートル毎秒毎秒） |
+| max_acceleration_xy_m_s2 | double | 10.0 | XY方向の最高加速度（メートル毎秒毎秒） |
 | max_acceleration_yaw_deg_s2 | double | 500.0 | ヨー方向の最高加速度（度毎秒毎秒） |
 | goal_deceleration_m_s2 | double | 4.0 | 目標減速度（メートル毎秒毎秒） |
 | goal_deceleration_distance_p | double | 1.0 | 目標減速度距離比例ゲイン |
