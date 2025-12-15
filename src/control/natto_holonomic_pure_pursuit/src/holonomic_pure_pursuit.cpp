@@ -211,7 +211,7 @@ void holonomic_pure_pursuit::timer_callback () {
     double yaw_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
     yaw_acceleration        = std::clamp (yaw_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
     yaw_speed               = last_cmd_vel_.twist.angular.z + yaw_acceleration * delta_t_s_;
-    yaw_speed                 = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
+    yaw_speed               = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
     if (goal_position_reached && goal_speed_xy_reached) {
         speed = 0.0;
