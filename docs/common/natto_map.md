@@ -13,7 +13,6 @@ map_loader ノードは、CSVファイルから地図情報を読み込み、nat
 | - | - | - | - |
 | line_segments_path | string | "" | 読み込む直線セグメント (CSV) のファイルパス。空文字の場合は読み込みをスキップします。 |
 | circles_path       | string | "" | 読み込む円弧 (CSV) のファイルパス。空文字の場合は読み込みをスキップします。 |
-| frequency  | double    | 100.0 | natto_msgs/msg/Map をパブリッシュする周期（Hz） |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
