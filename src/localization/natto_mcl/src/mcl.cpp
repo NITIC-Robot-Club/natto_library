@@ -61,7 +61,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
 
     trajectory_msg_.header.frame_id = map_frame_id_;
 
-    RCLCPP_INFO (this->get_logger (), "MCL node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "mcl node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "use_odom_tf: %s", use_odom_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "frequency: %f", frequency);
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());

@@ -48,7 +48,7 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     goal_speed_tolerance_xy_m_s_    = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
     goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter ("goal_speed_tolerance_yaw_deg_s", 30.0);
 
-    RCLCPP_INFO (this->get_logger (), "Holonomic Pure Pursuit Node has been started.");
+    RCLCPP_INFO (this->get_logger (), "holonomic_pure_pursuit node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "lookahead_time : %f", lookahead_time_);
     RCLCPP_INFO (this->get_logger (), "min_lookahead_distance : %f", min_lookahead_distance_);
     RCLCPP_INFO (this->get_logger (), "max_lookahead_distance : %f", max_lookahead_distance_);

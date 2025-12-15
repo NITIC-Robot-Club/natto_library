@@ -34,14 +34,14 @@ class swerve_odometry : public rclcpp::Node {
    private:
     double      wheel_radius_;
     int         num_wheels_;
-    std::string frame_id_;
-    std::string child_frame_id_;
+    std::string odom_frame_id_;
+    std::string base_frame_id_;
     bool        publish_tf_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
 
-    geometry_msgs::msg::PoseStamped last_pose;
+    geometry_msgs::msg::PoseStamped last_pose_;
 
     void swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
 

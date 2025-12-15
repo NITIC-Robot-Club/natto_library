@@ -28,11 +28,11 @@ pointcloud2_to_laserscan::pointcloud2_to_laserscan (const rclcpp::NodeOptions &n
     range_min_       = this->declare_parameter<double> ("range_min", 0.0);
     range_max_       = this->declare_parameter<double> ("range_max", 30.0);
 
-    RCLCPP_INFO (this->get_logger (), "pointcloud2_to_laserscan node has been started.");
-    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
-    RCLCPP_INFO (this->get_logger (), "angle increment: %f", angle_increment_);
-    RCLCPP_INFO (this->get_logger (), "range min: %f", range_min_);
-    RCLCPP_INFO (this->get_logger (), "range max: %f", range_max_);
+    RCLCPP_INFO (this->get_logger (), "pointcloud2_to_laserscan node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "angle_increment: %f", angle_increment_);
+    RCLCPP_INFO (this->get_logger (), "range_min: %f", range_min_);
+    RCLCPP_INFO (this->get_logger (), "range_max: %f", range_max_);
 }
 
 void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {

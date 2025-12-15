@@ -20,16 +20,16 @@ line_segments_visualizer::line_segments_visualizer (const rclcpp::NodeOptions &o
     marker_pub_        = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     line_segments_sub_ = this->create_subscription<natto_msgs::msg::LineSegmentArray> ("line_segments", 10, std::bind (&line_segments_visualizer::line_segments_callback, this, std::placeholders::_1));
 
-    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
-    line_width_           = this->declare_parameter<double> ("line_width", 0.05);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "");
+    double frequency = this->declare_parameter<double> ("frequency", 100.0);
+    line_width_      = this->declare_parameter<double> ("line_width", 0.05);
+    frame_id_        = this->declare_parameter<std::string> ("frame_id", "");
 
-    RCLCPP_INFO (this->get_logger (), "line_segments_visualizer node has been started.");
-    RCLCPP_INFO (this->get_logger (), "publish_period_ms : %d", publish_period_ms);
+    RCLCPP_INFO (this->get_logger (), "line_segments_visualizer node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
     RCLCPP_INFO (this->get_logger (), "line_width : %0.2f", line_width_);
     RCLCPP_INFO (this->get_logger (), "frame_id : %s", frame_id_.c_str ());
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&line_segments_visualizer::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&line_segments_visualizer::timer_callback, this));
 }
 
 void line_segments_visualizer::line_segments_callback (const natto_msgs::msg::LineSegmentArray::SharedPtr msg) {

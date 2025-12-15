@@ -32,9 +32,16 @@ footprint_publisher::footprint_publisher (const rclcpp::NodeOptions &node_option
         footprint_.polygon.points.push_back (point);
     }
 
-    int publish_period_ms = this->declare_parameter<int> ("publish_period_ms", 10);
+    double frequency = this->declare_parameter<double> ("frequency", 100.0);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (publish_period_ms), std::bind (&footprint_publisher::timer_callback, this));
+    RCLCPP_INFO (this->get_logger (), "footprint_publisher node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", footprint_.header.frame_id.c_str ());
+    for (size_t i = 0; i < footprint_.polygon.points.size (); ++i) {
+        RCLCPP_INFO (this->get_logger (), "footprint_points_xy[%d] : (%.2f, %.2f)", i, footprint_.polygon.points[i].x, footprint_.polygon.points[i].y);
+    }
+
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&footprint_publisher::timer_callback, this));
 }
 
 void footprint_publisher::timer_callback () {

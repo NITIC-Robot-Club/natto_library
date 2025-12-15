@@ -22,102 +22,102 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     swerve_command_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_command", 10, std::bind (&swerve_simulator::swerve_command_callback, this, std::placeholders::_1));
     tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    infinite_swerve_mode_        = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-    wheel_radius_                = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x             = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y             = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    angle_gain_p_                = this->declare_parameter<double> ("angle_gain_p", 300.0);
-    angle_gain_d_                = this->declare_parameter<double> ("angle_gain_d", 100.0);
-    speed_gain_p_                = this->declare_parameter<double> ("speed_gain_p", 300.0);
-    speed_gain_d_                = this->declare_parameter<double> ("speed_gain_d", 100.0);
-    period_ms                    = this->declare_parameter<int> ("simulation_period_ms", 1);
-    current_pose.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
-    current_pose.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
-    double yaw                   = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
+    infinite_swerve_mode_         = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+    wheel_radius_                 = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_position_x_             = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_             = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    angle_gain_p_                 = this->declare_parameter<double> ("angle_gain_p", 300.0);
+    angle_gain_d_                 = this->declare_parameter<double> ("angle_gain_d", 100.0);
+    speed_gain_p_                 = this->declare_parameter<double> ("speed_gain_p", 300.0);
+    speed_gain_d_                 = this->declare_parameter<double> ("speed_gain_d", 100.0);
+    frequency_                    = this->declare_parameter<double> ("frequency", 1000.0);
+    current_pose_.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
+    current_pose_.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
+    double yaw                    = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw * M_PI / 180.0);
-    current_pose.pose.orientation = tf2::toMsg (q);
+    current_pose_.pose.orientation = tf2::toMsg (q);
 
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
     RCLCPP_INFO (this->get_logger (), "swerve_simulator node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
-    RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
-    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
+    RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
-    RCLCPP_INFO (this->get_logger (), "Angle gain P: %.2f, D: %.2f", angle_gain_p_, angle_gain_d_);
-    RCLCPP_INFO (this->get_logger (), "Speed gain P: %.2f, D: %.2f", speed_gain_p_, speed_gain_d_);
+    RCLCPP_INFO (this->get_logger (), "angle_gain_p: %.2f, angle_gain_d: %.2f", angle_gain_p_, angle_gain_d_);
+    RCLCPP_INFO (this->get_logger (), "speed_gain_p: %.2f, speed_gain_d: %.2f", speed_gain_p_, speed_gain_d_);
 
-    command.wheel_angle.resize (num_wheels_, 0.0);
-    command.wheel_speed.resize (num_wheels_, 0.0);
-    result.wheel_angle.resize (num_wheels_, 0.0);
-    result.wheel_speed.resize (num_wheels_, 0.0);
+    command_.wheel_angle.resize (num_wheels_, 0.0);
+    command_.wheel_speed.resize (num_wheels_, 0.0);
+    result_.wheel_angle.resize (num_wheels_, 0.0);
+    result_.wheel_speed.resize (num_wheels_, 0.0);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency_), std::bind (&swerve_simulator::timer_callback, this));
 }
 
 void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
-    received_commands.push_back (*msg);
+    received_commands_.push_back (*msg);
 }
 
 void swerve_simulator::timer_callback () {
-    if (received_commands.empty ()) {
-        received_commands.push_back (result);
+    if (received_commands_.empty ()) {
+        received_commands_.push_back (result_);
     }
     natto_msgs::msg::Swerve command_sum;
     command_sum.wheel_angle.resize (num_wheels_, 0.0);
     command_sum.wheel_speed.resize (num_wheels_, 0.0);
-    for (int i = 0; i < received_commands.size (); i++) {
+    for (int i = 0; i < received_commands_.size (); i++) {
         for (int j = 0; j < num_wheels_; j++) {
-            if (received_commands[i].wheel_speed.size () != num_wheels_ || received_commands[i].wheel_angle.size () != num_wheels_) {
+            if (received_commands_[i].wheel_speed.size () != num_wheels_ || received_commands_[i].wheel_angle.size () != num_wheels_) {
                 RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
-                RCLCPP_INFO (this->get_logger (), "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, received_commands[i].wheel_angle.size (), received_commands[i].wheel_speed.size ());
+                RCLCPP_INFO (this->get_logger (), "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, received_commands_[i].wheel_angle.size (), received_commands_[i].wheel_speed.size ());
             }
-            command_sum.wheel_angle[j] += received_commands[i].wheel_angle[j];
-            command_sum.wheel_speed[j] += received_commands[i].wheel_speed[j];
+            command_sum.wheel_angle[j] += received_commands_[i].wheel_angle[j];
+            command_sum.wheel_speed[j] += received_commands_[i].wheel_speed[j];
         }
     }
     for (int j = 0; j < num_wheels_; j++) {
-        command.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands.size ();
-        command.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands.size ();
+        command_.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands_.size ();
+        command_.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands_.size ();
     }
 
     for (int i = 0; i < num_wheels_; i++) {
-        double angle_error = command.wheel_angle[i] - result.wheel_angle[i];
-        double speed_error = command.wheel_speed[i] - result.wheel_speed[i];
+        double angle_error = command_.wheel_angle[i] - result_.wheel_angle[i];
+        double speed_error = command_.wheel_speed[i] - result_.wheel_speed[i];
 
-        double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (result.wheel_angle[i] - command.wheel_angle[i]);
-        double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (result.wheel_speed[i] - command.wheel_speed[i]);
+        double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (result_.wheel_angle[i] - command_.wheel_angle[i]);
+        double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (result_.wheel_speed[i] - command_.wheel_speed[i]);
 
-        result.wheel_angle[i] += angle_adjustment * period_ms / 1000.0;
-        result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
+        result_.wheel_angle[i] += angle_adjustment / frequency_;
+        result_.wheel_speed[i] += speed_adjustment / frequency_;
 
-        if (abs (received_commands.back ().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
+        if (abs (received_commands_.back ().wheel_speed[i] - result_.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
             // 誤差が小さいときは見た目のために一致させる
-            result.wheel_speed[i] = received_commands.back ().wheel_speed[i];
+            result_.wheel_speed[i] = received_commands_.back ().wheel_speed[i];
         }
     }
-    swerve_result_publisher_->publish (result);
-    received_commands.clear ();
+    swerve_result_publisher_->publish (result_);
+    received_commands_.clear ();
 
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
     for (int i = 0; i < num_wheels_; i++) {
-        double angle = result.wheel_angle[i];
-        double speed = result.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
+        double angle = result_.wheel_angle[i];
+        double speed = result_.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
-        double ax[3] = {1.0, 0.0, -wheel_position_y[i]};
-        double ay[3] = {0.0, 1.0, +wheel_position_x[i]};
+        double ax[3] = {1.0, 0.0, -wheel_position_y_[i]};
+        double ay[3] = {0.0, 1.0, +wheel_position_x_[i]};
 
         double bx = speed * std::cos (angle);
         double by = speed * std::sin (angle);
@@ -153,31 +153,31 @@ void swerve_simulator::timer_callback () {
     double vy = A[1][3];
     double vz = A[2][3];
 
-    double yaw      = tf2::getYaw (current_pose.pose.orientation);
+    double yaw      = tf2::getYaw (current_pose_.pose.orientation);
     double vx_world = vx * cos (yaw) - vy * sin (yaw);
     double vy_world = vx * sin (yaw) + vy * cos (yaw);
-    current_pose.pose.position.x += vx_world * period_ms / 1000.0;
-    current_pose.pose.position.y += vy_world * period_ms / 1000.0;
-    yaw += vz * period_ms / 1000.0;
+    current_pose_.pose.position.x += vx_world / frequency_;
+    current_pose_.pose.position.y += vy_world / frequency_;
+    yaw += vz / frequency_;
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
-    current_pose.pose.orientation.x = q.x ();
-    current_pose.pose.orientation.y = q.y ();
-    current_pose.pose.orientation.z = q.z ();
-    current_pose.pose.orientation.w = q.w ();
-    current_pose.header.stamp       = this->now ();
-    current_pose.header.frame_id    = "map";
-    simulation_pose_publisher_->publish (current_pose);
+    current_pose_.pose.orientation.x = q.x ();
+    current_pose_.pose.orientation.y = q.y ();
+    current_pose_.pose.orientation.z = q.z ();
+    current_pose_.pose.orientation.w = q.w ();
+    current_pose_.header.stamp       = this->now ();
+    current_pose_.header.frame_id    = "map";
+    simulation_pose_publisher_->publish (current_pose_);
 
     geometry_msgs::msg::TransformStamped tf_msg;
     tf_msg.header.stamp            = this->now ();
     tf_msg.header.frame_id         = "map";
     tf_msg.child_frame_id          = "simulation";
-    tf_msg.transform.translation.x = current_pose.pose.position.x;
-    tf_msg.transform.translation.y = current_pose.pose.position.y;
-    tf_msg.transform.translation.z = current_pose.pose.position.z;
-    tf_msg.transform.rotation      = current_pose.pose.orientation;
+    tf_msg.transform.translation.x = current_pose_.pose.position.x;
+    tf_msg.transform.translation.y = current_pose_.pose.position.y;
+    tf_msg.transform.translation.z = current_pose_.pose.position.z;
+    tf_msg.transform.rotation      = current_pose_.pose.orientation;
 
     tf_broadcaster_->sendTransform (tf_msg);
 }

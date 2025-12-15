@@ -30,8 +30,8 @@ class swerve_calculator : public rclcpp::Node {
     double wheel_radius_;
     int    num_wheels_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
 
     natto_msgs::msg::Swerve swerve_result_;
 

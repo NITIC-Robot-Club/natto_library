@@ -25,8 +25,8 @@ laserscan_to_pointcloud2::laserscan_to_pointcloud2 (const rclcpp::NodeOptions &n
 
     frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
 
-    RCLCPP_INFO (this->get_logger (), "laserscan_to_pointcloud2 node has been started.");
-    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "laserscan_to_pointcloud2 node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
 }
 
 void laserscan_to_pointcloud2::laserscan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
