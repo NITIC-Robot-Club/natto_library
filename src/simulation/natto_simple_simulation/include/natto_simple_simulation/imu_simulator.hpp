@@ -34,7 +34,7 @@ class imu_simulator : public rclcpp::Node {
     double       noise_stddev_linear_acceleration_;
     const double GRAVITY_ = 9.80665;
 
-    bool  is_first_pose_ = true;
+    bool is_first_pose_ = true;
 
     double vx_, vy_, vyaw_;
     double last_x_, last_y_, last_yaw_;
