@@ -113,7 +113,7 @@ omni_visualizer ノードは、natto_msgs/msg/Omni メッセージを受信し�
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
-| arrow_r | double | 1.0 | | 矢印マーカーの赤成分（0.0〜1.0） |
+| arrow_r | double | 1.0 | 矢印マーカーの赤成分（0.0〜1.0） |
 | arrow_g | double | 1.0 | 矢印マーカーの緑成分（0.0〜1.0） |
 | arrow_b | double | | 0.0 | 矢印マーカーの青成分（0.0〜1.0） |
 | arrow_scale | double | 0.2 | 矢印マーカーのスケール係数 |
