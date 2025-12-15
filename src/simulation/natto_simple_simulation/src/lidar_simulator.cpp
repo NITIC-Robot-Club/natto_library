@@ -34,7 +34,7 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
     frequency_             = this->declare_parameter<double> ("frequency", 30);
     frame_id_              = this->declare_parameter<std::string> ("frame_id", "laser_frame");
 
-    RCLCPP_INFO (this->get_logger (), "lidar_simualtor node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "lidar_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "position_x: %.2f m", position_x_);
     RCLCPP_INFO (this->get_logger (), "position_y: %.2f m", position_y_);
     RCLCPP_INFO (this->get_logger (), "angle_deg: %.2f deg", angle_);
