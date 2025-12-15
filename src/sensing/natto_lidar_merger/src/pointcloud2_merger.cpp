@@ -42,7 +42,7 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
         RCLCPP_INFO (this->get_logger (), "Subscribed to LIDAR topic[%d]: %s", i, lidar_topics[i].c_str ());
     }
 
-    publish_timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000 / frequency)), std::bind (&pointcloud2_merger::publish_pointcloud2, this));
+    publish_timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&pointcloud2_merger::publish_pointcloud2, this));
 }
 
 void pointcloud2_merger::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
