@@ -16,7 +16,7 @@
 | wheel_angle | std::vector<double> | {-45.0, 45.0, 135.0, -135.0} | 各ホイールの取り付け角度（度） |
 | speed_gain_p | double | 100.0 | ホイール速度の比例ゲイン |
 | speed_gain_d | double | 0.0 | ホイール速度の微分ゲイン |
-| simulation_period_ms | int | 1 | シミュレーションの周期（ms） |
+| frequency | double | 1000.0 | シミュレーションの周期（Hz） |
 | initial_pose_x | double | 1.0 | 初期位置のx座標（m） |
 | initial_pose_y | double | 1.0 | 初期位置のy座標（m） |
 
@@ -49,7 +49,7 @@ N輪独立ステアリングロボットの動作を模擬します。
 | angle_gain_d | double | 0.0 | ステアリング角度の微分ゲイン |
 | speed_gain_p | double | 100.0 | ホイール速度の比例ゲイン |
 | speed_gain_d | double | 0.0 | ホイール速度の微分ゲイン |
-| simulation_period_ms | int | 1 | シミュレーションの周期（ms） |
+| frequency | double | 1000.0 | シミュレーションの周期（Hz） |
 | initial_pose_x | double | 1.0 | 初期位置のx座標（m） |
 | initial_pose_y | double | 1.0 | 初期位置のy座標（m） |
 | initial_pose_theta | double | 0.0 | 初期位置の姿勢角（rad） |

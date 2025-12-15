@@ -3,12 +3,13 @@
     <arg name="chassis_param_path" default=""/>
     <arg name="rviz_path" default=""/>
     <arg name="use_dark_rviz" default="true"/>
+    <arg name="fps" default="100.0"/>
 
     <!-- 表示コンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
         <!-- マップ表示 -->
         <composable_node pkg="natto_visualization_converter" plugin="map_visualizer::map_visualizer" name="map" namespace="visualization">
-            <param name="publish_period_ms" value="10"/>
+            <param name="frequency" value="$(var fps)"/>
             <remap from="map" to="/common/map"/>
             <remap from="marker_array" to="/visualization/map"/>
         </composable_node>
@@ -18,7 +19,7 @@
             <param name="arrow_r" value="0.0"/>
             <param name="arrow_g" value="0.0"/>
             <param name="arrow_b" value="1.0"/>
-            <param name="publish_period_ms" value="10"/>
+            <param name="frequency" value="$(var fps)"/>
             <param from="$(var chassis_param_path)"/>
             <remap from="$(var chassis_type)" to="/$(var chassis_type)/command"/>
             <remap from="marker_array" to="/visualization/chassis/command"/>
@@ -26,7 +27,7 @@
 
         <!-- 足回り結果 -->
         <composable_node pkg="natto_visualization_converter" plugin="$(var chassis_type)_visualizer::$(var chassis_type)_visualizer" name="result" namespace="visualization/$(var chassis_type)">
-            <param name="publish_period_ms" value="10"/>
+            <param name="frequency" value="$(var fps)"/>
             <param name="arrow_r" value="1.0"/>
             <param name="arrow_g" value="0.0"/>
             <param name="arrow_b" value="0.0"/>
@@ -37,7 +38,7 @@
 
         <!-- 直線表示 -->
         <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="lines" namespace="visualization/lines">
-            <param name="publish_period_ms" value="10"/>
+            <param name="frequency" value="$(var fps)"/>
             <remap from="lines" to="/sensing/lidar/lines"/>
             <remap from="marker_array" to="/visualization/lines"/>
             <param name="frame_id" value="base_link"/>
@@ -45,7 +46,7 @@
 
         <!-- 線分表示 -->
         <composable_node pkg="natto_visualization_converter" plugin="line_segments_visualizer::line_segments_visualizer" name="line_segments" namespace="visualization/line_segments">
-            <param name="publish_period_ms" value="10"/>
+            <param name="frequency" value="$(var fps)"/>
             <remap from="line_segments" to="/sensing/lidar/line_segments"/>
             <remap from="marker_array" to="/visualization/line_segments"/>
             <param name="frame_id" value="base_link"/>

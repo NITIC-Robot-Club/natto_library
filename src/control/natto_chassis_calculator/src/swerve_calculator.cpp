@@ -23,21 +23,21 @@ swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) :
 
     infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
     wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x      = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y      = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_position_x_     = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_     = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
 
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
     RCLCPP_INFO (this->get_logger (), "swerve_calculator node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
-    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d] : (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
 }
 
@@ -52,14 +52,14 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
 
     for (int i = 0; i < num_wheels_; i++) {
         if (x == 0.0 && y == 0.0 && z == 0.0) {
-            double vx = -wheel_position_y[i];
-            double vy = +wheel_position_x[i];
+            double vx = -wheel_position_y_[i];
+            double vy = +wheel_position_x_[i];
 
             swerve_msg.wheel_speed[i] = 0.0;
             swerve_msg.wheel_angle[i] = std::atan2 (vy, vx);
         } else {
-            double vx    = x - z * wheel_position_y[i];
-            double vy    = y + z * wheel_position_x[i];
+            double vx    = x - z * wheel_position_y_[i];
+            double vy    = y + z * wheel_position_x_[i];
             double v     = std::hypot (vx, vy);
             double angle = v / (2.0 * M_PI * wheel_radius_);
 

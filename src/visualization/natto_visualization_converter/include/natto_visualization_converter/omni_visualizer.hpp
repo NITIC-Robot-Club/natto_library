@@ -32,9 +32,9 @@ class omni_visualizer : public rclcpp::Node {
     int    num_wheels_;
     double arrow_r, arrow_g, arrow_b, arrow_scale, arrow_min_size;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
-    std::vector<double> wheel_angle;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
+    std::vector<double> wheel_angle_;
 
     void timer_callback ();
     void omni_callback (const natto_msgs::msg::Omni::SharedPtr msg);
