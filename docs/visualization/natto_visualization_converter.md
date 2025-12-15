@@ -14,7 +14,7 @@ footprint_publisher ノードは、ロボットのフットプリントパラメ
 | footprint_points_x | double[] | [0.5, 0.5, -0.5, -0.5] | フットプリントの頂点のX座標 |
 | footprint_points_y | double[] | [0.5, -0.5, -0.5, 0.5] | フットプリントの頂点のY座標 |
 | frame_id | string | "base_link" | フットプリントのフレームID |
-| publish_period_ms | int | 10 | フットプリントをパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | フットプリントをパブリッシュする周期（Hz） |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -34,7 +34,7 @@ line_segment_visualizer ノードは、natto_msgs/msg/LineSegmentArray メッセ
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| publish_period_ms | int | 10 | マーカー配列をパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
 | line_width | double | 0.05 | 直線セグメントの線幅 |
 | frame_id | string | "" | マーカーのフレームID |
 
@@ -61,7 +61,7 @@ line_visualizer ノードは、natto_msgs/msg/LineArray メッセージを受信
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| publish_period_ms | int | 10 | マーカー配列をパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
 | line_length | double | 10.0 | 直線の長さ |
 | line_width | double | 0.05 | 直線の線幅 |
 | frame_id | string | "" | マーカーのフレームID |
@@ -89,7 +89,7 @@ map_visualizer ノードは、natto_msgs/msg/Map メッセージを受信し、�
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| publish_period_ms | int | 10 | マーカー配列をパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -112,7 +112,7 @@ omni_visualizer ノードは、natto_msgs/msg/Omni メッセージを受信し�
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| publish_period_ms | int | 10 | マーカー配列をパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
 | arrow_r | double | 1.0 | | 矢印マーカーの赤成分（0.0〜1.0） |
 | arrow_g | double | 1.0 | 矢印マーカーの緑成分（0.0〜1.0） |
 | arrow_b | double | | 0.0 | 矢印マーカーの青成分（0.0〜1.0） |
@@ -143,7 +143,7 @@ swerve_visualizer ノードは、natto_msgs/msg/Swerve メッセージを受信�
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| publish_period_ms | int | 10 | マーカー配列をパブリッシュする周期（ミリ秒） |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
 | arrow_r | double | 1.0 | 矢印マーカーの赤成分（0.0〜1.0） |
 | arrow_g | double | 1.0 | 矢印マーカーの緑成分（0.0〜1.0） |
 | arrow_b | double | 0.0 | 矢印マーカーの青成分（0.0〜1.0） |

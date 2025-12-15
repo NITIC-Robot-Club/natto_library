@@ -28,7 +28,7 @@ omni_simulator::omni_simulator (const rclcpp::NodeOptions &node_options) : Node 
     wheel_angle                  = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
     wheel_speed_gain_p_          = this->declare_parameter<double> ("wheel_speed_gain_p", 300.0);
     wheel_speed_gain_d_          = this->declare_parameter<double> ("wheel_speed_gain_d", 100.0);
-    period_ms                    = this->declare_parameter<int> ("simulation_period_ms", 1);
+    frequency_                   = this->declare_parameter<double> ("frequency", 1000.0);
     current_pose.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
     current_pose.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
     double yaw                   = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
@@ -44,7 +44,7 @@ omni_simulator::omni_simulator (const rclcpp::NodeOptions &node_options) : Node 
     }
 
     RCLCPP_INFO (this->get_logger (), "omni_simulator node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
+    RCLCPP_INFO (this->get_logger (), "simulation frequency: %.2f Hz", frequency_);
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
@@ -55,7 +55,7 @@ omni_simulator::omni_simulator (const rclcpp::NodeOptions &node_options) : Node 
     command.wheel_speed.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&omni_simulator::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency_), std::bind (&omni_simulator::timer_callback, this));
 }
 
 void omni_simulator::omni_command_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
@@ -85,7 +85,7 @@ void omni_simulator::timer_callback () {
 
         double speed_adjustment = wheel_speed_gain_p_ * speed_error - wheel_speed_gain_d_ * (result.wheel_speed[i] - command.wheel_speed[i]);
 
-        result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
+        result.wheel_speed[i] += speed_adjustment / frequency_;
 
         if (abs (received_commands.back ().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
@@ -139,9 +139,9 @@ void omni_simulator::timer_callback () {
     double yaw      = tf2::getYaw (current_pose.pose.orientation);
     double vx_world = vx * cos (yaw) - vy * sin (yaw);
     double vy_world = vx * sin (yaw) + vy * cos (yaw);
-    current_pose.pose.position.x += vx_world * period_ms / 1000.0;
-    current_pose.pose.position.y += vy_world * period_ms / 1000.0;
-    yaw += vz * period_ms / 1000.0;
+    current_pose.pose.position.x += vx_world / frequency_;
+    current_pose.pose.position.y += vy_world / frequency_;
+    yaw += vz / frequency_;
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);

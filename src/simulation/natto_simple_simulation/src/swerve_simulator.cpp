@@ -30,7 +30,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     angle_gain_d_                = this->declare_parameter<double> ("angle_gain_d", 100.0);
     speed_gain_p_                = this->declare_parameter<double> ("speed_gain_p", 300.0);
     speed_gain_d_                = this->declare_parameter<double> ("speed_gain_d", 100.0);
-    period_ms                    = this->declare_parameter<int> ("simulation_period_ms", 1);
+    frequency_                   = this->declare_parameter<double> ("frequency", 1000.0);
     current_pose.pose.position.x = this->declare_parameter<double> ("initial_pose_x", 1.0);
     current_pose.pose.position.y = this->declare_parameter<double> ("initial_pose_y", 1.0);
     double yaw                   = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
@@ -46,7 +46,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     }
 
     RCLCPP_INFO (this->get_logger (), "swerve_simulator node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "simulation period: %d ms", period_ms);
+    RCLCPP_INFO (this->get_logger (), "simulation frequency: %.2f Hz", frequency_);
     RCLCPP_INFO (this->get_logger (), "Infinite swerve mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
@@ -61,7 +61,7 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     result.wheel_angle.resize (num_wheels_, 0.0);
     result.wheel_speed.resize (num_wheels_, 0.0);
 
-    timer_ = this->create_wall_timer (std::chrono::milliseconds (period_ms), std::bind (&swerve_simulator::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency_), std::bind (&swerve_simulator::timer_callback, this));
 }
 
 void swerve_simulator::swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
@@ -97,8 +97,8 @@ void swerve_simulator::timer_callback () {
         double angle_adjustment = angle_gain_p_ * angle_error - angle_gain_d_ * (result.wheel_angle[i] - command.wheel_angle[i]);
         double speed_adjustment = speed_gain_p_ * speed_error - speed_gain_d_ * (result.wheel_speed[i] - command.wheel_speed[i]);
 
-        result.wheel_angle[i] += angle_adjustment * period_ms / 1000.0;
-        result.wheel_speed[i] += speed_adjustment * period_ms / 1000.0;
+        result.wheel_angle[i] += angle_adjustment / frequency_;
+        result.wheel_speed[i] += speed_adjustment / frequency_;
 
         if (abs (received_commands.back ().wheel_speed[i] - result.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
@@ -156,9 +156,9 @@ void swerve_simulator::timer_callback () {
     double yaw      = tf2::getYaw (current_pose.pose.orientation);
     double vx_world = vx * cos (yaw) - vy * sin (yaw);
     double vy_world = vx * sin (yaw) + vy * cos (yaw);
-    current_pose.pose.position.x += vx_world * period_ms / 1000.0;
-    current_pose.pose.position.y += vy_world * period_ms / 1000.0;
-    yaw += vz * period_ms / 1000.0;
+    current_pose.pose.position.x += vx_world / frequency_;
+    current_pose.pose.position.y += vy_world / frequency_;
+    yaw += vz / frequency_;
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, yaw);
