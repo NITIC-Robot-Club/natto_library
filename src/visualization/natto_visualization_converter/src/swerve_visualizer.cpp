@@ -21,11 +21,11 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
     swerve_subscription_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve", 10, std::bind (&swerve_visualizer::swerve_callback, this, std::placeholders::_1));
 
     double frequency = this->declare_parameter<double> ("frequency", 100.0);
-    arrow_r               = this->declare_parameter<double> ("arrow_r", 0.0);
-    arrow_g               = this->declare_parameter<double> ("arrow_g", 1.0);
-    arrow_b               = this->declare_parameter<double> ("arrow_b", 0.0);
-    arrow_scale           = this->declare_parameter<double> ("arrow_scale", 0.2);
-    arrow_min_size        = this->declare_parameter<double> ("arrow_min_size", 0.1);
+    arrow_r          = this->declare_parameter<double> ("arrow_r", 0.0);
+    arrow_g          = this->declare_parameter<double> ("arrow_g", 1.0);
+    arrow_b          = this->declare_parameter<double> ("arrow_b", 0.0);
+    arrow_scale      = this->declare_parameter<double> ("arrow_scale", 0.2);
+    arrow_min_size   = this->declare_parameter<double> ("arrow_min_size", 0.1);
 
     wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});

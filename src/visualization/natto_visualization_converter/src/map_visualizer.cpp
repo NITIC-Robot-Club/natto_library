@@ -17,10 +17,10 @@
 namespace map_visualizer {
 
 map_visualizer::map_visualizer (const rclcpp::NodeOptions &node_options) : Node ("map_visualizer", node_options) {
-    marker_publisher_     = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    map_subscription_     = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&map_visualizer::map_callback, this, std::placeholders::_1));
-    double frequency = this->declare_parameter<double> ("frequency", 100.0);
-    timer_                = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&map_visualizer::timer_callback, this));
+    marker_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
+    map_subscription_ = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&map_visualizer::map_callback, this, std::placeholders::_1));
+    double frequency  = this->declare_parameter<double> ("frequency", 100.0);
+    timer_            = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&map_visualizer::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "map_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
