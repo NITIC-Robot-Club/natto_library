@@ -102,17 +102,20 @@ void holonomic_pure_pursuit::timer_callback () {
     double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
     bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
-    double min_distance  = std::numeric_limits<double>::max ();
-    int    closest_index = -1;
+    if (path_.poses.empty ()) {
+        return;
+    }
+
+    size_t closest_index  = 0;
+    double min_distance   = std::numeric_limits<double>::max ();
     for (size_t i = 0; i < path_.poses.size (); i++) {
         double dist = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         if (dist < min_distance) {
             min_distance  = dist;
-            closest_index = static_cast<int> (i);
+            closest_index = i;
         }
     }
 
-    if (closest_index == -1) return;
     if (closest_index + 1 >= path_.poses.size ()) closest_index = path_.poses.size () - 2;
 
     geometry_msgs::msg::Pose goal_pose     = path_.poses.back ().pose;
@@ -123,21 +126,21 @@ void holonomic_pure_pursuit::timer_callback () {
     predicted_speed        = std::clamp (predicted_speed, 0.0, max_speed_xy_m_s_);
     lookahead_distance_    = std::clamp (lookahead_time_ * predicted_speed, min_lookahead_distance_, max_lookahead_distance_);
 
-    int    lookahead_index  = closest_index;
+    size_t lookahead_index  = closest_index;
     double nearest_distance = std::numeric_limits<double>::max ();
-    for (size_t i = static_cast<size_t> (closest_index); i < path_.poses.size (); i++) {
+    for (size_t i = closest_index; i < path_.poses.size (); i++) {
         double distance = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         double diff     = std::abs (distance - lookahead_distance_);
         if (diff < nearest_distance) {
             nearest_distance = diff;
-            lookahead_index  = static_cast<int> (i);
+            lookahead_index  = i;
         }
     }
 
     if (lookahead_distance_ > goal_distance) {
         lookahead_index = path_.poses.size () - 1;
     }
-    int next_index = std::min (lookahead_index + 1, static_cast<int> (path_.poses.size () - 1));
+    size_t next_index = std::min (lookahead_index + 1, path_.poses.size () - 1);
 
     double current_yaw = tf2::getYaw (current_pose_.pose.orientation);
     double dxy1        = std::hypot (path_.poses[lookahead_index].pose.position.x - current_pose_.pose.position.x, path_.poses[lookahead_index].pose.position.y - current_pose_.pose.position.y);

@@ -49,9 +49,9 @@ swerve_simulator::swerve_simulator (const rclcpp::NodeOptions &node_options) : N
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
     RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
     RCLCPP_INFO (this->get_logger (), "angle_gain_p: %.2f, angle_gain_d: %.2f", angle_gain_p_, angle_gain_d_);
     RCLCPP_INFO (this->get_logger (), "speed_gain_p: %.2f, speed_gain_d: %.2f", speed_gain_p_, speed_gain_d_);
@@ -76,21 +76,21 @@ void swerve_simulator::timer_callback () {
     command_sum.wheel_angle.resize (num_wheels_, 0.0);
     command_sum.wheel_speed.resize (num_wheels_, 0.0);
     for (size_t i = 0; i < received_commands_.size (); i++) {
-        for (int j = 0; j < num_wheels_; j++) {
+        for (size_t j = 0; j < num_wheels_; j++) {
             if (received_commands_[i].wheel_speed.size () != num_wheels_ || received_commands_[i].wheel_angle.size () != num_wheels_) {
                 RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
-                RCLCPP_INFO (this->get_logger (), "Expected size: %d, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, received_commands_[i].wheel_angle.size (), received_commands_[i].wheel_speed.size ());
+                RCLCPP_INFO (this->get_logger (), "Expected size: %zu, Received wheel_angle size: %zu, wheel_speed size: %zu", num_wheels_, received_commands_[i].wheel_angle.size (), received_commands_[i].wheel_speed.size ());
             }
             command_sum.wheel_angle[j] += received_commands_[i].wheel_angle[j];
             command_sum.wheel_speed[j] += received_commands_[i].wheel_speed[j];
         }
     }
-    for (int j = 0; j < num_wheels_; j++) {
+    for (size_t j = 0; j < num_wheels_; j++) {
         command_.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands_.size ();
         command_.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands_.size ();
     }
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle_error = command_.wheel_angle[i] - result_.wheel_angle[i];
         double speed_error = command_.wheel_speed[i] - result_.wheel_speed[i];
 
@@ -112,7 +112,7 @@ void swerve_simulator::timer_callback () {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle = result_.wheel_angle[i];
         double speed = result_.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 

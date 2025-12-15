@@ -35,9 +35,9 @@ swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) :
     RCLCPP_INFO (this->get_logger (), "swerve_calculator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d] : (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu] : (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
 }
 
@@ -50,7 +50,7 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
     double y = msg->twist.linear.y;
     double z = msg->twist.angular.z;
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         if (x == 0.0 && y == 0.0 && z == 0.0) {
             double vx = -wheel_position_y_[i];
             double vy = +wheel_position_x_[i];
@@ -68,7 +68,7 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
         }
     }
     if (infinite_swerve_mode_) {
-        for (int i = 0; i < num_wheels_; i++) {
+        for (size_t i = 0; i < num_wheels_; i++) {
             if (swerve_result_.wheel_angle.size () != num_wheels_ || swerve_result_.wheel_speed.size () != num_wheels_) {
                 continue;
             }

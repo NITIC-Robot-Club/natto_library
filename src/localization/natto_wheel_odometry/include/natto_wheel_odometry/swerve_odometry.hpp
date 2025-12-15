@@ -33,7 +33,7 @@ class swerve_odometry : public rclcpp::Node {
 
    private:
     double      wheel_radius_;
-    int         num_wheels_;
+    size_t      num_wheels_;
     std::string odom_frame_id_;
     std::string base_frame_id_;
     bool        publish_tf_;

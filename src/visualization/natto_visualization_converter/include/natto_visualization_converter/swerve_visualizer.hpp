@@ -29,7 +29,7 @@ class swerve_visualizer : public rclcpp::Node {
    private:
     visualization_msgs::msg::MarkerArray marker_array_;
 
-    int    num_wheels_;
+    size_t num_wheels_;
     double arrow_r, arrow_g, arrow_b, arrow_scale, arrow_min_size;
 
     std::vector<double> wheel_position_x_;

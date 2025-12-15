@@ -34,7 +34,7 @@ class swerve_simulator : public rclcpp::Node {
    private:
     bool   infinite_swerve_mode_;
     double wheel_radius_;
-    int    num_wheels_;
+    size_t num_wheels_;
     double frequency_;
     double angle_gain_p_, angle_gain_d_;
     double speed_gain_p_, speed_gain_d_;

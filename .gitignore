@@ -5,6 +5,7 @@
 /.vscode/settings.json
 __pycache__
 **.pyc
+_codeql_detected_source_root
 
 # Logs
 logs

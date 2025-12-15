@@ -42,14 +42,14 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "arrow_color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
     RCLCPP_INFO (this->get_logger (), "arrow_scale: %.2f", arrow_scale);
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
 }
 
 void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     marker_array_.markers.clear ();
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "base_link";
         marker.header.stamp    = this->now ();

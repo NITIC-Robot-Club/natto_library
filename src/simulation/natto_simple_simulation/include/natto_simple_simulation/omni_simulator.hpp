@@ -33,7 +33,7 @@ class omni_simulator : public rclcpp::Node {
 
    private:
     double wheel_radius_;
-    int    num_wheels_;
+    size_t num_wheels_;
     double frequency_;
     double wheel_speed_gain_p_, wheel_speed_gain_d_;
 
