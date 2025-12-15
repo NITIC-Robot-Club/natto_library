@@ -34,10 +34,10 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     double lookahead_time_;                  // 速度スケーリング用の時間 [s]
     double min_lookahead_distance_;          // 最小lookahead距離 [m]
     double max_lookahead_distance_;          // 最大lookahead距離 [m]
-    double angle_speed_p_;                   // 角度比例ゲイン
-    double curvature_decceleration_p_;       // 曲率減速用の比例ゲイン
+    double yaw_speed_p_;                     // ヨー速度比例ゲイン
+    double curvature_deceleration_p_;        // 曲率減速用の比例ゲイン
     double min_curvature_speed_m_s_;         // 曲率減速用の最低速度 [m/s]
-    double angle_decceleration_p_;           // 角度減速用の比例ゲイン
+    double yaw_deceleration_p_;              // ヨー減速用の比例ゲイン
     double max_speed_xy_m_s_;                // 最大並進速度
     double min_speed_xy_m_s_;                // 最小並進速度
     double max_speed_yaw_deg_s_;             // 最大回転速度

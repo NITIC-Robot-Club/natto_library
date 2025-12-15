@@ -41,13 +41,13 @@ void laserscan_to_pointcloud2::laserscan_callback (const sensor_msgs::msg::Laser
     sensor_msgs::PointCloud2Iterator<float> iter_y (pointcloud2, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z (pointcloud2, "z");
 
-    for (int i = 0; i < msg->ranges.size (); ++i, ++iter_x, ++iter_y, ++iter_z) {
+    for (size_t i = 0; i < msg->ranges.size (); ++i, ++iter_x, ++iter_y, ++iter_z) {
         float r = msg->ranges[i];
         if (r < msg->range_min || r > msg->range_max) {
             *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN ();
             continue;
         }
-        float angle = msg->angle_min + i * msg->angle_increment;
+        float angle = msg->angle_min + static_cast<float> (i) * msg->angle_increment;
         *iter_x     = r * std::cos (angle);
         *iter_y     = r * std::sin (angle);
         *iter_z     = 0.0;

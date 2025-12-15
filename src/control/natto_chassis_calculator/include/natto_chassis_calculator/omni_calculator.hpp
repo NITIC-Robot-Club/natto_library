@@ -27,7 +27,7 @@ class omni_calculator : public rclcpp::Node {
 
    private:
     double wheel_radius_;
-    int    num_wheels_;
+    size_t num_wheels_;
 
     std::vector<double> wheel_position_x_;
     std::vector<double> wheel_position_y_;

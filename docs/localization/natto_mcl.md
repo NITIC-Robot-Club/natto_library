@@ -16,7 +16,7 @@ natto_mcl パッケージは、モンテカルロ局所化（MCL）アルゴリ�
 | num_particles | int | 500 | 使用するパーティクルの数 |
 | initial_pose_x | double | 0.0 | 初期位置のX座標 |
 | initial_pose_y | double | 0.0 | 初期位置のY座標 |
-| initial_pose_theta | double | 0.0 | 初期姿勢の角度（ラジアン） |
+| initial_pose_yaw_deg | double | 0.0 | 初期姿勢のヨー角（度） |
 | motion_noise_xx | double | 0.2 | | 動作モデルのノイズ（X方向） |
 | motion_noise_xy | double | 0.1 | 動作モデルのノイズ（XY方向） |
 | motion_noise_yy | double | 0.2 | 動作モデルのノイズ（Y方向） |

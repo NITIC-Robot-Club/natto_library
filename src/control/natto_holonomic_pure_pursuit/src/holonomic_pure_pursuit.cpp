@@ -23,39 +23,39 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     pose_subscriber_        = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 1, std::bind (&holonomic_pure_pursuit::pose_callback, this, std::placeholders::_1));
     path_subscriber_        = this->create_subscription<nav_msgs::msg::Path> ("path", 1, std::bind (&holonomic_pure_pursuit::path_callback, this, std::placeholders::_1));
 
-    double frequency = this->declare_parameter ("control_frequency", 50.0);
+    double frequency = this->declare_parameter<double> ("frequency", 50.0);
     delta_t_s_       = 1.0 / frequency;
 
     timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000.0 / frequency)), std::bind (&holonomic_pure_pursuit::timer_callback, this));
 
-    lookahead_time_                 = this->declare_parameter ("lookahead_time", 1.0);
-    min_lookahead_distance_         = this->declare_parameter ("min_lookahead_distance", 0.1);
-    max_lookahead_distance_         = this->declare_parameter ("max_lookahead_distance", 1.0);
-    angle_speed_p_                  = this->declare_parameter ("angle_speed_p", 1.0);
-    curvature_decceleration_p_      = this->declare_parameter ("curvature_decceleration_p", 1.0);
-    min_curvature_speed_m_s_        = this->declare_parameter ("min_curvature_speed_m_s", 0.3);
-    angle_decceleration_p_          = this->declare_parameter ("angle_decceleration_p", 1.0);
-    max_speed_xy_m_s_               = this->declare_parameter ("max_speed_xy_m_s", 3.0);
-    min_speed_xy_m_s_               = this->declare_parameter ("min_speed_xy_m_s", 0.1);
-    max_speed_yaw_deg_s_            = this->declare_parameter ("max_speed_yaw_deg_s", 180.0);
-    min_speed_yaw_deg_s_            = this->declare_parameter ("min_speed_yaw_deg_s", 18.0);
-    max_acceleration_xy_m_s2_       = this->declare_parameter ("max_acceleration_xy_m_s2_", 10.0);
-    max_acceleration_yaw_deg_s2_    = this->declare_parameter ("max_acceleration_yaw_deg_s2", 500.0);
-    goal_deceleration_m_s2_         = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
-    goal_deceleration_distance_p_   = this->declare_parameter ("goal_deceleration_distance_p", 1.0);
-    goal_position_tolerance_        = this->declare_parameter ("goal_position_tolerance_m", 0.03);
-    goal_yaw_tolerance_deg_         = this->declare_parameter ("goal_yaw_tolerance_deg", 10.0);
-    goal_speed_tolerance_xy_m_s_    = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
-    goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter ("goal_speed_tolerance_yaw_deg_s", 30.0);
+    lookahead_time_                 = this->declare_parameter<double> ("lookahead_time_s", 1.0);
+    min_lookahead_distance_         = this->declare_parameter<double> ("min_lookahead_distance_m", 0.1);
+    max_lookahead_distance_         = this->declare_parameter<double> ("max_lookahead_distance_m", 1.0);
+    yaw_speed_p_                    = this->declare_parameter<double> ("yaw_speed_p", 1.0);
+    curvature_deceleration_p_       = this->declare_parameter<double> ("curvature_deceleration_p", 1.0);
+    min_curvature_speed_m_s_        = this->declare_parameter<double> ("min_curvature_speed_m_s", 0.3);
+    yaw_deceleration_p_             = this->declare_parameter<double> ("yaw_deceleration_p", 1.0);
+    max_speed_xy_m_s_               = this->declare_parameter<double> ("max_speed_xy_m_s", 3.0);
+    min_speed_xy_m_s_               = this->declare_parameter<double> ("min_speed_xy_m_s", 0.1);
+    max_speed_yaw_deg_s_            = this->declare_parameter<double> ("max_speed_yaw_deg_s", 180.0);
+    min_speed_yaw_deg_s_            = this->declare_parameter<double> ("min_speed_yaw_deg_s", 18.0);
+    max_acceleration_xy_m_s2_       = this->declare_parameter<double> ("max_acceleration_xy_m_s2", 10.0);
+    max_acceleration_yaw_deg_s2_    = this->declare_parameter<double> ("max_acceleration_yaw_deg_s2", 500.0);
+    goal_deceleration_m_s2_         = this->declare_parameter<double> ("goal_deceleration_m_s2", 4.0);
+    goal_deceleration_distance_p_   = this->declare_parameter<double> ("goal_deceleration_distance_p", 1.0);
+    goal_position_tolerance_        = this->declare_parameter<double> ("goal_position_tolerance_m", 0.03);
+    goal_yaw_tolerance_deg_         = this->declare_parameter<double> ("goal_yaw_tolerance_deg", 10.0);
+    goal_speed_tolerance_xy_m_s_    = this->declare_parameter<double> ("goal_speed_tolerance_xy_m_s", 0.3);
+    goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter<double> ("goal_speed_tolerance_yaw_deg_s", 30.0);
 
     RCLCPP_INFO (this->get_logger (), "holonomic_pure_pursuit node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "lookahead_time : %f", lookahead_time_);
-    RCLCPP_INFO (this->get_logger (), "min_lookahead_distance : %f", min_lookahead_distance_);
-    RCLCPP_INFO (this->get_logger (), "max_lookahead_distance : %f", max_lookahead_distance_);
-    RCLCPP_INFO (this->get_logger (), "angle_speed_p : %f", angle_speed_p_);
-    RCLCPP_INFO (this->get_logger (), "curvature_decceleration_p : %f", curvature_decceleration_p_);
+    RCLCPP_INFO (this->get_logger (), "lookahead_time_s : %f", lookahead_time_);
+    RCLCPP_INFO (this->get_logger (), "min_lookahead_distance_m : %f", min_lookahead_distance_);
+    RCLCPP_INFO (this->get_logger (), "max_lookahead_distance_m : %f", max_lookahead_distance_);
+    RCLCPP_INFO (this->get_logger (), "yaw_speed_p : %f", yaw_speed_p_);
+    RCLCPP_INFO (this->get_logger (), "curvature_deceleration_p : %f", curvature_deceleration_p_);
     RCLCPP_INFO (this->get_logger (), "min_curvature_speed_m_s : %f", min_curvature_speed_m_s_);
-    RCLCPP_INFO (this->get_logger (), "angle_decceleration_p : %f", angle_decceleration_p_);
+    RCLCPP_INFO (this->get_logger (), "yaw_deceleration_p : %f", yaw_deceleration_p_);
     RCLCPP_INFO (this->get_logger (), "max_speed_xy_m_s : %f", max_speed_xy_m_s_);
     RCLCPP_INFO (this->get_logger (), "min_speed_xy_m_s : %f", min_speed_xy_m_s_);
     RCLCPP_INFO (this->get_logger (), "max_speed_yaw_deg_s : %f", max_speed_yaw_deg_s_);
@@ -102,9 +102,13 @@ void holonomic_pure_pursuit::timer_callback () {
     double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
     bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
+    if (path_.poses.empty ()) {
+        return;
+    }
+
+    size_t closest_index = 0;
     double min_distance  = std::numeric_limits<double>::max ();
-    int    closest_index = -1;
-    for (int i = 0; i < path_.poses.size (); i++) {
+    for (size_t i = 0; i < path_.poses.size (); i++) {
         double dist = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         if (dist < min_distance) {
             min_distance  = dist;
@@ -112,7 +116,6 @@ void holonomic_pure_pursuit::timer_callback () {
         }
     }
 
-    if (closest_index == -1) return;
     if (closest_index + 1 >= path_.poses.size ()) closest_index = path_.poses.size () - 2;
 
     geometry_msgs::msg::Pose goal_pose     = path_.poses.back ().pose;
@@ -123,9 +126,9 @@ void holonomic_pure_pursuit::timer_callback () {
     predicted_speed        = std::clamp (predicted_speed, 0.0, max_speed_xy_m_s_);
     lookahead_distance_    = std::clamp (lookahead_time_ * predicted_speed, min_lookahead_distance_, max_lookahead_distance_);
 
-    int    lookahead_index  = closest_index;
+    size_t lookahead_index  = closest_index;
     double nearest_distance = std::numeric_limits<double>::max ();
-    for (int i = closest_index; i < path_.poses.size (); i++) {
+    for (size_t i = closest_index; i < path_.poses.size (); i++) {
         double distance = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
         double diff     = std::abs (distance - lookahead_distance_);
         if (diff < nearest_distance) {
@@ -137,7 +140,7 @@ void holonomic_pure_pursuit::timer_callback () {
     if (lookahead_distance_ > goal_distance) {
         lookahead_index = path_.poses.size () - 1;
     }
-    int next_index = std::min (lookahead_index + 1, static_cast<int> (path_.poses.size () - 1));
+    size_t next_index = std::min (lookahead_index + 1, path_.poses.size () - 1);
 
     double current_yaw = tf2::getYaw (current_pose_.pose.orientation);
     double dxy1        = std::hypot (path_.poses[lookahead_index].pose.position.x - current_pose_.pose.position.x, path_.poses[lookahead_index].pose.position.y - current_pose_.pose.position.y);
@@ -168,9 +171,9 @@ void holonomic_pure_pursuit::timer_callback () {
     double max_stop_speed = std::sqrt (2.0 * std::min (goal_deceleration_m_s2_, max_acceleration_xy_m_s2_) * std::max (0.0, d / goal_deceleration_distance_p_));
     target_speed          = std::min (target_speed, max_stop_speed);
 
-    int p1 = closest_index;
-    int p2 = (lookahead_index + closest_index) / 2;
-    int p3 = lookahead_index;
+    size_t p1 = closest_index;
+    size_t p2 = (lookahead_index + closest_index) / 2;
+    size_t p3 = lookahead_index;
 
     double a         = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p2].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p2].pose.position.y);
     double b         = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);
@@ -182,14 +185,14 @@ void holonomic_pure_pursuit::timer_callback () {
         curvature = 4.0 * area / (a * b * c);
     }
 
-    double curvature_speed = target_speed / (std::abs (curvature * curvature_decceleration_p_) + 1e-6);
+    double curvature_speed = target_speed / (std::abs (curvature * curvature_deceleration_p_) + 1e-6);
 
     target_speed = std::min (target_speed, std::max (curvature_speed, min_curvature_speed_m_s_));
 
     double yaw_diff = lookahead_yaw - current_yaw;
     while (yaw_diff > +M_PI) yaw_diff -= 2.0 * M_PI;
     while (yaw_diff < -M_PI) yaw_diff += 2.0 * M_PI;
-    double yaw_speed = yaw_diff / lookahead_time_ * angle_speed_p_;
+    double yaw_speed = yaw_diff / lookahead_time_ * yaw_speed_p_;
 
     double required_yaw         = std::abs (yaw_diff);
     double max_yaw_change       = std::abs (last_cmd_vel_.twist.angular.z) * lookahead_time_ + 0.5 * (max_acceleration_yaw_deg_s2_ * M_PI / 180.0) * lookahead_time_ * lookahead_time_;
@@ -198,7 +201,7 @@ void holonomic_pure_pursuit::timer_callback () {
 
     if (required_yaw > max_yaw_change) {
         double ratio = max_yaw_change / required_yaw;
-        ratio        = std::clamp (ratio / angle_decceleration_p_, 0.0, 1.0);
+        ratio        = std::clamp (ratio / yaw_deceleration_p_, 0.0, 1.0);
         target_speed *= ratio;
     }
 
@@ -208,10 +211,10 @@ void holonomic_pure_pursuit::timer_callback () {
     acceleration        = std::clamp (acceleration, -max_acceleration_xy_m_s2_, max_acceleration_xy_m_s2_);
     double speed        = last_speed + acceleration * delta_t_s_;
 
-    double angle_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
-    angle_acceleration        = std::clamp (angle_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
-    yaw_speed                 = last_cmd_vel_.twist.angular.z + angle_acceleration * delta_t_s_;
-    yaw_speed                 = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
+    double yaw_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
+    yaw_acceleration        = std::clamp (yaw_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
+    yaw_speed               = last_cmd_vel_.twist.angular.z + yaw_acceleration * delta_t_s_;
+    yaw_speed               = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
     if (goal_position_reached && goal_speed_xy_reached) {
         speed = 0.0;

@@ -39,22 +39,22 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
 
     RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "arrow_color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
     RCLCPP_INFO (this->get_logger (), "arrow_scale: %.2f", arrow_scale);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
 }
 
 void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
     marker_array_.markers.clear ();
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "base_link";
         marker.header.stamp    = this->now ();
         marker.ns              = "swerve_wheel";
-        marker.id              = i;
+        marker.id              = static_cast<int> (i);
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
@@ -84,9 +84,9 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
         marker.scale.y = 0.05;
         marker.scale.z = 0.05;
 
-        marker.color.r = arrow_r;
-        marker.color.g = arrow_g;
-        marker.color.b = arrow_b;
+        marker.color.r = static_cast<float> (arrow_r);
+        marker.color.g = static_cast<float> (arrow_g);
+        marker.color.b = static_cast<float> (arrow_b);
         marker.color.a = 1.0f;
 
         marker_array_.markers.push_back (marker);

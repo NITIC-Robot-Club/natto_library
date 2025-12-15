@@ -38,9 +38,9 @@ omni_calculator::omni_calculator (const rclcpp::NodeOptions &node_options) : Nod
 
     RCLCPP_INFO (this->get_logger (), "omni_calculator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d] : (%.2f, %.2f), wheel_angle_deg[%d]: %.2f deg", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu] : (%.2f, %.2f), wheel_angle_deg[%zu]: %.2f deg", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
 }
 
@@ -52,7 +52,7 @@ void omni_calculator::command_velocity_callback (const geometry_msgs::msg::Twist
     double y = msg->twist.linear.y;
     double z = msg->twist.angular.z;
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double wheel_vx        = x - z * wheel_position_y_[i];
         double wheel_vy        = y + z * wheel_position_x_[i];
         double wheel_speed     = std::sqrt (wheel_vx * wheel_vx + wheel_vy * wheel_vy);

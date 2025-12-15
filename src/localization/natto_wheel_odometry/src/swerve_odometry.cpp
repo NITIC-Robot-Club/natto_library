@@ -39,9 +39,9 @@ swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Nod
 
     RCLCPP_INFO (this->get_logger (), "swerve_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
     RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
@@ -60,7 +60,7 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle = msg->wheel_angle[i];
         double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 

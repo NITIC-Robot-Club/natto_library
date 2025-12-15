@@ -44,9 +44,9 @@ omni_odometry::omni_odometry (const rclcpp::NodeOptions &node_options) : Node ("
 
     RCLCPP_INFO (this->get_logger (), "omni_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f), wheel_angle[%d]: %.2f", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f), wheel_angle[%zu]: %.2f", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
     RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
 
@@ -66,7 +66,7 @@ void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle = wheel_angle_[i] * M_PI / 180.0;
         double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 

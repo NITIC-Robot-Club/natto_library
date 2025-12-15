@@ -55,8 +55,8 @@ class astar_planner : public rclcpp::Node {
     nav_msgs::msg::Path                path_;
     std::vector<int8_t>                footprint_mask_;
 
-    int    footprint_mask_w_      = 0;
-    int    footprint_mask_h_      = 0;
+    size_t footprint_mask_w_      = 0;
+    size_t footprint_mask_h_      = 0;
     double footprint_mask_radius_ = 0.0;
 
     void goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
@@ -69,14 +69,14 @@ class astar_planner : public rclcpp::Node {
     void   create_costmap ();
     void   create_obstacle_costmap ();
     double fix_angle (double angle);
-    bool   rectangle_is_collision_free (const int cx, const int cy, const double yaw, const double yaw_cos, const double yaw_sin);
+    bool   rectangle_is_collision_free (const size_t cx, const size_t cy, const double yaw);
     bool   rectangle_is_collision_free (const geometry_msgs::msg::Pose &pose);
 
-    nav_msgs::msg::Path linear_astar ();
-    nav_msgs::msg::Path linear_smoother (const nav_msgs::msg::Path &linear_path);
-    nav_msgs::msg::Path angular_astar (const nav_msgs::msg::Path &linear_smoothed_path);
-    nav_msgs::msg::Path angular_smoother (const nav_msgs::msg::Path &angular_path);
-    std::pair<int, int> to_grid (double x, double y);
+    nav_msgs::msg::Path       linear_astar ();
+    nav_msgs::msg::Path       linear_smoother (const nav_msgs::msg::Path &linear_path);
+    nav_msgs::msg::Path       angular_astar (const nav_msgs::msg::Path &linear_smoothed_path);
+    nav_msgs::msg::Path       angular_smoother (const nav_msgs::msg::Path &angular_path);
+    std::pair<size_t, size_t> to_grid (double x, double y);
 
     geometry_msgs::msg::Pose find_free_space_pose (const geometry_msgs::msg::Pose &pose);
 

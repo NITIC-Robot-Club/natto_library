@@ -46,9 +46,9 @@ omni_simulator::omni_simulator (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "omni_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f), wheel_angle_deg[%d]: %.2f", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f), wheel_angle_deg[%zu]: %.2f", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
     RCLCPP_INFO (this->get_logger (), "wheel_speed_gain_p: %.2f, wheel_speed_gain_d: %.2f", wheel_speed_gain_p_, wheel_speed_gain_d_);
 
@@ -68,19 +68,19 @@ void omni_simulator::timer_callback () {
     }
     natto_msgs::msg::Omni command_sum;
     command_sum.wheel_speed.resize (num_wheels_, 0.0);
-    for (int i = 0; i < received_commands_.size (); i++) {
-        for (int j = 0; j < num_wheels_; j++) {
+    for (size_t i = 0; i < received_commands_.size (); i++) {
+        for (size_t j = 0; j < num_wheels_; j++) {
             if (received_commands_[i].wheel_speed.size () != num_wheels_) {
                 RCLCPP_FATAL (this->get_logger (), "Received command size does not match number of wheels.");
             }
             command_sum.wheel_speed[j] += received_commands_[i].wheel_speed[j];
         }
     }
-    for (int j = 0; j < num_wheels_; j++) {
-        command_.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands_.size ();
+    for (size_t j = 0; j < num_wheels_; j++) {
+        command_.wheel_speed[j] = command_sum.wheel_speed[j] / static_cast<double> (received_commands_.size ());
     }
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double speed_error      = command_.wheel_speed[i] - result_.wheel_speed[i];
         double speed_adjustment = wheel_speed_gain_p_ * speed_error - wheel_speed_gain_d_ * (result_.wheel_speed[i] - command_.wheel_speed[i]);
 
@@ -98,7 +98,7 @@ void omni_simulator::timer_callback () {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; i++) {
         double angle = wheel_angle_[i] * M_PI / 180.0;
         double speed = result_.wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 

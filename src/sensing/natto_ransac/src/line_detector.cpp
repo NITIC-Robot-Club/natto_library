@@ -23,9 +23,9 @@ line_detector::line_detector (const rclcpp::NodeOptions &node_options) : Node ("
 
     pointcloud_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&line_detector::pointcloud_callback, this, std::placeholders::_1));
 
-    max_iterations_        = this->declare_parameter<int> ("max_iterations", 100);
-    max_lines_             = this->declare_parameter<int> ("max_lines", 10);
-    min_inliers_           = this->declare_parameter<int> ("min_inliers", 75);
+    max_iterations_        = static_cast<int> (this->declare_parameter<int> ("max_iterations", 100));
+    max_lines_             = static_cast<int> (this->declare_parameter<int> ("max_lines", 10));
+    min_inliers_           = static_cast<int> (this->declare_parameter<int> ("min_inliers", 75));
     distance_threshold_    = this->declare_parameter<double> ("distance_threshold", 0.01);
     segment_gap_threshold_ = this->declare_parameter<double> ("segment_gap_threshold", 0.1);
 
@@ -82,8 +82,8 @@ void line_detector::process_pointcloud () {
     double best_a = 0.0, best_b = 0.0, best_c = 0.0;
 
     for (int iter = 0; iter < max_iterations_; iter++) {
-        int i1 = dist (gen);
-        int i2 = dist (gen);
+        size_t i1 = static_cast<size_t> (dist (gen));
+        size_t i2 = static_cast<size_t> (dist (gen));
         if (i1 == i2) continue;
 
         double x1 = xs[i1], y1 = ys[i1];
@@ -133,7 +133,7 @@ void line_detector::process_pointcloud () {
         }
     }
 
-    data_.width    = new_xs.size ();
+    data_.width    = static_cast<uint32_t> (new_xs.size ());
     data_.height   = 1;
     data_.row_step = data_.width * POINT_STEP;
     data_.data.resize (data_.row_step);
@@ -223,7 +223,7 @@ void line_detector::calculate_line_segment () {
             double t = (p.first - base_x) * dir_x + (p.second - base_y) * dir_y;
             projected.push_back ({t, p});
         }
-        std::sort (projected.begin (), projected.end (), [] (auto &a, auto &b) { return a.first < b.first; });
+        std::sort (projected.begin (), projected.end (), [] (auto &lhs, auto &rhs) { return lhs.first < rhs.first; });
 
         // ギャップ判定しながら分割
         std::vector<std::pair<float, float>> current_cluster;
