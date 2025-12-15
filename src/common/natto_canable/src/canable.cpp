@@ -100,7 +100,7 @@ int canable::init_can_socket () {
 void canable::read_can_socket () {
     while (rclcpp::ok ()) {
         if (use_fd_) {
-            struct canfd_frame fd_frame{};
+            struct canfd_frame fd_frame {};
             int                nbytes = read (can_socket_, &fd_frame, sizeof (fd_frame));
             if (nbytes < 0) continue;
 
@@ -112,7 +112,7 @@ void canable::read_can_socket () {
             canable_pub_->publish (msg);
 
         } else {
-            struct can_frame frame{};
+            struct can_frame frame {};
             int              nbytes = read (can_socket_, &frame, sizeof (frame));
             if (nbytes < 0) continue;
 
@@ -130,7 +130,7 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
     int attempt = 0;
 
     if (use_fd_) {
-        struct canfd_frame frame{};
+        struct canfd_frame frame {};
         frame.can_id = msg.id;
         frame.len    = msg.dlc;
         std::copy (msg.data.begin (), msg.data.begin () + msg.dlc, frame.data);
@@ -146,7 +146,7 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
             std::this_thread::sleep_for (std::chrono::milliseconds (100));
         }
     } else {
-        struct can_frame frame{};
+        struct can_frame frame {};
         frame.can_id  = msg.id;
         frame.can_dlc = msg.dlc;
         std::copy (msg.data.begin (), msg.data.begin () + msg.dlc, frame.data);

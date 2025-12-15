@@ -39,7 +39,7 @@ class canable : public rclcpp::Node {
     void write_can_socket (const natto_msgs::msg::Can &frame);  // Write messages to CAN socket
     bool retry_open_can_        = true;
     bool retry_write_can_       = true;
-    bool use_fd_               = false;
+    bool use_fd_                = false;
     int  retry_write_count_     = 0;
     int  max_retry_write_count_ = 5;
     int  can_socket_;

@@ -81,7 +81,7 @@ void omni_simulator::timer_callback () {
     }
 
     for (int i = 0; i < num_wheels_; i++) {
-        double speed_error = command_.wheel_speed[i] - result_.wheel_speed[i];  
+        double speed_error      = command_.wheel_speed[i] - result_.wheel_speed[i];
         double speed_adjustment = wheel_speed_gain_p_ * speed_error - wheel_speed_gain_d_ * (result_.wheel_speed[i] - command_.wheel_speed[i]);
 
         result_.wheel_speed[i] += speed_adjustment / frequency_;

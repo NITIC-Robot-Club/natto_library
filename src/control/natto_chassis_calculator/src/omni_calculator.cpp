@@ -20,7 +20,7 @@ omni_calculator::omni_calculator (const rclcpp::NodeOptions &node_options) : Nod
     omni_command_publisher_   = this->create_publisher<natto_msgs::msg::Omni> ("omni_command", 10);
     twist_command_subscriber_ = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&omni_calculator::command_velocity_callback, this, std::placeholders::_1));
 
-    wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
     wheel_angle_      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
