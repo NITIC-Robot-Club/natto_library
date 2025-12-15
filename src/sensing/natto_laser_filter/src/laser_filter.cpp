@@ -21,7 +21,7 @@ laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("la
     subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", rclcpp::SensorDataQoS (), std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
 
     threshold_ = this->declare_parameter<double> ("threshold", 0.83);
-    RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");
+    RCLCPP_INFO (this->get_logger (), "laser_filter node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "threshold : %0.2f", threshold_);
 }
 
