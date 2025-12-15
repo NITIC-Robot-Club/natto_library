@@ -39,9 +39,9 @@ swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Nod
 
     RCLCPP_INFO (this->get_logger (), "swerve_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
     for (size_t i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
     RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
