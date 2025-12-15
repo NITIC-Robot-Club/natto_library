@@ -14,9 +14,9 @@ natto_holonomic_pure_pursuit パッケージは、ホロノミックロボット
 | min_lookahead_distance_m | double | 0.1 | 最小先読み距離（メートル） |
 | max_lookahead_distance_m | double | 1.0 | 最大先読み距離（メートル） |
 | yaw_speed_p | double | 1.0 | ヨー速度比例ゲイン |
-| curvature_decceleration_p | double | 1.0 | 曲率減速度比例ゲイン |
+| curvature_deceleration_p | double | 1.0 | 曲率減速度比例ゲイン |
 | min_curvature_speed_m_s | double | 0.3 | 曲率に基づく最低速度（メートル毎秒） |
-| yaw_decceleration_p | double | 1.0 | ヨー減速度比例ゲイン |
+| yaw_deceleration_p | double | 1.0 | ヨー減速度比例ゲイン |
 | max_speed_xy_m_s | double | 3.0 | XY方向の最高速度（メートル毎秒） |
 | min_speed_xy_m_s | double | 0.1 | XY方向の最低速度（メートル毎秒） |
 | max_speed_yaw_deg_s | double | 180.0 | ヨー方向の最高速度（度毎秒） |

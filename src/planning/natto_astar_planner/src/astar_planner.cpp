@@ -25,7 +25,7 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     current_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
     footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
 
-    theta_resolution_deg_ = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 15));
+    theta_resolution_deg_ = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
     xy_inflation_         = this->declare_parameter<double> ("xy_inflation", 0.5);
     xy_offset_            = this->declare_parameter<double> ("xy_offset", 0.1);
     yaw_offset_           = this->declare_parameter<double> ("yaw_offset", 0.1);
@@ -95,6 +95,7 @@ void astar_planner::create_path () {
     auto angular_path = angular_astar (linear_smoothed_path);
 
     path_ = angular_smoother (angular_path);
+
     path_publisher_->publish (path_);
     costmap_publisher_->publish (costmap_);
 }
@@ -324,7 +325,11 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
 
     std::vector<double> gscore (static_cast<size_t> (width * height), std::numeric_limits<double>::infinity ());
     std::vector<int>    came_from (static_cast<size_t> (width * height), -1);
-    auto                heur = [&] (size_t x, size_t y) { return std::hypot (gx - x, gy - y); };
+    auto                heur = [&] (size_t x, size_t y) {
+        const double dx = static_cast<double> (gx) - static_cast<double> (x);
+        const double dy = static_cast<double> (gy) - static_cast<double> (y);
+        return std::hypot (dx, dy);
+    };
 
     open.push ({sx, sy, 0.0, heur (sx, sy)});
     gscore[static_cast<size_t> (sy * width + sx)] = 0.0;
@@ -339,8 +344,6 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
         {-1,  1},
         {-1, -1}
     };
-
-    const double yaw = tf2::getYaw (current_pose_.pose.orientation);
 
     while (!open.empty ()) {
         AstarNode cur = open.top ();
@@ -357,14 +360,8 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
             if (nx >= width || ny >= height) continue;
             if (costmap_.data[static_cast<size_t> (nx + ny * width)] == 100) continue;
 
-            double tentative = cur.g + std::hypot (dx, dy);
+            double tentative = cur.g + std::hypot (dx, dy) + static_cast<double> (costmap_.data[static_cast<size_t> (nx + ny * width)]) / 100.0;
             if (tentative + 1e-9 < gscore[static_cast<size_t> (nx + ny * width)]) {
-                size_t x = static_cast<size_t> (ox / res + 0.5) + nx;
-                size_t y = static_cast<size_t> (oy / res + 0.5) + ny;
-                if (rectangle_is_collision_free (x, y, yaw)) {
-                    continue;
-                }
-
                 gscore[static_cast<size_t> (nx + ny * width)]    = tentative;
                 came_from[static_cast<size_t> (nx + ny * width)] = static_cast<int> (cur.x + cur.y * width);
                 open.push ({nx, ny, tentative, tentative + heur (nx, ny)});
@@ -389,21 +386,10 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     path.header.stamp    = this->now ();
     for (auto &p : rev) {
         geometry_msgs::msg::PoseStamped ps;
-        ps.pose.position.x  = ox + (static_cast<double> (p.first) + 0.5) * res;
-        ps.pose.position.y  = oy + (static_cast<double> (p.second) + 0.5) * res;
-        ps.pose.orientation = geometry_msgs::msg::Quaternion ();
+        ps.pose.position.x = ox + (static_cast<double> (p.first) + 0.5) * res;
+        ps.pose.position.y = oy + (static_cast<double> (p.second) + 0.5) * res;
         path.poses.push_back (ps);
     }
-    for (size_t i = 0; i + 1 < path.poses.size (); ++i) {
-        double dx                        = path.poses[i + 1].pose.position.x - path.poses[i].pose.position.x;
-        double dy                        = path.poses[i + 1].pose.position.y - path.poses[i].pose.position.y;
-        double dyaw                      = std::atan2 (dy, dx);
-        path.poses[i].pose.orientation.z = std::sin (dyaw / 2.0);
-        path.poses[i].pose.orientation.w = std::cos (dyaw / 2.0);
-    }
-    double goal_yaw                       = tf2::getYaw (goal_pose_.pose.orientation);
-    path.poses.back ().pose.orientation.z = std::sin (goal_yaw / 2.0);
-    path.poses.back ().pose.orientation.w = std::cos (goal_yaw / 2.0);
 
     return path;
 }
@@ -440,22 +426,7 @@ nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path &l
 
             geometry_msgs::msg::Pose probe = path.poses[i].pose;
             probe.orientation              = path.poses[i].pose.orientation;
-            if (rectangle_is_collision_free (probe)) {
-                path.poses[i].pose.position = linear_path.poses[i].pose.position;
-            }
         }
-    }
-    for (size_t i = 0; i + 1 < path.poses.size (); ++i) {
-        double dx                        = path.poses[i + 1].pose.position.x - path.poses[i].pose.position.x;
-        double dy                        = path.poses[i + 1].pose.position.y - path.poses[i].pose.position.y;
-        double yaw                       = std::atan2 (dy, dx);
-        path.poses[i].pose.orientation.z = std::sin (yaw / 2.0);
-        path.poses[i].pose.orientation.w = std::cos (yaw / 2.0);
-    }
-    if (!path.poses.empty ()) {
-        double goal_yaw                       = tf2::getYaw (goal_pose_.pose.orientation);
-        path.poses.back ().pose.orientation.z = std::sin (goal_yaw / 2.0);
-        path.poses.back ().pose.orientation.w = std::cos (goal_yaw / 2.0);
     }
     return path;
 }
@@ -463,114 +434,161 @@ nav_msgs::msg::Path astar_planner::linear_smoother (const nav_msgs::msg::Path &l
 nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &linear_smoothed_path) {
     nav_msgs::msg::Path out;
     if (linear_smoothed_path.poses.empty ()) return out;
+
     const size_t N         = linear_smoothed_path.poses.size ();
-    const size_t num_theta = std::max (static_cast<size_t> (1), static_cast<size_t> (360 / theta_resolution_deg_));
+    const size_t num_theta = std::max<size_t> (1, static_cast<size_t> (360.0 / theta_resolution_deg_));
+
+    auto wrap_theta = [&] (int t) -> size_t {
+        const int nt = static_cast<int> (num_theta);
+        while (t < 0) t += nt;
+        while (t >= nt) t -= nt;
+        return static_cast<size_t> (t);
+    };
+
+    auto theta_diff = [&] (size_t a, size_t b) -> size_t {
+        size_t d = (a > b) ? a - b : b - a;
+        return std::min (d, num_theta - d);
+    };
+
+    auto to_index = [&] (size_t ix, size_t th) -> size_t { return th * N + ix; };
 
     std::vector<std::vector<int8_t>> angle_cost (N, std::vector<int8_t> (num_theta, 0));
+
     for (size_t i = 0; i < N; ++i) {
         for (size_t t = 0; t < num_theta; ++t) {
-            double yaw = static_cast<double> (static_cast<int> (t) * theta_resolution_deg_) * M_PI / 180.0;
+            double yaw = (static_cast<double> (t) + 0.5) * theta_resolution_deg_ * M_PI / 180.0;
 
             geometry_msgs::msg::Pose probe = linear_smoothed_path.poses[i].pose;
-            probe.orientation.z            = std::sin (yaw / 2.0);
-            probe.orientation.w            = std::cos (yaw / 2.0);
-            if (rectangle_is_collision_free (probe)) {
-                angle_cost[i][t] = 100;
-            } else {
-                angle_cost[i][t] = 0;
-            }
+
+            probe.orientation.z = std::sin (yaw * 0.5);
+            probe.orientation.w = std::cos (yaw * 0.5);
+
+            angle_cost[i][t] = rectangle_is_collision_free (probe) ? 0 : 100;
         }
     }
 
-    auto to_index = [&] (size_t ix, size_t th) { return th * N + ix; };
-    struct AstarNode {
-        size_t ix, th;
-        double g, f;
+    auto deg_to_th = [&] (double yaw_rad) -> size_t {
+        double deg = yaw_rad * 180.0 / M_PI;
+        deg        = std::fmod (deg, 360.0);
+        if (deg < 0.0) deg += 360.0;
+        return static_cast<size_t> (std::round (deg / theta_resolution_deg_)) % num_theta;
     };
+
+    const size_t start_theta = deg_to_th (tf2::getYaw (current_pose_.pose.orientation));
+    const size_t goal_theta  = deg_to_th (tf2::getYaw (goal_pose_.pose.orientation));
+
+    struct AstarNode {
+        size_t ix;
+        size_t th;
+        double g;
+        double f;
+    };
+
     struct Cmp {
         bool operator() (const AstarNode &a, const AstarNode &b) const {
             return a.f > b.f;
         }
     };
+
+    const double rot_cost   = 0.2;
+    const double trans_cost = 1.0;
+
     std::priority_queue<AstarNode, std::vector<AstarNode>, Cmp> open;
 
-    std::vector<double>    gscore (N * num_theta, std::numeric_limits<double>::infinity ());
-    std::vector<long long> came_from (N * num_theta, -1LL);
+    std::vector<double> gscore (N * num_theta, std::numeric_limits<double>::infinity ());
+    std::vector<size_t> came_from (N * num_theta, static_cast<size_t> (-1));
 
-    size_t start_theta = static_cast<size_t> (std::round ((tf2::getYaw (current_pose_.pose.orientation) * 180.0 / M_PI) / theta_resolution_deg_)) % num_theta;
-    size_t goal_theta  = static_cast<size_t> (std::round ((tf2::getYaw (goal_pose_.pose.orientation) * 180.0 / M_PI) / theta_resolution_deg_)) % num_theta;
-
-    open.push ({0, start_theta, 0.0, 0.0});
-    gscore[to_index (0, start_theta)] = 0.0;
-
-    auto theta_cost = [&] (size_t dx, size_t dth) -> double {
-        size_t half    = num_theta / 2;
-        size_t adj_dth = dth;
-        if (adj_dth > half) adj_dth = num_theta - adj_dth;
-        double angle_weight = 0.5;
-        return std::hypot (static_cast<double> (dx), angle_weight * static_cast<double> (adj_dth));
+    auto ang_dist = [&] (size_t a, size_t b) {
+        size_t d = (a > b) ? (a - b) : (b - a);
+        return std::min (d, num_theta - d);
     };
 
-    std::vector<int> rotations;
-    for (int r = -2; r <= 2; ++r) rotations.push_back (r);
+    auto heuristic = [&] (size_t ix, size_t th) {
+        double h_rot   = rot_cost * ang_dist (th, goal_theta);
+        double h_trans = trans_cost * static_cast<double> ((N - 1) - ix);
+        return h_rot + h_trans;
+    };
+
+    const size_t start_idx = to_index (0, start_theta);
+    gscore[start_idx]      = 0.0;
+
+    open.push ({0, start_theta, 0.0, heuristic (0, start_theta)});
+
+    const std::vector<int> rot_steps = {-2, -1, 1, 2};
 
     while (!open.empty ()) {
         AstarNode cur = open.top ();
         open.pop ();
+
+        const size_t cur_idx = to_index (cur.ix, cur.th);
+        if (cur.g > gscore[cur_idx]) continue;
         if (cur.ix == N - 1 && cur.th == goal_theta) break;
-        if (cur.g > gscore[to_index (cur.ix, cur.th)]) continue;
 
-        for (size_t dx : {static_cast<size_t> (0), static_cast<size_t> (1)}) {
-            for (int dth : rotations) {
-                if (dx == 0 && dth == 0) continue;
-                int num_theta_i = static_cast<int> (num_theta);
-                int nth_i       = static_cast<int> (cur.th) + dth;
-                while (nth_i < 0) nth_i += num_theta_i;
-                while (nth_i >= num_theta_i) nth_i -= num_theta_i;
-                size_t nx  = cur.ix + dx;
-                size_t nth = static_cast<size_t> (nth_i);
-                if (nx >= N) continue;
-                if (angle_cost[nx][nth] > 50) continue;
+        for (int dth : rot_steps) {
+            size_t nth = wrap_theta (static_cast<int> (cur.th) + dth);
 
-                double nc   = cur.g + theta_cost (dx, static_cast<size_t> (std::abs (dth)));
-                size_t tidx = to_index (nx, nth);
-                if (nc + 1e-9 < gscore[tidx]) {
-                    gscore[tidx]    = nc;
-                    double priority = nc + theta_cost (static_cast<size_t> (abs (static_cast<int> (N) - 1 - static_cast<int> (nx))), goal_theta - nth);
-                    open.push ({nx, nth, nc, priority});
-                    came_from[tidx] = static_cast<long long> (to_index (cur.ix, cur.th));
-                }
+            if (angle_cost[cur.ix][nth] > 50) continue;
+
+            double ng = cur.g + rot_cost * std::abs (dth);
+            size_t ni = to_index (cur.ix, nth);
+
+            if (ng + 1e-9 < gscore[ni]) {
+                gscore[ni]    = ng;
+                came_from[ni] = cur_idx;
+                open.push ({cur.ix, nth, ng, ng + heuristic (cur.ix, nth)});
+            }
+        }
+
+        size_t nx = cur.ix + 1;
+        if (nx < N && angle_cost[nx][cur.th] <= 50) {
+            double ng = cur.g + trans_cost;
+            size_t ni = to_index (nx, cur.th);
+
+            if (ng + 1e-9 < gscore[ni]) {
+                gscore[ni]    = ng;
+                came_from[ni] = cur_idx;
+                open.push ({nx, cur.th, ng, ng + heuristic (nx, cur.th)});
             }
         }
     }
+    const size_t goal_idx = to_index (N - 1, goal_theta);
 
-    size_t cur_idx = to_index (N - 1, goal_theta);
-    if (came_from[cur_idx] == -1LL) {
-        RCLCPP_WARN (this->get_logger (), "angular_astar failed to find path");
+    if (came_from[goal_idx] == static_cast<size_t> (-1)) {
+        RCLCPP_WARN (this->get_logger (), "angular_astar failed");
         return out;
     }
+
+    size_t yawcur = goal_idx;
+
+    if (came_from[goal_idx] == static_cast<size_t> (-1)) {
+        RCLCPP_WARN (this->get_logger (), "angular_astar failed");
+        return out;
+    }
+
     std::vector<std::pair<size_t, size_t>> seq;
-    long long                              cur_ll = came_from[cur_idx];
-    while (static_cast<size_t> (cur_ll) != to_index (0, start_theta)) {
-        size_t ix = static_cast<size_t> (cur_ll % static_cast<long long> (N));
-        size_t th = static_cast<size_t> (cur_ll / static_cast<long long> (N));
+
+    while (yawcur != start_idx) {
+        size_t ix = yawcur % N;
+        size_t th = yawcur / N;
         seq.emplace_back (ix, th);
-        cur_ll = came_from[static_cast<size_t> (cur_ll)];
-        if (cur_ll == -1LL) break;
+        yawcur = came_from[yawcur];
     }
     seq.emplace_back (0, start_theta);
     std::reverse (seq.begin (), seq.end ());
 
-    out.header.frame_id = linear_smoothed_path.header.frame_id;
-    out.header.stamp    = this->now ();
-    for (auto &p : seq) {
-        geometry_msgs::msg::PoseStamped ps;
-        ps.pose               = linear_smoothed_path.poses[p.first].pose;
-        double yaw            = static_cast<int> (p.second) * theta_resolution_deg_ * M_PI / 180.0;
-        ps.pose.orientation.z = std::sin (yaw / 2.0);
-        ps.pose.orientation.w = std::cos (yaw / 2.0);
+    out.header       = linear_smoothed_path.header;
+    out.header.stamp = this->now ();
+
+    for (auto &[ix, th] : seq) {
+        geometry_msgs::msg::PoseStamped ps = linear_smoothed_path.poses[ix];
+
+        double yaw = (static_cast<double> (th) + 0.5) * theta_resolution_deg_ * M_PI / 180.0;
+
+        ps.pose.orientation.z = std::sin (yaw * 0.5);
+        ps.pose.orientation.w = std::cos (yaw * 0.5);
         out.poses.push_back (ps);
     }
+
     return out;
 }
 

@@ -84,7 +84,7 @@ N輪独立ステアリングロボットの動作を模擬します。
 | angle_max | double | 1.57 | 最大測定角度（rad） |
 | simulation_resolution | double | 0.01 | シミュレーションの解像度（m） |
 | point_rate | int | 43200 | 1秒あたりのポイント数 |
-| scan_frequency | int | 30 | スキャン周波数（Hz） |
+| frequency | int | 30 | スキャン周波数（Hz） |
 | frame_id | std::string | "laser_frame" | LiDARフレームのID |
 
 ## パブリッシャー
