@@ -9,7 +9,7 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("jo
     max_xy_speed_m_s_    = this->declare_parameter<double> ("max_xy_speed_m_s", 2.0);
     max_yaw_speed_rad_s_ = this->declare_parameter<double> ("max_yaw_speed_rad_s", 3.1415);
 
-    RCLCPP_INFO (this->get_logger (), "joy_to_twist node has been initialized");
+    RCLCPP_INFO (this->get_logger (), "joy_to_twist node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "max_xy_speed_m_s: %.2f", max_xy_speed_m_s_);
     RCLCPP_INFO (this->get_logger (), "max_yaw_speed_rad_s: %.4f", max_yaw_speed_rad_s_);
 }
