@@ -18,7 +18,6 @@
             <param from="$(var simulation_param_path)"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
             <remap from="imu" to="/sensing/imu/data_raw"/>
-            <remap from="simulation_pose" to="/simulation/pose"/>
             <param name="frequency" value="30.0"/>
         </composable_node>
     </node_container>
