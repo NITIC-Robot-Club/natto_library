@@ -494,8 +494,8 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
     };
     std::priority_queue<AstarNode, std::vector<AstarNode>, Cmp> open;
 
-    std::vector<double>      gscore (N * num_theta, std::numeric_limits<double>::infinity ());
-    std::vector<long long>   came_from (N * num_theta, -1LL);
+    std::vector<double>    gscore (N * num_theta, std::numeric_limits<double>::infinity ());
+    std::vector<long long> came_from (N * num_theta, -1LL);
 
     size_t start_theta = static_cast<size_t> (std::round ((tf2::getYaw (current_pose_.pose.orientation) * 180.0 / M_PI) / theta_resolution_deg_)) % num_theta;
     size_t goal_theta  = static_cast<size_t> (std::round ((tf2::getYaw (goal_pose_.pose.orientation) * 180.0 / M_PI) / theta_resolution_deg_)) % num_theta;
@@ -504,7 +504,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
     gscore[to_index (0, start_theta)] = 0.0;
 
     auto theta_cost = [&] (size_t dx, size_t dth) -> double {
-        size_t half = num_theta / 2;
+        size_t half    = num_theta / 2;
         size_t adj_dth = dth;
         if (adj_dth > half) adj_dth = num_theta - adj_dth;
         double angle_weight = 0.5;
@@ -524,7 +524,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
             for (int dth : rotations) {
                 if (dx == 0 && dth == 0) continue;
                 int num_theta_i = static_cast<int> (num_theta);
-                int nth_i = static_cast<int> (cur.th) + dth;
+                int nth_i       = static_cast<int> (cur.th) + dth;
                 while (nth_i < 0) nth_i += num_theta_i;
                 while (nth_i >= num_theta_i) nth_i -= num_theta_i;
                 size_t nx  = cur.ix + dx;
@@ -550,7 +550,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
         return out;
     }
     std::vector<std::pair<size_t, size_t>> seq;
-    long long cur_ll = came_from[cur_idx];
+    long long                              cur_ll = came_from[cur_idx];
     while (static_cast<size_t> (cur_ll) != to_index (0, start_theta)) {
         size_t ix = static_cast<size_t> (cur_ll % static_cast<long long> (N));
         size_t th = static_cast<size_t> (cur_ll / static_cast<long long> (N));
@@ -576,7 +576,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
 
 nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &angular_path) {
     if (angular_path.poses.size () < 3) return angular_path;
-    size_t                 N = angular_path.poses.size ();
+    size_t              N = angular_path.poses.size ();
     std::vector<double> thetas (N);
     std::vector<double> orig (N);
     for (size_t i = 0; i < N; ++i) {
@@ -619,11 +619,11 @@ nav_msgs::msg::Path astar_planner::angular_smoother (const nav_msgs::msg::Path &
 geometry_msgs::msg::Pose astar_planner::find_free_space_pose (const geometry_msgs::msg::Pose &pose) {
     if (obstacle_costmap_.data.empty ()) return pose;
 
-    const size_t  width  = static_cast<size_t> (obstacle_costmap_.info.width);
-    const size_t  height = static_cast<size_t> (obstacle_costmap_.info.height);
-    const double  res    = obstacle_costmap_.info.resolution;
-    const double  ox     = obstacle_costmap_.info.origin.position.x;
-    const double  oy     = obstacle_costmap_.info.origin.position.y;
+    const size_t width  = static_cast<size_t> (obstacle_costmap_.info.width);
+    const size_t height = static_cast<size_t> (obstacle_costmap_.info.height);
+    const double res    = obstacle_costmap_.info.resolution;
+    const double ox     = obstacle_costmap_.info.origin.position.x;
+    const double oy     = obstacle_costmap_.info.origin.position.y;
 
     if (width <= 0 || height <= 0) return pose;
 

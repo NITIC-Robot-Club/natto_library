@@ -101,7 +101,7 @@ void canable::read_can_socket () {
     while (rclcpp::ok ()) {
         if (use_fd_) {
             struct canfd_frame fd_frame {};
-            ssize_t                nbytes = read (can_socket_, &fd_frame, sizeof (fd_frame));
+            ssize_t            nbytes = read (can_socket_, &fd_frame, sizeof (fd_frame));
             if (nbytes < 0) continue;
 
             natto_msgs::msg::Can msg;
@@ -113,7 +113,7 @@ void canable::read_can_socket () {
 
         } else {
             struct can_frame frame {};
-            ssize_t              nbytes = read (can_socket_, &frame, sizeof (frame));
+            ssize_t          nbytes = read (can_socket_, &frame, sizeof (frame));
             if (nbytes < 0) continue;
 
             natto_msgs::msg::Can msg;

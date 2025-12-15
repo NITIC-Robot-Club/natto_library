@@ -55,10 +55,9 @@ void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::Poi
         min_angle   = std::min (min_angle, angle);
         max_angle   = std::max (max_angle, angle);
     }
-    if (min_angle == std::numeric_limits<float>::max () ||
-        max_angle == std::numeric_limits<float>::lowest ()) {
+    if (min_angle == std::numeric_limits<float>::max () || max_angle == std::numeric_limits<float>::lowest ()) {
         min_angle = -static_cast<float> (M_PI);
-        max_angle =  static_cast<float> (M_PI);
+        max_angle = static_cast<float> (M_PI);
     }
 
     if (angle_increment_ <= 0.0) {
@@ -68,7 +67,7 @@ void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::Poi
 
     auto normalize = [] (float a) {
         while (a <= -static_cast<float> (M_PI)) a += 2.0f * static_cast<float> (M_PI);
-        while (a >  static_cast<float> (M_PI)) a -= 2.0f * static_cast<float> (M_PI);
+        while (a > static_cast<float> (M_PI)) a -= 2.0f * static_cast<float> (M_PI);
         return a;
     };
 
@@ -82,11 +81,10 @@ void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::Poi
     float span = max_angle - min_angle;
     if (span > 2.0f * static_cast<float> (M_PI)) {
         min_angle = -static_cast<float> (M_PI);
-        max_angle =  static_cast<float> (M_PI);
+        max_angle = static_cast<float> (M_PI);
     }
 
-    RCLCPP_DEBUG (this->get_logger (),
-                 "Computed angle range: [%f, %f], span=%f", min_angle, max_angle, max_angle - min_angle);
+    RCLCPP_DEBUG (this->get_logger (), "Computed angle range: [%f, %f], span=%f", min_angle, max_angle, max_angle - min_angle);
     sensor_msgs::msg::LaserScan scan;
     scan.header.stamp    = cloud_transformed.header.stamp;
     scan.header.frame_id = frame_id_;

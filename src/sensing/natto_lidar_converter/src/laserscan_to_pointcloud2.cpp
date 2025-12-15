@@ -47,7 +47,7 @@ void laserscan_to_pointcloud2::laserscan_callback (const sensor_msgs::msg::Laser
             *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN ();
             continue;
         }
-        float angle = msg->angle_min + static_cast<float>(i) * msg->angle_increment;
+        float angle = msg->angle_min + static_cast<float> (i) * msg->angle_increment;
         *iter_x     = r * std::cos (angle);
         *iter_y     = r * std::sin (angle);
         *iter_z     = 0.0;

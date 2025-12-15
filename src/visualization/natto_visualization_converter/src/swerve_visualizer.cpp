@@ -54,7 +54,7 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
         marker.header.frame_id = "base_link";
         marker.header.stamp    = this->now ();
         marker.ns              = "swerve_wheel";
-        marker.id              = static_cast<int>(i);
+        marker.id              = static_cast<int> (i);
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
@@ -84,9 +84,9 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
         marker.scale.y = 0.05;
         marker.scale.z = 0.05;
 
-        marker.color.r = static_cast<float>(arrow_r);
-        marker.color.g = static_cast<float>(arrow_g);
-        marker.color.b = static_cast<float>(arrow_b);
+        marker.color.r = static_cast<float> (arrow_r);
+        marker.color.g = static_cast<float> (arrow_g);
+        marker.color.b = static_cast<float> (arrow_b);
         marker.color.a = 1.0f;
 
         marker_array_.markers.push_back (marker);

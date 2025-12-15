@@ -37,8 +37,8 @@ void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr m
         double r1 = ranges[i], r2 = ranges[i + 1];
         if (!std::isfinite (r1) || !std::isfinite (r2)) continue;
 
-        double th1 = angle_min + static_cast<double>(i) * angle_inc;
-        double th2 = angle_min + static_cast<double>(i + 1) * angle_inc;
+        double th1 = angle_min + static_cast<double> (i) * angle_inc;
+        double th2 = angle_min + static_cast<double> (i + 1) * angle_inc;
 
         double Ax = r1 * std::cos (th1), Ay = r1 * std::sin (th1);
         double Bx = r2 * std::cos (th2), By = r2 * std::sin (th2);
