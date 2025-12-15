@@ -37,14 +37,14 @@ class omni_simulator : public rclcpp::Node {
     double frequency_;
     double wheel_speed_gain_p_, wheel_speed_gain_d_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
-    std::vector<double> wheel_angle;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
+    std::vector<double> wheel_angle_;
 
-    std::vector<natto_msgs::msg::Omni> received_commands;
-    natto_msgs::msg::Omni              command;
-    natto_msgs::msg::Omni              result;
-    geometry_msgs::msg::PoseStamped    current_pose;
+    std::vector<natto_msgs::msg::Omni> received_commands_;
+    natto_msgs::msg::Omni              command_;
+    natto_msgs::msg::Omni              result_;
+    geometry_msgs::msg::PoseStamped    current_pose_;
 
     void omni_command_callback (const natto_msgs::msg::Omni::SharedPtr msg);
     void timer_callback ();

@@ -37,14 +37,14 @@ class canable : public rclcpp::Node {
     int  init_can_socket ();                                    // Initialize CAN socket
     void read_can_socket ();                                    // Read messages from CAN socket
     void write_can_socket (const natto_msgs::msg::Can &frame);  // Write messages to CAN socket
-    bool retry_open_can        = true;
-    bool retry_write_can       = true;
+    bool retry_open_can_        = true;
+    bool retry_write_can_       = true;
     bool use_fd_               = false;
-    int  retry_write_count     = 0;
-    int  max_retry_write_count = 5;
+    int  retry_write_count_     = 0;
+    int  max_retry_write_count_ = 5;
     int  can_socket_;
 
-    std::string         can_interface;
+    std::string         can_interface_;
     struct sockaddr_can addr_;
     struct ifreq        ifr_;
 

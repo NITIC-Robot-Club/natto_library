@@ -21,10 +21,10 @@ line_segments_visualizer::line_segments_visualizer (const rclcpp::NodeOptions &o
     line_segments_sub_ = this->create_subscription<natto_msgs::msg::LineSegmentArray> ("line_segments", 10, std::bind (&line_segments_visualizer::line_segments_callback, this, std::placeholders::_1));
 
     double frequency = this->declare_parameter<double> ("frequency", 100.0);
-    line_width_           = this->declare_parameter<double> ("line_width", 0.05);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "");
+    line_width_      = this->declare_parameter<double> ("line_width", 0.05);
+    frame_id_        = this->declare_parameter<std::string> ("frame_id", "");
 
-    RCLCPP_INFO (this->get_logger (), "line_segments_visualizer node has been started.");
+    RCLCPP_INFO (this->get_logger (), "line_segments_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
     RCLCPP_INFO (this->get_logger (), "line_width : %0.2f", line_width_);
     RCLCPP_INFO (this->get_logger (), "frame_id : %s", frame_id_.c_str ());

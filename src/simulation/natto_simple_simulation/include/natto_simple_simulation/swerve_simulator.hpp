@@ -39,13 +39,13 @@ class swerve_simulator : public rclcpp::Node {
     double angle_gain_p_, angle_gain_d_;
     double speed_gain_p_, speed_gain_d_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
 
-    std::vector<natto_msgs::msg::Swerve> received_commands;
-    natto_msgs::msg::Swerve              command;
-    natto_msgs::msg::Swerve              result;
-    geometry_msgs::msg::PoseStamped      current_pose;
+    std::vector<natto_msgs::msg::Swerve> received_commands_;
+    natto_msgs::msg::Swerve              command_;
+    natto_msgs::msg::Swerve              result_;
+    geometry_msgs::msg::PoseStamped      current_pose_;
 
     void swerve_command_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
     void timer_callback ();

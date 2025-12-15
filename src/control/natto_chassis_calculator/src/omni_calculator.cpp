@@ -21,26 +21,26 @@ omni_calculator::omni_calculator (const rclcpp::NodeOptions &node_options) : Nod
     twist_command_subscriber_ = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&omni_calculator::command_velocity_callback, this, std::placeholders::_1));
 
     wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
+    wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_angle_      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
 
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
-    if (wheel_angle.size () != num_wheels_) {
+    if (wheel_angle_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
         throw std::runtime_error ("wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
     }
 
     RCLCPP_INFO (this->get_logger (), "omni_calculator node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f), angle: %.2f deg", i, wheel_position_x[i], wheel_position_y[i], wheel_angle[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d] : (%.2f, %.2f), wheel_angle_deg[%d]: %.2f deg", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
 }
 
@@ -53,12 +53,12 @@ void omni_calculator::command_velocity_callback (const geometry_msgs::msg::Twist
     double z = msg->twist.angular.z;
 
     for (int i = 0; i < num_wheels_; i++) {
-        double wheel_vx        = x - z * wheel_position_y[i];
-        double wheel_vy        = y + z * wheel_position_x[i];
+        double wheel_vx        = x - z * wheel_position_y_[i];
+        double wheel_vy        = y + z * wheel_position_x_[i];
         double wheel_speed     = std::sqrt (wheel_vx * wheel_vx + wheel_vy * wheel_vy);
         double wheel_direction = std::atan2 (wheel_vy, wheel_vx);
 
-        double wheel_angle_rad      = wheel_angle[i] * M_PI / 180.0;
+        double wheel_angle_rad      = wheel_angle_[i] * M_PI / 180.0;
         double adjusted_wheel_speed = wheel_speed * std::cos (wheel_direction - wheel_angle_rad);
 
         omni_msg.wheel_speed[i] = (adjusted_wheel_speed / wheel_radius_) / (2.0 * M_PI);

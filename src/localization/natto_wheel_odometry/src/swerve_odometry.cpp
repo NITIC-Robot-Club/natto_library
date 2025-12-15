@@ -24,29 +24,31 @@ swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Nod
     swerve_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_result", 10, std::bind (&swerve_odometry::swerve_callback, this, std::placeholders::_1));
     tf_broadcaster_    = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    frame_id_        = this->declare_parameter<std::string> ("odom_frame_id", "odom");
-    child_frame_id_  = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    publish_tf_      = this->declare_parameter<bool> ("publish_tf", true);
+    wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    odom_frame_id_    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    base_frame_id_    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
+    publish_tf_       = this->declare_parameter<bool> ("publish_tf", true);
 
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
 
     RCLCPP_INFO (this->get_logger (), "swerve_odometry node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
-    RCLCPP_INFO (this->get_logger (), "frame id : %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "base_frame_id : %s", base_frame_id_.c_str ());
 
-    last_pose.header.frame_id = frame_id_;
-    last_pose.header.stamp    = this->now ();
+    last_pose_.header.frame_id = odom_frame_id_;
+    last_pose_.header.stamp    = this->now ();
 }
 
 void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
@@ -62,8 +64,8 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
         double angle = msg->wheel_angle[i];
         double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
-        double ax[3] = {1.0, 0.0, -wheel_position_y[i]};
-        double ay[3] = {0.0, 1.0, +wheel_position_x[i]};
+        double ax[3] = {1.0, 0.0, -wheel_position_y_[i]};
+        double ay[3] = {0.0, 1.0, +wheel_position_x_[i]};
 
         double bx = speed * std::cos (angle);
         double by = speed * std::sin (angle);
@@ -99,26 +101,26 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     double vy   = A[1][3];
     double vyaw = A[2][3];
 
-    double delta_t   = (this->now () - last_pose.header.stamp).seconds ();
+    double delta_t   = (this->now () - last_pose_.header.stamp).seconds ();
     double delta_x   = vx * delta_t;
     double delta_y   = vy * delta_t;
     double delta_yaw = vyaw * delta_t;
 
-    double          last_yaw = tf2::getYaw (last_pose.pose.orientation);
+    double          last_yaw = tf2::getYaw (last_pose_.pose.orientation);
     double          new_yaw  = last_yaw + delta_yaw;
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, new_yaw);
-    last_pose.pose.position.x += delta_x * std::cos (last_yaw) - delta_y * std::sin (last_yaw);
-    last_pose.pose.position.y += delta_x * std::sin (last_yaw) + delta_y * std::cos (last_yaw);
-    last_pose.pose.orientation.x = q.x ();
-    last_pose.pose.orientation.y = q.y ();
-    last_pose.pose.orientation.z = q.z ();
-    last_pose.pose.orientation.w = q.w ();
-    last_pose.header.stamp       = this->now ();
-    pose_publisher_->publish (last_pose);
+    last_pose_.pose.position.x += delta_x * std::cos (last_yaw) - delta_y * std::sin (last_yaw);
+    last_pose_.pose.position.y += delta_x * std::sin (last_yaw) + delta_y * std::cos (last_yaw);
+    last_pose_.pose.orientation.x = q.x ();
+    last_pose_.pose.orientation.y = q.y ();
+    last_pose_.pose.orientation.z = q.z ();
+    last_pose_.pose.orientation.w = q.w ();
+    last_pose_.header.stamp       = this->now ();
+    pose_publisher_->publish (last_pose_);
 
     geometry_msgs::msg::TwistStamped twist;
-    twist.header.frame_id = child_frame_id_;
+    twist.header.frame_id = base_frame_id_;
     twist.header.stamp    = this->now ();
     twist.twist.linear.x  = vx;
     twist.twist.linear.y  = vy;
@@ -126,22 +128,22 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     twist_publisher_->publish (twist);
 
     nav_msgs::msg::Odometry odom;
-    odom.header.frame_id = frame_id_;
-    odom.child_frame_id  = child_frame_id_;
+    odom.header.frame_id = odom_frame_id_;
+    odom.child_frame_id  = base_frame_id_;
     odom.header.stamp    = this->now ();
-    odom.pose.pose       = last_pose.pose;
+    odom.pose.pose       = last_pose_.pose;
     odom.twist.twist     = twist.twist;
     odometry_publisher_->publish (odom);
 
     if (publish_tf_) {
         geometry_msgs::msg::TransformStamped tf_msg;
         tf_msg.header.stamp            = this->now ();
-        tf_msg.header.frame_id         = frame_id_;
-        tf_msg.child_frame_id          = child_frame_id_;
-        tf_msg.transform.translation.x = last_pose.pose.position.x;
-        tf_msg.transform.translation.y = last_pose.pose.position.y;
-        tf_msg.transform.translation.z = last_pose.pose.position.z;
-        tf_msg.transform.rotation      = last_pose.pose.orientation;
+        tf_msg.header.frame_id         = odom_frame_id_;
+        tf_msg.child_frame_id          = base_frame_id_;
+        tf_msg.transform.translation.x = last_pose_.pose.position.x;
+        tf_msg.transform.translation.y = last_pose_.pose.position.y;
+        tf_msg.transform.translation.z = last_pose_.pose.position.z;
+        tf_msg.transform.rotation      = last_pose_.pose.orientation;
         tf_broadcaster_->sendTransform (tf_msg);
     }
 }

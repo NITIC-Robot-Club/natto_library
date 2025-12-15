@@ -27,12 +27,12 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
     arrow_scale           = this->declare_parameter<double> ("arrow_scale", 0.2);
     arrow_min_size        = this->declare_parameter<double> ("arrow_min_size", 0.1);
 
-    wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
 
     timer_      = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&swerve_visualizer::timer_callback, this));
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
@@ -40,10 +40,10 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
     RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    RCLCPP_INFO (this->get_logger (), "Arrow color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
-    RCLCPP_INFO (this->get_logger (), "Arrow scale: %.2f", arrow_scale);
+    RCLCPP_INFO (this->get_logger (), "arrow_color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
+    RCLCPP_INFO (this->get_logger (), "arrow_scale: %.2f", arrow_scale);
     for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f)", i, wheel_position_x[i], wheel_position_y[i]);
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%d]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
     }
 }
 
@@ -58,8 +58,8 @@ void swerve_visualizer::swerve_callback (const natto_msgs::msg::Swerve::SharedPt
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
-        double wheel_x     = wheel_position_x[i];
-        double wheel_y     = wheel_position_y[i];
+        double wheel_x     = wheel_position_x_[i];
+        double wheel_y     = wheel_position_y_[i];
         double wheel_angle = msg->wheel_angle[i];
         double wheel_speed = msg->wheel_speed[i];
 

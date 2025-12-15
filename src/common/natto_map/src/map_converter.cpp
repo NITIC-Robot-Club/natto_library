@@ -25,7 +25,7 @@ map_converter::map_converter (const rclcpp::NodeOptions &node_options) : Node ("
 
     resolution_ = this->declare_parameter<double> ("resolution", 0.05);
 
-    RCLCPP_INFO (this->get_logger (), "map_converter node has been started.");
+    RCLCPP_INFO (this->get_logger (), "map_converter node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "resolution: %f", resolution_);
 }
 

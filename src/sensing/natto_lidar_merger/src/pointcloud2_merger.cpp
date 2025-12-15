@@ -32,12 +32,15 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
         pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], rclcpp::SensorDataQoS (), [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
     }
 
-    frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
+    frame_id_        = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
+    double frequency = this->declare_parameter<double> ("frequency", 40.0);
 
-    RCLCPP_INFO (this->get_logger (), "pointcloud2_merger node has been started.");
-    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
-
-    double frequency = this->declare_parameter<double> ("publish_frequency", 40.0);
+    RCLCPP_INFO (this->get_logger (), "pointcloud2_merger node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
+    for (int i = 0; i < num_lidars_; ++i) {
+        RCLCPP_INFO (this->get_logger (), "Subscribed to LIDAR topic[%d]: %s", i, lidar_topics[i].c_str ());
+    }
 
     publish_timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000 / frequency)), std::bind (&pointcloud2_merger::publish_pointcloud2, this));
 }

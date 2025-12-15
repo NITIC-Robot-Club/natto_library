@@ -21,9 +21,15 @@ line_visualizer::line_visualizer (const rclcpp::NodeOptions &options) : Node ("l
     line_sub_   = this->create_subscription<natto_msgs::msg::LineArray> ("lines", 10, std::bind (&line_visualizer::line_callback, this, std::placeholders::_1));
 
     double frequency = this->declare_parameter<double> ("frequency", 100.0);
-    line_length_          = this->declare_parameter<double> ("line_length", 10.0);
-    line_width_           = this->declare_parameter<double> ("line_width", 0.05);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "");
+    line_length_     = this->declare_parameter<double> ("line_length", 10.0);
+    line_width_      = this->declare_parameter<double> ("line_width", 0.05);
+    frame_id_        = this->declare_parameter<std::string> ("frame_id", "");
+
+    RCLCPP_INFO (this->get_logger (), "line_visualizer node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
+    RCLCPP_INFO (this->get_logger (), "line_length: %.2f", line_length_);
+    RCLCPP_INFO (this->get_logger (), "line_width: %.2f", line_width_);
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
 
     timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&line_visualizer::timer_callback, this));
 }

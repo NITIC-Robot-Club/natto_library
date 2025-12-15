@@ -29,9 +29,9 @@ class omni_calculator : public rclcpp::Node {
     double wheel_radius_;
     int    num_wheels_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
-    std::vector<double> wheel_angle;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
+    std::vector<double> wheel_angle_;
 
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
