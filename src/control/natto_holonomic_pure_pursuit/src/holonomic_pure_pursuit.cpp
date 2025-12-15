@@ -23,30 +23,30 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
     pose_subscriber_        = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 1, std::bind (&holonomic_pure_pursuit::pose_callback, this, std::placeholders::_1));
     path_subscriber_        = this->create_subscription<nav_msgs::msg::Path> ("path", 1, std::bind (&holonomic_pure_pursuit::path_callback, this, std::placeholders::_1));
 
-    double frequency = this->declare_parameter ("control_frequency", 50.0);
+    double frequency = this->declare_parameter<double> ("frequency", 50.0);
     delta_t_s_       = 1.0 / frequency;
 
     timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000.0 / frequency)), std::bind (&holonomic_pure_pursuit::timer_callback, this));
 
-    lookahead_time_                 = this->declare_parameter ("lookahead_time_s", 1.0);
-    min_lookahead_distance_         = this->declare_parameter ("min_lookahead_distance_m", 0.1);
-    max_lookahead_distance_         = this->declare_parameter ("max_lookahead_distance_m", 1.0);
-    yaw_speed_p_                    = this->declare_parameter ("yaw_speed_p", 1.0);
-    curvature_decceleration_p_      = this->declare_parameter ("curvature_decceleration_p", 1.0);
-    min_curvature_speed_m_s_        = this->declare_parameter ("min_curvature_speed_m_s", 0.3);
-    yaw_decceleration_p_            = this->declare_parameter ("yaw_decceleration_p", 1.0);
-    max_speed_xy_m_s_               = this->declare_parameter ("max_speed_xy_m_s", 3.0);
-    min_speed_xy_m_s_               = this->declare_parameter ("min_speed_xy_m_s", 0.1);
-    max_speed_yaw_deg_s_            = this->declare_parameter ("max_speed_yaw_deg_s", 180.0);
-    min_speed_yaw_deg_s_            = this->declare_parameter ("min_speed_yaw_deg_s", 18.0);
-    max_acceleration_xy_m_s2_       = this->declare_parameter ("max_acceleration_xy_m_s2", 10.0);
-    max_acceleration_yaw_deg_s2_    = this->declare_parameter ("max_acceleration_yaw_deg_s2", 500.0);
-    goal_deceleration_m_s2_         = this->declare_parameter ("goal_deceleration_m_s2", 4.0);
-    goal_deceleration_distance_p_   = this->declare_parameter ("goal_deceleration_distance_p", 1.0);
-    goal_position_tolerance_        = this->declare_parameter ("goal_position_tolerance_m", 0.03);
-    goal_yaw_tolerance_deg_         = this->declare_parameter ("goal_yaw_tolerance_deg", 10.0);
-    goal_speed_tolerance_xy_m_s_    = this->declare_parameter ("goal_speed_tolerance_xy_m_s", 0.3);
-    goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter ("goal_speed_tolerance_yaw_deg_s", 30.0);
+    lookahead_time_                 = this->declare_parameter<double> ("lookahead_time_s", 1.0);
+    min_lookahead_distance_         = this->declare_parameter<double> ("min_lookahead_distance_m", 0.1);
+    max_lookahead_distance_         = this->declare_parameter<double> ("max_lookahead_distance_m", 1.0);
+    yaw_speed_p_                    = this->declare_parameter<double> ("yaw_speed_p", 1.0);
+    curvature_decceleration_p_      = this->declare_parameter<double> ("curvature_decceleration_p", 1.0);
+    min_curvature_speed_m_s_        = this->declare_parameter<double> ("min_curvature_speed_m_s", 0.3);
+    yaw_decceleration_p_            = this->declare_parameter<double> ("yaw_decceleration_p", 1.0);
+    max_speed_xy_m_s_               = this->declare_parameter<double> ("max_speed_xy_m_s", 3.0);
+    min_speed_xy_m_s_               = this->declare_parameter<double> ("min_speed_xy_m_s", 0.1);
+    max_speed_yaw_deg_s_            = this->declare_parameter<double> ("max_speed_yaw_deg_s", 180.0);
+    min_speed_yaw_deg_s_            = this->declare_parameter<double> ("min_speed_yaw_deg_s", 18.0);
+    max_acceleration_xy_m_s2_       = this->declare_parameter<double> ("max_acceleration_xy_m_s2", 10.0);
+    max_acceleration_yaw_deg_s2_    = this->declare_parameter<double> ("max_acceleration_yaw_deg_s2", 500.0);
+    goal_deceleration_m_s2_         = this->declare_parameter<double> ("goal_deceleration_m_s2", 4.0);
+    goal_deceleration_distance_p_   = this->declare_parameter<double> ("goal_deceleration_distance_p", 1.0);
+    goal_position_tolerance_        = this->declare_parameter<double> ("goal_position_tolerance_m", 0.03);
+    goal_yaw_tolerance_deg_         = this->declare_parameter<double> ("goal_yaw_tolerance_deg", 10.0);
+    goal_speed_tolerance_xy_m_s_    = this->declare_parameter<double> ("goal_speed_tolerance_xy_m_s", 0.3);
+    goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter<double> ("goal_speed_tolerance_yaw_deg_s", 30.0);
 
     RCLCPP_INFO (this->get_logger (), "holonomic_pure_pursuit node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "lookahead_time_s : %f", lookahead_time_);
@@ -171,9 +171,9 @@ void holonomic_pure_pursuit::timer_callback () {
     double max_stop_speed = std::sqrt (2.0 * std::min (goal_deceleration_m_s2_, max_acceleration_xy_m_s2_) * std::max (0.0, d / goal_deceleration_distance_p_));
     target_speed          = std::min (target_speed, max_stop_speed);
 
-    int p1 = closest_index;
-    int p2 = (lookahead_index + closest_index) / 2;
-    int p3 = lookahead_index;
+    size_t p1 = closest_index;
+    size_t p2 = (lookahead_index + closest_index) / 2;
+    size_t p3 = lookahead_index;
 
     double a         = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p2].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p2].pose.position.y);
     double b         = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);

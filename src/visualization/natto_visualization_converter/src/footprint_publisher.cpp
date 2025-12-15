@@ -38,7 +38,7 @@ footprint_publisher::footprint_publisher (const rclcpp::NodeOptions &node_option
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
     RCLCPP_INFO (this->get_logger (), "frame_id: %s", footprint_.header.frame_id.c_str ());
     for (size_t i = 0; i < footprint_.polygon.points.size (); ++i) {
-        RCLCPP_INFO (this->get_logger (), "footprint_points_xy[%d] : (%.2f, %.2f)", i, footprint_.polygon.points[i].x, footprint_.polygon.points[i].y);
+        RCLCPP_INFO (this->get_logger (), "footprint_points_xy[%zu] : (%.2f, %.2f)", i, footprint_.polygon.points[i].x, footprint_.polygon.points[i].y);
     }
 
     timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&footprint_publisher::timer_callback, this));

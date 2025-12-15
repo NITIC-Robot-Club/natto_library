@@ -86,8 +86,8 @@ void swerve_simulator::timer_callback () {
         }
     }
     for (size_t j = 0; j < num_wheels_; j++) {
-        command_.wheel_angle[j] = command_sum.wheel_angle[j] / received_commands_.size ();
-        command_.wheel_speed[j] = command_sum.wheel_speed[j] / received_commands_.size ();
+        command_.wheel_angle[j] = command_sum.wheel_angle[j] / static_cast<double> (received_commands_.size ());
+        command_.wheel_speed[j] = command_sum.wheel_speed[j] / static_cast<double> (received_commands_.size ());
     }
 
     for (size_t i = 0; i < num_wheels_; i++) {

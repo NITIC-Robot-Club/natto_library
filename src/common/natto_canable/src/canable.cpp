@@ -18,10 +18,10 @@ namespace canable {
 
 canable::canable (const rclcpp::NodeOptions &node_options) : Node ("canable", node_options) {
     can_interface_         = this->declare_parameter<std::string> ("can_interface", "can0");
-    retry_open_can_        = this->declare_parameter ("retry_open_can", true);
-    retry_write_can_       = this->declare_parameter ("retry_write_can", true);
-    max_retry_write_count_ = this->declare_parameter ("max_retry_write_count", 5);
-    use_fd_                = this->declare_parameter ("use_fd", false);
+    retry_open_can_        = this->declare_parameter<bool> ("retry_open_can", true);
+    retry_write_can_       = this->declare_parameter<bool> ("retry_write_can", true);
+    max_retry_write_count_ = static_cast<int> (this->declare_parameter<int> ("max_retry_write_count", 5));
+    use_fd_                = this->declare_parameter<bool> ("use_fd", false);
 
     if (init_can_socket () != 0) {
         RCLCPP_FATAL (get_logger (), "Failed to initialize CAN socket");
@@ -101,7 +101,7 @@ void canable::read_can_socket () {
     while (rclcpp::ok ()) {
         if (use_fd_) {
             struct canfd_frame fd_frame {};
-            int                nbytes = read (can_socket_, &fd_frame, sizeof (fd_frame));
+            ssize_t                nbytes = read (can_socket_, &fd_frame, sizeof (fd_frame));
             if (nbytes < 0) continue;
 
             natto_msgs::msg::Can msg;
@@ -113,7 +113,7 @@ void canable::read_can_socket () {
 
         } else {
             struct can_frame frame {};
-            int              nbytes = read (can_socket_, &frame, sizeof (frame));
+            ssize_t              nbytes = read (can_socket_, &frame, sizeof (frame));
             if (nbytes < 0) continue;
 
             natto_msgs::msg::Can msg;

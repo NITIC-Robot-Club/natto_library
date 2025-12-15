@@ -41,7 +41,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     map_frame_id_                     = this->declare_parameter<std::string> ("map_frame_id", "map");
     odom_frame_id_                    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
     base_frame_id_                    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    num_particles_                    = this->declare_parameter<int> ("num_particles", 500);
+    num_particles_                    = static_cast<int> (this->declare_parameter<int> ("num_particles", 500));
     initial_pose_x_                   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_                   = this->declare_parameter<double> ("initial_pose_y", 0.0);
     initial_pose_yaw_deg_             = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0);
@@ -114,8 +114,8 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
     likelihood_field_.clear ();
     likelihood_field_.resize (msg->info.width, std::vector<uint8_t> (msg->info.height));
     resolution_  = msg->info.resolution;
-    width_       = msg->info.width;
-    height_      = msg->info.height;
+    width_       = static_cast<int> (msg->info.width);
+    height_      = static_cast<int> (msg->info.height);
     int cell_num = static_cast<int> (ceil (laser_likelihood_max_dist_ / resolution_));
 
     std::vector<uint8_t> weights;
@@ -124,14 +124,15 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
     }
     for (int x = 0; x < width_; ++x) {
         for (int y = 0; y < height_; ++y) {
-            int index = y * width_ + x;
+            size_t index = static_cast<size_t> (y * width_ + x);
             if (msg->data[index] == -1) {
-                likelihood_field_[x][y] = 0;
+                likelihood_field_[static_cast<size_t> (x)][static_cast<size_t> (y)] = 0;
             } else if (msg->data[index] > 50) {
                 for (int i = -cell_num; i <= cell_num; i++) {
                     for (int j = -cell_num; j <= cell_num; j++) {
                         if (i + x >= 0 && j + y >= 0 && i + x < width_ && j + y < height_) {
-                            likelihood_field_[i + x][j + y] = std::max (likelihood_field_[i + x][j + y], std::min (weights[abs (i)], weights[abs (j)]));
+                            likelihood_field_[static_cast<size_t> (i + x)][static_cast<size_t> (j + y)] =
+                                std::max (likelihood_field_[static_cast<size_t> (i + x)][static_cast<size_t> (j + y)], std::min (weights[static_cast<size_t> (abs (i))], weights[static_cast<size_t> (abs (j))]));
                         }
                     }
                 }
@@ -219,7 +220,7 @@ void mcl::timer_callback () {
         resample_particles ();
     } else {
         for (auto &p : particles_) {
-            p.weight = 1.0 / particles_.size ();
+            p.weight = 1.0 / static_cast<double> (particles_.size ());
         }
     }
     geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
@@ -285,7 +286,7 @@ void mcl::timer_callback () {
 
     if (trajectory_msg_.poses.size () > max_trajectory_length_) {
         size_t remove_count = trajectory_msg_.poses.size () - max_trajectory_length_;
-        trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + remove_count);
+        trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + static_cast<std::ptrdiff_t> (remove_count));
     }
 
     trajectory_msg_.header.stamp    = this->now ();
@@ -318,20 +319,20 @@ void mcl::initialize_particles (double x, double y, double yaw) {
 void mcl::resample_particles () {
     std::vector<particle> old_particles (particles_);
     std::vector<double>   cumulative_weights;
-    std::vector<int>      selected_indices;
+    std::vector<size_t>   selected_indices;
 
-    std::uniform_real_distribution<double> dist (0.0, 1.0 / particles_.size ());
+    std::uniform_real_distribution<double> dist (0.0, 1.0 / static_cast<double> (particles_.size ()));
     cumulative_weights.push_back (particles_[0].weight);
     for (size_t i = 1; i < particles_.size (); i++) {
         cumulative_weights.push_back (cumulative_weights.back () + particles_[i].weight);
     }
 
     double start_offset = dist (rng_);
-    double step         = 1.0 / particles_.size ();
+    double step         = 1.0 / static_cast<double> (particles_.size ());
 
     size_t cumulative_index = 0;
     for (size_t i = 0; i < particles_.size (); i++) {
-        while (cumulative_weights[cumulative_index] <= start_offset + i * step) {
+        while (cumulative_weights[cumulative_index] <= start_offset + static_cast<double> (i) * step) {
             cumulative_index++;
             if (cumulative_index == particles_.size ()) {
                 RCLCPP_FATAL (this->get_logger (), "RESAMPLING FAILED: Unable to resample particles. Initiating shutdown.");
@@ -383,10 +384,10 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
         c_sum += cos_[theta_16bit];
     }
 
-    double x_mean   = x_sum / particles_.size ();
-    double y_mean   = y_sum / particles_.size ();
-    double s_mean   = s_sum / particles_.size ();
-    double c_mean   = c_sum / particles_.size ();
+    double x_mean   = x_sum / static_cast<double> (particles_.size ());
+    double y_mean   = y_sum / static_cast<double> (particles_.size ());
+    double s_mean   = s_sum / static_cast<double> (particles_.size ());
+    double c_mean   = c_sum / static_cast<double> (particles_.size ());
     double yaw_mean = std::atan2 (s_mean, c_mean);
 
     for (auto &p : particles_) {
@@ -396,10 +397,10 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
         cc_sum += pow (cos_[get_16bit_theta (p.yaw)] - c_mean, 2);
     }
 
-    double x_dev   = xx_sum / (particles_.size () - 1);
-    double y_dev   = yy_sum / (particles_.size () - 1);
-    double s_dev   = ss_sum / (particles_.size () - 1);
-    double c_dev   = cc_sum / (particles_.size () - 1);
+    double x_dev   = xx_sum / static_cast<double> ((particles_.size () - 1));
+    double y_dev   = yy_sum / static_cast<double> ((particles_.size () - 1));
+    double s_dev   = ss_sum / static_cast<double> ((particles_.size () - 1));
+    double c_dev   = cc_sum / static_cast<double> ((particles_.size () - 1));
     double yaw_dev = (s_dev + c_dev) / 2.0;
 
     for (auto &p : particles_) {
@@ -408,9 +409,9 @@ geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {
         yt_sum += (p.y - y_mean) * (p.yaw - yaw_mean);
     }
 
-    double xy_cov = xy_sum / (particles_.size () - 1);
-    double xt_cov = xt_sum / (particles_.size () - 1);
-    double yt_cov = yt_sum / (particles_.size () - 1);
+    double xy_cov = xy_sum / static_cast<double> ((particles_.size () - 1));
+    double xt_cov = xt_sum / static_cast<double> ((particles_.size () - 1));
+    double yt_cov = yt_sum / static_cast<double> ((particles_.size () - 1));
 
     pose_with_covariance.pose.position.x = x_mean;
     pose_with_covariance.pose.position.y = y_mean;
@@ -440,7 +441,7 @@ double mcl::compute_laser_likelihood (const particle &p) {
     double   sin_theta   = sin_[theta_16bit];
     double   cos_theta   = cos_[theta_16bit];
 
-    for (int i = 0; i < scan_size_; i++) {
+    for (size_t i = 0; i < static_cast<size_t> (scan_size_); i++) {
         double x = scan_x_[i];
         double y = scan_y_[i];
 
@@ -452,13 +453,13 @@ double mcl::compute_laser_likelihood (const particle &p) {
         if (ix < 0 || iy < 0 || ix >= width_ || iy >= height_) {
             continue;
         }
-        likelihood += likelihood_field_[ix][iy];
+        likelihood += likelihood_field_[static_cast<size_t> (ix)][static_cast<size_t> (iy)];
     }
     return likelihood;
 }
 
 uint16_t mcl::mcl::get_16bit_theta (double theta) {
-    int result = theta / M_PI * (1 << 15);
+    int result = static_cast<int> (theta / M_PI * (1 << 15));
     while (result < 0) {
         result += (1 << 16);
     }

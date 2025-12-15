@@ -50,7 +50,7 @@ jobs:
         working-directory: /home/nitic-robot-club/natto_library
         run: |
           . /opt/ros/humble/setup.sh && 
-          colcon build --symlink-install --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+          ./colcon_build.sh
         continue-on-error: true
     
       - name: build_test command success

@@ -33,7 +33,7 @@ class pointcloud2_merger : public rclcpp::Node {
 
    private:
     std::string frame_id_;
-    int         num_lidars_;
+    std::size_t num_lidars_;
 
     geometry_msgs::msg::PolygonStamped         footprint_;
     std::vector<sensor_msgs::msg::PointCloud2> latest_pointclouds_;

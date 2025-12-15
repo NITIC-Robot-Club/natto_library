@@ -28,7 +28,7 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
     num_lidars_ = lidar_topics.size ();
     latest_pointclouds_.resize (num_lidars_);
 
-    for (int i = 0; i < num_lidars_; ++i) {
+    for (size_t i = 0; i < num_lidars_; ++i) {
         pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], rclcpp::SensorDataQoS (), [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
     }
 
@@ -38,8 +38,8 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
     RCLCPP_INFO (this->get_logger (), "pointcloud2_merger node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
-    for (int i = 0; i < num_lidars_; ++i) {
-        RCLCPP_INFO (this->get_logger (), "Subscribed to LIDAR topic[%d]: %s", i, lidar_topics[i].c_str ());
+    for (size_t i = 0; i < num_lidars_; ++i) {
+        RCLCPP_INFO (this->get_logger (), "Subscribed to LIDAR topic[%zu]: %s", i, lidar_topics[i].c_str ());
     }
 
     publish_timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&pointcloud2_merger::publish_pointcloud2, this));
@@ -84,7 +84,6 @@ void pointcloud2_merger::publish_pointcloud2 () {
         }
     }
 
-    // --- footprintをtf変換 ---
     std::vector<geometry_msgs::msg::Point32> footprint_points_tf;
     if (!footprint_.polygon.points.empty ()) {
         try {
@@ -134,7 +133,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
     output.header.stamp    = this->get_clock ()->now ();
     output.header.frame_id = frame_id_;
     output.height          = 1;
-    output.width           = filtered.size ();
+    output.width           = static_cast<uint32_t> (filtered.size ());
     output.is_bigendian    = false;
     output.is_dense        = true;
 

@@ -9,7 +9,7 @@ natto_holonomic_pure_pursuit パッケージは、ホロノミックロボット
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| control_frequency | double | 50.0 | 制御ループの周波数（Hz） |
+| frequency | double | 50.0 | 制御ループの周波数（Hz） |
 | lookahead_time_s | double | 1.0 | 先読み時間（秒） |
 | min_lookahead_distance_m | double | 0.1 | 最小先読み距離（メートル） |
 | max_lookahead_distance_m | double | 1.0 | 最大先読み距離（メートル） |

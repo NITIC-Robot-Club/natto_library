@@ -30,7 +30,7 @@ lidar_simulator::lidar_simulator (const rclcpp::NodeOptions &node_options) : Nod
     angle_min_             = this->declare_parameter<double> ("angle_min", -1.57);
     angle_max_             = this->declare_parameter<double> ("angle_max", 1.57);
     simulation_resolution_ = this->declare_parameter<double> ("simulation_resolution", 0.01);
-    point_rate_            = this->declare_parameter<int> ("point_rate", 43200);
+    point_rate_            = static_cast<int> (this->declare_parameter<int> ("point_rate", 43200));
     frequency_             = this->declare_parameter<double> ("frequency", 30);
     frame_id_              = this->declare_parameter<std::string> ("frame_id", "laser_frame");
 
@@ -70,22 +70,22 @@ void lidar_simulator::timer_callback () {
     start_point.y = simulation_pose_->pose.position.y + position_x_ * sin (yaw) + position_y_ * cos (yaw);
 
     double lidar_yaw  = yaw + angle_ * M_PI / 180.0;
-    int    num_points = point_rate_ / frequency_;
+    int    num_points = static_cast<int> (point_rate_ / frequency_);
 
     sensor_msgs::msg::LaserScan scan;
     scan.header.stamp    = this->now ();
     scan.header.frame_id = frame_id_;
-    scan.angle_min       = angle_min_;
-    scan.angle_max       = angle_max_;
-    scan.angle_increment = (angle_max_ - angle_min_) / num_points;
+    scan.angle_min       = static_cast<float> (angle_min_);
+    scan.angle_max       = static_cast<float> (angle_max_);
+    scan.angle_increment = static_cast<float> ((angle_max_ - angle_min_) / num_points);
     scan.time_increment  = 0.0;
-    scan.scan_time       = 1.0 / frequency_;
-    scan.range_min       = range_min_;
-    scan.range_max       = range_max_;
-    scan.ranges.resize (num_points);
+    scan.scan_time       = static_cast<float> (1.0 / frequency_);
+    scan.range_min       = static_cast<float> (range_min_);
+    scan.range_max       = static_cast<float> (range_max_);
+    scan.ranges.resize (static_cast<size_t> (num_points));
 
     for (int i = 0; i < num_points; i++) {
-        double angle = angle_min_ + i * scan.angle_increment + lidar_yaw;
+        double angle = angle_min_ + static_cast<double> (i) * scan.angle_increment + lidar_yaw;
         double dx    = cos (angle);
         double dy    = sin (angle);
 
@@ -137,8 +137,7 @@ void lidar_simulator::timer_callback () {
             check_t (t1);
             check_t (t2);
         }
-        scan.ranges[i] = closest_range + distribution_ (generator_);
-        ;
+        scan.ranges[static_cast<size_t> (i)] = static_cast<float> (closest_range + distribution_ (generator_));
     }
     laser_publisher_->publish (scan);
 }

@@ -52,15 +52,14 @@ omni_visualizer::omni_visualizer (const rclcpp::NodeOptions &node_options) : Nod
         RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f), wheel_angle_deg[%zu]: %.2f deg", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
 }
-
 void omni_visualizer::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     marker_array_.markers.clear ();
-    for (size_t i = 0; i < num_wheels_; i++) {
+    for (size_t i = 0; i < num_wheels_; ++i) {
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "base_link";
         marker.header.stamp    = this->now ();
         marker.ns              = "omni_wheel";
-        marker.id              = i;
+        marker.id              = static_cast<int> (i);
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
 
@@ -87,12 +86,12 @@ void omni_visualizer::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg)
         marker.pose.orientation.w = q.w ();
 
         marker.scale.x = std::max (arrow_scale * wheel_speed, arrow_min_size);
-        marker.scale.y = 0.05;
-        marker.scale.z = 0.05;
+        marker.scale.y = 0.05f;
+        marker.scale.z = 0.05f;
 
-        marker.color.r = arrow_r;
-        marker.color.g = arrow_g;
-        marker.color.b = arrow_b;
+        marker.color.r = static_cast<float> (arrow_r);
+        marker.color.g = static_cast<float> (arrow_g);
+        marker.color.b = static_cast<float> (arrow_b);
         marker.color.a = 1.0f;
 
         marker_array_.markers.push_back (marker);
