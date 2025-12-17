@@ -38,8 +38,8 @@
 
         <!-- joy変換 -->
         <composable_node pkg="natto_joy" plugin="joy_to_twist::joy_to_twist" name="joy_to_twist" if="$(var use_joy_control)">
-            <param name="max_xy_speed_m_s" value="-1.0"/>
-            <param name="max_yaw_speed_rad_s" value="3.0"/>
+            <param name="max_xy_speed_m_s" value="2.0"/>
+            <param name="max_yaw_speed_rad_s" value="6.0"/>
             <remap from="joy" to="/joy"/>
             <remap from="command_velocity" to="/controller/command_velocity"/>
         </composable_node>

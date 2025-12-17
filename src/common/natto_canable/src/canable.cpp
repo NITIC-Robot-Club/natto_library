@@ -106,7 +106,8 @@ void canable::read_can_socket () {
 
             natto_msgs::msg::Can msg;
             msg.id  = fd_frame.can_id;
-            msg.dlc = fd_frame.len;
+            msg.len = fd_frame.len;
+            msg.data.resize (fd_frame.len);
             std::copy (fd_frame.data, fd_frame.data + fd_frame.len, msg.data.begin ());
             msg.header.stamp = this->now ();
             canable_pub_->publish (msg);
@@ -118,7 +119,8 @@ void canable::read_can_socket () {
 
             natto_msgs::msg::Can msg;
             msg.id  = frame.can_id;
-            msg.dlc = frame.can_dlc;
+            msg.len = frame.can_dlc;
+            msg.data.resize (frame.can_dlc);
             std::copy (frame.data, frame.data + frame.can_dlc, msg.data.begin ());
             msg.header.stamp = this->now ();
             canable_pub_->publish (msg);
@@ -132,8 +134,8 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
     if (use_fd_) {
         struct canfd_frame frame {};
         frame.can_id = msg.id;
-        frame.len    = msg.dlc;
-        std::copy (msg.data.begin (), msg.data.begin () + msg.dlc, frame.data);
+        frame.len    = msg.len;
+        std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
 
         while (write (can_socket_, &frame, sizeof (frame)) < 0) {
             if (!retry_write_can_ || attempt >= max_retry_write_count_) {
@@ -148,8 +150,8 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
     } else {
         struct can_frame frame {};
         frame.can_id  = msg.id;
-        frame.can_dlc = msg.dlc;
-        std::copy (msg.data.begin (), msg.data.begin () + msg.dlc, frame.data);
+        frame.can_dlc = msg.len;
+        std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
 
         while (write (can_socket_, &frame, sizeof (frame)) < 0) {
             if (!retry_write_can_ || attempt >= max_retry_write_count_) {
