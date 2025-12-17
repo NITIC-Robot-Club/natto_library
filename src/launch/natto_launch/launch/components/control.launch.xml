@@ -11,15 +11,6 @@
     <let name="control_source_topic" value="/controller/command_velocity" if="$(var use_joy_control)"/>
 
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
-        <!-- オドメトリ -->
-        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/wheel_odometry">
-            <param from="$(var chassis_param_path)"/>
-            <param name="publish_tf" value="$(var publish_odom_tf)"/>
-            <param name="odom_frame_id" value="odom"/>
-            <param name="base_frame_id" value="base_link"/>
-            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
-        </composable_node>
-
         <!-- 目標計算 -->
         <composable_node pkg="natto_chassis_calculator" plugin="$(var chassis_type)_calculator::$(var chassis_type)_calculator" name="calculator" namespace="/control/$(var chassis_type)">
             <param from="$(var chassis_param_path)"/>
@@ -47,8 +38,8 @@
 
         <!-- joy変換 -->
         <composable_node pkg="natto_joy" plugin="joy_to_twist::joy_to_twist" name="joy_to_twist" if="$(var use_joy_control)">
-            <param name="max_xy_speed_m_s" value="4.0"/>
-            <param name="max_theta_speed_rad_s" value="3.0"/>
+            <param name="max_xy_speed_m_s" value="-1.0"/>
+            <param name="max_yaw_speed_rad_s" value="3.0"/>
             <remap from="joy" to="/joy"/>
             <remap from="command_velocity" to="/controller/command_velocity"/>
         </composable_node>

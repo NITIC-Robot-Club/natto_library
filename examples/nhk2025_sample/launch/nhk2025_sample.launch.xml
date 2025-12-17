@@ -18,7 +18,7 @@
 
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="publish_odom_tf" value="false"/>
+        <arg name="use_odom_tf" value="false"/>
         <arg name="use_joy_control" value="$(var use_joy_control)"/>
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
         <arg name="use_ransac" value="$(var use_ransac)"/>

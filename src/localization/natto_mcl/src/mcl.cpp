@@ -116,6 +116,8 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
     resolution_  = msg->info.resolution;
     width_       = static_cast<int> (msg->info.width);
     height_      = static_cast<int> (msg->info.height);
+    origin_x_    = msg->info.origin.position.x;
+    origin_y_    = msg->info.origin.position.y;
     int cell_num = static_cast<int> (ceil (laser_likelihood_max_dist_ / resolution_));
 
     std::vector<uint8_t> weights;
@@ -448,8 +450,8 @@ double mcl::compute_laser_likelihood (const particle &p) {
         double lx = p.x + (x * cos_theta - y * sin_theta);
         double ly = p.y + (x * sin_theta + y * cos_theta);
 
-        int ix = static_cast<int> (lx / resolution_);
-        int iy = static_cast<int> (ly / resolution_);
+        int ix = static_cast<int> ((lx - origin_x_) / resolution_);
+        int iy = static_cast<int> ((ly - origin_y_) / resolution_);
         if (ix < 0 || iy < 0 || ix >= width_ || iy >= height_) {
             continue;
         }

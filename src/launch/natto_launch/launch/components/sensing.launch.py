@@ -30,6 +30,7 @@ def launch_setup(context, *args, **kwargs):
                         ("laserscan", f"/sensing/lidar/laserscan/{name[i]}"),
                         ("pointcloud2", f"/sensing/lidar/pointcloud2/{name[i]}"),
                     ],
+                    extra_arguments=[{'use_intra_process_comms': True}]
                 )
             )
     
@@ -48,6 +49,7 @@ def launch_setup(context, *args, **kwargs):
                 ("merged_pointcloud2", "/sensing/lidar/pointcloud2/merged"),
                 ("footprint", "/common/footprint"),
             ],
+            extra_arguments=[{'use_intra_process_comms': True}]
         )
     )
 
@@ -69,6 +71,7 @@ def launch_setup(context, *args, **kwargs):
                 remappings=[
                     ("pointcloud2", "/sensing/lidar/pointcloud2/merged"),
                 ],
+                extra_arguments=[{'use_intra_process_comms': True}]
             )
         )
 

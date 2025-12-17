@@ -57,6 +57,7 @@ class mcl : public rclcpp::Node {
     double      laser_likelihood_max_dist_, transform_tolerance_;
     double      resolution_, delta_t_;
     int         width_, height_;
+    double      origin_x_, origin_y_;
 
     double last_map_to_odom_yaw_;
 

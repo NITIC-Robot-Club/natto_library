@@ -1,12 +1,27 @@
 <launch>
     <arg name="localization_param_path" default=""/>
+    <arg name="chassis_type" default=""/>
+    <arg name="chassis_param_path" default=""/>
+    <arg name="use_odom_tf" default="false"/>
 
-    <node pkg="natto_mcl" exec="mcl" name="mcl" namespace="localization/mcl">
-        <param from="$(var localization_param_path)"/>
-        <remap from="occupancy_grid" to="/common/occupancy_grid"/>
-        <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
-        <remap from="initial_pose" to="/initialpose"/>
-        <remap from="pose" to="/localization/current_pose"/>
-        <remap from="odometry" to="/localization/wheel_odometry/odometry"/>
-    </node>
+    <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
+        <!-- オドメトリ -->
+        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/wheel_odometry">
+            <param from="$(var chassis_param_path)"/>
+            <param name="publish_tf" value="$(var use_odom_tf)"/>
+            <param name="odom_frame_id" value="odom"/>
+            <param name="base_frame_id" value="base_link"/>
+            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
+        </composable_node>
+
+        <composable_node pkg="natto_mcl" plugin="mcl::mcl" name="mcl" namespace="localization/mcl">
+            <param from="$(var localization_param_path)"/>
+            <remap from="occupancy_grid" to="/common/occupancy_grid"/>
+            <remap from="pointcloud2" to="/sensing/lidar/pointcloud2/merged"/>
+            <remap from="initial_pose" to="/initialpose"/>
+            <remap from="pose" to="/localization/current_pose"/>
+            <remap from="odometry" to="/localization/wheel_odometry/odometry"/>
+            <param name="use_odom_tf" value="$(var use_odom_tf)"/>
+        </composable_node>
+    </node_container>
 </launch>

@@ -1,6 +1,6 @@
 <launch>
     <arg name="chassis_type" default="swerve"/>
-    <arg name="publish_odom_tf" default="false"/>
+    <arg name="use_odom_tf" default="false"/>
     <arg name="use_joy_control" default="false"/>
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
@@ -52,6 +52,9 @@
     <!-- 自己位置 -->
     <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
         <arg name="localization_param_path" value="$(var localization_param_path)"/>
+        <arg name="chassis_type" value="$(var chassis_type)"/>
+        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
+        <arg name="use_odom_tf" value="$(var use_odom_tf)"/>
     </include>
 
     <!-- コントロール -->
@@ -60,7 +63,6 @@
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
-        <arg name="publish_odom_tf" value="$(var publish_odom_tf)"/>
         <arg name="use_joy_control" value="$(var use_joy_control)"/>
     </include>
 

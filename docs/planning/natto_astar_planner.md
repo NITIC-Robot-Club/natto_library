@@ -12,8 +12,8 @@ x,y,yawの計画を行います
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | theta_resolution_deg | int | 15 | 角度の分解能（度） |
-| xy_inflation | double | 0.5 | XY方向のインフレーション距離（m） |
-| xy_offset | double | 0.1 | XY方向のオフセット距離（m） |
+| xy_inflation | double | 0.5 | XY方向のインフレーション距離（m）この範囲は絶対に入れない |
+| xy_offset | double | 0.1 | XY方向のオフセット距離（m）xy_inflationに追加される範囲、できるだけ入りたくない |
 | yaw_offset | double | 0.1 | ヨー方向のオフセット距離（rad） |
 | grad_alpha | double | 1.0 | 勾配法のアルファパラメーター。増やすと障害物から離れていく |
 | grad_beta | double | 8.0 | 勾配法のベータパラメーター。増やすとなめらかな経路になる |

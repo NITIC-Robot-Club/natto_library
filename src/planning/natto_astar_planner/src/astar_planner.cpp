@@ -445,11 +445,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
         return static_cast<size_t> (t);
     };
 
-    auto theta_diff = [&] (size_t a, size_t b) -> size_t {
-        size_t d = (a > b) ? a - b : b - a;
-        return std::min (d, num_theta - d);
-    };
-
     auto to_index = [&] (size_t ix, size_t th) -> size_t { return th * N + ix; };
 
     std::vector<std::vector<int8_t>> angle_cost (N, std::vector<int8_t> (num_theta, 0));
@@ -504,7 +499,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
     };
 
     auto heuristic = [&] (size_t ix, size_t th) {
-        double h_rot   = rot_cost * ang_dist (th, goal_theta);
+        double h_rot   = rot_cost * static_cast<double> (ang_dist (th, goal_theta));
         double h_trans = trans_cost * static_cast<double> ((N - 1) - ix);
         return h_rot + h_trans;
     };
