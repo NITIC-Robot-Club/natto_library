@@ -3,12 +3,10 @@
     <arg name="chassis_param_path" default=""/>
     <arg name="control_param_path" default=""/>
     <arg name="planning_param_path" default=""/>
+    <arg name="controller_param_path" default=""/>
     <arg name="current_pose_topic" default="/localization/current_pose"/>
-    <arg name="use_joy_control" default="false"/>
     <arg name="publish_odom_tf" default="false"/>
-
-    <let name="control_source_topic" value="/control/command_velocity" unless="$(var use_joy_control)"/>
-    <let name="control_source_topic" value="/controller/command_velocity" if="$(var use_joy_control)"/>
+    <arg name="initial_allow_auto_drive" default="false"/>
 
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- 目標計算 -->
@@ -16,7 +14,7 @@
             <param from="$(var chassis_param_path)"/>
             <remap from="$(var chassis_type)_command" to="/$(var chassis_type)/command"/>
             <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
-            <remap from="command_velocity" to="$(var control_source_topic)"/>
+            <remap from="command_velocity" to="/command_velocity"/>
         </composable_node>
 
         <!-- 経路計算 -->
@@ -34,16 +32,31 @@
             <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="$(var current_pose_topic)"/>
             <remap from="path" to="/planning/path"/>
+            <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
 
-        <!-- joy変換 -->
-        <composable_node pkg="natto_joy" plugin="joy_to_twist::joy_to_twist" name="joy_to_twist" if="$(var use_joy_control)">
+        <!-- joy twist変換 -->
+        <composable_node pkg="natto_joy" plugin="joy_to_twist::joy_to_twist" name="joy_to_twist" namespace="/controller">
             <param name="max_xy_speed_m_s" value="2.0"/>
             <param name="max_yaw_speed_rad_s" value="6.0"/>
-            <remap from="joy" to="/joy"/>
             <remap from="command_velocity" to="/controller/command_velocity"/>
+            <remap from="joy" to="/controller/joy"/>
+        </composable_node>
+
+        <!-- joy ボタン選択 -->
+        <composable_node pkg="natto_joy" plugin="button_manager::button_manager" name="button_manager" namespace="/controller">
+            <param from="$(var controller_param_path)"/>
+        </composable_node>
+
+        <!-- コマンド選択 -->
+        <composable_node pkg="natto_command_selector" plugin="twist_selector::twist_selector" name="twist_selector" namespace="/control">
+            <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
+            <remap from="manual_twist" to="/controller/command_velocity"/>
+            <remap from="auto_twist" to="/control/command_velocity"/>
+            <remap from="selected_twist" to="/command_velocity"/>
+            <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
         </composable_node>
     </node_container>
 
-    <node pkg="joy" exec="game_controller_node" name="joy" output="screen" if="$(var use_joy_control)"/>
+    <node pkg="joy" exec="game_controller_node" name="joy" output="screen" namespace="/controller"/>
 </launch>
