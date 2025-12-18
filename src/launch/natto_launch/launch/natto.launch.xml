@@ -6,6 +6,7 @@
     <arg name="use_ransac" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
+    <arg name="publish_map" default="true"/>
 
     <arg name="chassis_param_path" default=""/>
     <arg name="line_segments_path" default=""/>
@@ -31,6 +32,7 @@
         <arg name="circles_path" value="$(var circles_path)"/>
         <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
         <arg name="footprint_param_path" value="$(var footprint_param_path)"/>
+        <arg name="publish_map" value="$(var publish_map)"/>
     </include>
 
     <!-- シミュレーション -->

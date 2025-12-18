@@ -102,12 +102,14 @@ void astar_planner::create_path () {
 
 void astar_planner::create_obstacle_costmap () {
     if (raw_map_.data.empty ()) return;
+    obstacle_costmap_ = raw_map_;
+    return;
+    
     const int width  = static_cast<int> (raw_map_.info.width);
     const int height = static_cast<int> (raw_map_.info.height);
 
     if (width == 0 || height == 0) return;
 
-    obstacle_costmap_ = raw_map_;
 
     std::vector<bool> visited (static_cast<size_t> (width * height), false);
     std::queue<int>   frontier;
