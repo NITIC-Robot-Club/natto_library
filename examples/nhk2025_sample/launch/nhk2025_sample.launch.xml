@@ -5,6 +5,7 @@
     <arg name="use_ransac" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
+    <arg name="initial_allow_auto_drive" default="true"/>
 
     <arg name="chassis_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve.yaml"/>
     <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
@@ -15,6 +16,7 @@
     <arg name="planning_param_path" default="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
     <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
     <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/simulation.yaml"/>
+    <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
 
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
@@ -33,6 +35,8 @@
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
         <arg name="localization_param_path" value="$(var localization_param_path)"/>
         <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
+        <arg name="controller_param_path" value="$(var controller_param_path)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- TF -->

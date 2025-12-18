@@ -1,12 +1,12 @@
 <launch>
     <arg name="chassis_type" default="swerve"/>
     <arg name="use_odom_tf" default="false"/>
-    <arg name="use_joy_control" default="false"/>
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
     <arg name="publish_map" default="true"/>
+    <arg name="initial_allow_auto_drive" default="false"/>
 
     <arg name="chassis_param_path" default=""/>
     <arg name="line_segments_path" default=""/>
@@ -14,8 +14,9 @@
     <arg name="footprint_param_path" default=""/>
     <arg name="lidar_param_path" default=""/>
     <arg name="localization_param_path" default=""/>
-    <arg name="control_param_path" default=""/>
     <arg name="planning_param_path" default=""/>
+    <arg name="control_param_path" default=""/>
+    <arg name="controller_param_path" default=""/>
     <arg name="simulation_param_path" default=""/>
     <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
 
@@ -64,6 +65,7 @@
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
         <arg name="control_param_path" value="$(var control_param_path)"/>
+        <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
         <arg name="use_joy_control" value="$(var use_joy_control)"/>
     </include>
