@@ -6,6 +6,9 @@
 [![Deploy Docs and Map Builder](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml/badge.svg)](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml)
 
 ## パッケージ一覧
+### behavior
+- [natto_state_machine](behavior/natto_state_machine) : 状態遷移を管理するステートマシン
+
 ### common
 - [natto_canable](common/natto_canable) : CAN通信を扱う
 - [natto_map](common/natto_map) : 地図情報を扱う
