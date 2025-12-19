@@ -24,6 +24,8 @@
 #include "std_msgs/msg/u_int64.hpp"
 
 #include <fstream>
+#include <regex>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -37,6 +39,7 @@ class mermaid_state_machine : public rclcpp::Node {
     natto_msgs::msg::StateGraph state_graph_;
 
     std::vector<uint64_t>                     current_state_ids_;
+    std::vector<bool>                         current_state_results_;
     std::unordered_map<std::string, uint64_t> state_name_to_id_;
     std::vector<std::string>                  scope_stack_;
 

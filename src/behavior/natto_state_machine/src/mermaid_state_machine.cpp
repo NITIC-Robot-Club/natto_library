@@ -167,20 +167,94 @@ void mermaid_state_machine::parse_state_graph (const std::string &path) {
             RCLCPP_INFO (get_logger (), "Parsed transition: %s --> %s%s", from.c_str (), to.c_str (), condition.empty () ? "" : (" [condition: " + condition + "]").c_str ());
         }
     }
+
+    current_state_results_.resize (next_state_id_, false);
 }
 
 void mermaid_state_machine::state_result_callback (const natto_msgs::msg::StateResult::SharedPtr msg) {
-    // TODO
-    (void)msg;
+    if (!msg->success) {
+        return;
+    }
+
+    current_state_results_[msg->state_id] = true;
 }
 
 void mermaid_state_machine::force_set_state_callback (const std_msgs::msg::UInt64::SharedPtr msg) {
-    // TODO
-    (void)msg;
+    current_state_ids_.clear ();
+    current_state_ids_.push_back (msg->data);
 }
 
 void mermaid_state_machine::timer_callback () {
-    // TODO
+    if (current_state_ids_.empty ()) {
+        current_state_ids_.push_back (get_or_create_state_id ("/_entry"));
+    }
+
+    std::vector<uint64_t> next_states;
+
+    for (auto state_id : current_state_ids_) {
+        bool parents_done = true;
+        for (const auto &t : state_graph_.transitions) {
+            if (t.to_state_id == state_id) {
+                if (std::find (current_state_ids_.begin (), current_state_ids_.end (), t.from_state_id) != current_state_ids_.end ()) {
+                    parents_done = false;
+                    break;
+                }
+            }
+        }
+        if (!parents_done) continue;
+
+        for (const auto &t : state_graph_.transitions) {
+            if (t.from_state_id == state_id && !t.condition.empty ()) {
+                if (!current_state_results_[state_id]) {
+                    natto_msgs::msg::StateAction action;
+                    action.state_id = state_id;
+
+                    std::regex  action_regex (R"(^\s*([a-zA-Z0-9_]+)\((.*)\)\s*$)");
+                    std::smatch match;
+                    if (std::regex_match (t.condition, match, action_regex)) {
+                        action.action_name   = match[1];
+                        std::string args_str = match[2];
+
+                        std::regex        arg_regex (R"(\s*([^=]+)\s*=\s*(.+)\s*)");
+                        std::stringstream ss (args_str);
+                        std::string       token;
+                        while (std::getline (ss, token, ',')) {
+                            std::smatch arg_match;
+                            if (std::regex_match (token, arg_match, arg_regex)) {
+                                std::string name  = arg_match[1];
+                                std::string value = arg_match[2];
+
+                                name.erase (0, name.find_first_not_of (" \t"));
+                                name.erase (name.find_last_not_of (" \t") + 1);
+
+                                if (!value.empty () && value[0] != '\'' && value[0] != '"') {
+                                    value.erase (remove_if (value.begin (), value.end (), ::isspace), value.end ());
+                                }
+                                action.arguments_names.push_back (name);
+                                action.arguments_values.push_back (value);
+                            }
+                        }
+                    } else {
+                        RCLCPP_WARN (get_logger (), "Invalid action format: '%s'", t.condition.c_str ());
+                    }
+
+                    state_action_publisher_->publish (action);
+
+                    next_states.push_back (state_id);
+                }
+            }
+        }
+        for (const auto &t : state_graph_.transitions) {
+            if (t.from_state_id == state_id) {
+                bool can_transition = t.condition.empty () || current_state_results_[state_id];
+                if (can_transition) {
+                    next_states.push_back (t.to_state_id);
+                }
+            }
+        }
+    }
+
+    current_state_ids_ = next_states;
 }
 
 }  // namespace mermaid_state_machine
