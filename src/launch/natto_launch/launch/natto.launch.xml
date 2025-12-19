@@ -18,14 +18,21 @@
     <arg name="control_param_path" default=""/>
     <arg name="controller_param_path" default=""/>
     <arg name="simulation_param_path" default=""/>
+    <arg name="state_graph_path" default=""/>
     <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
 
+    <arg name="launch_behavior" default="true"/>
     <arg name="launch_common" default="true"/>
     <arg name="launch_simulation" default="true"/>
     <arg name="launch_sensing" default="true"/>
     <arg name="launch_localization" default="true"/>
     <arg name="launch_control" default="true"/>
     <arg name="launch_visualization" default="true"/>
+
+    <!-- 行動管理 -->
+    <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">
+        <arg name="state_graph_path" value="$(var state_graph_path)"/>
+    </include>
 
     <!-- コモン -->
     <include file="$(find-pkg-share natto_launch)/launch/components/common.launch.xml" if="$(var launch_common)">
@@ -67,7 +74,6 @@
         <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
-        <arg name="use_joy_control" value="$(var use_joy_control)"/>
     </include>
 
     <!-- 表示 -->

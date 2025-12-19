@@ -1,6 +1,5 @@
 <launch>
     <arg name="chassis_type" default="swerve"/>
-    <arg name="use_joy_control" default="false"/>
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
@@ -17,11 +16,11 @@
     <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
     <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/simulation.yaml"/>
     <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
+    <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
 
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="use_odom_tf" value="false"/>
-        <arg name="use_joy_control" value="$(var use_joy_control)"/>
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
         <arg name="use_ransac" value="$(var use_ransac)"/>
         <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
@@ -31,11 +30,12 @@
         <arg name="circles_path" value="$(var circles_path)"/>
         <arg name="footprint_param_path" value="$(var footprint_param_path)"/>
         <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
-        <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
+        <arg name="control_param_path" value="$(var control_param_path)"/>
+        <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="localization_param_path" value="$(var localization_param_path)"/>
         <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
-        <arg name="controller_param_path" value="$(var controller_param_path)"/>
+        <arg name="state_graph_path" value="$(var state_graph_path)"/>
         <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
