@@ -9,6 +9,11 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "default_action::default_action"
+    EXECUTABLE default_action
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "mermaid_state_machine::mermaid_state_machine"
     EXECUTABLE mermaid_state_machine
 )

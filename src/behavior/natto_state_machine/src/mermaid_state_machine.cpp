@@ -27,8 +27,15 @@ mermaid_state_machine::mermaid_state_machine (const rclcpp::NodeOptions &node_op
     parse_state_graph (mermaid_path);
     state_graph_publisher_->publish (state_graph_);
 
-    double frequency = this->declare_parameter<double> ("frequency", 10.0);
-    timer_           = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&mermaid_state_machine::timer_callback, this));
+    double frequency   = this->declare_parameter<double> ("frequency", 10.0);
+    double timeout_sec = this->declare_parameter<double> ("state_timeout_sec", 1.0);
+    timeout_count_     = static_cast<uint64_t> (frequency * timeout_sec);
+    timer_             = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&mermaid_state_machine::timer_callback, this));
+
+    RCLCPP_INFO (this->get_logger (), "mermaid_state_machine node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "mermaid_path: %s", mermaid_path.c_str ());
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
+    RCLCPP_INFO (this->get_logger (), "state_timeout_sec: %.2f sec -> %lu counts", timeout_sec, timeout_count_);
 }
 
 uint64_t mermaid_state_machine::get_or_create_state_id (const std::string &state_name) {
@@ -49,13 +56,13 @@ uint64_t mermaid_state_machine::get_or_create_state_id (const std::string &state
 }
 
 std::string mermaid_state_machine::get_current_scope_name () {
-    std::string s;
-    for (const auto &p : scope_stack_) {
-        if (!p.empty ()) {
-            s += "/" + p;
+    std::string str;
+    for (const auto &scope : scope_stack_) {
+        if (!scope.empty ()) {
+            str += "/" + scope;
         }
     }
-    return s.empty () ? "/" : s;
+    return str.empty () ? "/" : str;
 }
 
 std::string mermaid_state_machine::join_scope (const std::string &scope, const std::string &name) {
@@ -72,32 +79,34 @@ void mermaid_state_machine::parse_state_graph (const std::string &path) {
     scope_stack_.clear ();
     scope_stack_.push_back ("");
 
+    state_graph_.graph_name = path;
     std::ifstream ifs (path);
     if (!ifs.is_open ()) {
         RCLCPP_ERROR (get_logger (), "Failed to open %s", path.c_str ());
         return;
     }
-    auto trim = [] (std::string &s) {
-        s.erase (0, s.find_first_not_of (" \t"));
-        s.erase (s.find_last_not_of (" \t") + 1);
+
+    auto trim = [] (std::string &str) {
+        str.erase (0, str.find_first_not_of (" \t"));
+        str.erase (str.find_last_not_of (" \t") + 1);
     };
 
     get_or_create_state_id ("/_entry");
     get_or_create_state_id ("/_exit");
 
     std::vector<std::string> lines;
-    std::string              line;
+    std::string              temp_line;
 
-    while (std::getline (ifs, line)) {
-        trim (line);
-        if (line.empty () || line == "stateDiagram-v2") continue;
-        lines.push_back (line);
+    while (std::getline (ifs, temp_line)) {
+        trim (temp_line);
+        if (temp_line.empty () || temp_line == "stateDiagram-v2") continue;
+        lines.push_back (temp_line);
     }
 
     std::unordered_set<std::string> defined_states;
-    for (const auto &l : lines) {
-        if (l.rfind ("state ", 0) == 0 && l.back () == '{') {
-            std::string name = l.substr (6, l.size () - 7);
+    for (const auto &line : lines) {
+        if (line.rfind ("state ", 0) == 0 && line.back () == '{') {
+            std::string name = line.substr (6, line.size () - 7);
             trim (name);
             std::string parent_scope = get_current_scope_name ();
             scope_stack_.push_back (name);
@@ -105,29 +114,29 @@ void mermaid_state_machine::parse_state_graph (const std::string &path) {
             defined_states.insert (scope);
             get_or_create_state_id (join_scope (scope, "_entry"));
             get_or_create_state_id (join_scope (scope, "_exit"));
-        } else if (l == "}") {
+        } else if (line == "}") {
             scope_stack_.pop_back ();
         }
     }
 
     scope_stack_.clear ();
     scope_stack_.push_back ("");
-    for (const auto &l : lines) {
-        if (l.rfind ("state ", 0) == 0 && l.back () == '{') {
-            std::string name = l.substr (6, l.size () - 7);
+    for (const auto &line : lines) {
+        if (line.rfind ("state ", 0) == 0 && line.back () == '{') {
+            std::string name = line.substr (6, line.size () - 7);
             trim (name);
             scope_stack_.push_back (name);
             continue;
         }
-        if (l == "}") {
+        if (line == "}") {
             scope_stack_.pop_back ();
             continue;
         }
 
-        auto arrow = l.find ("-->");
+        auto arrow = line.find ("-->");
         if (arrow != std::string::npos) {
-            std::string left  = l.substr (0, arrow);
-            std::string right = l.substr (arrow + 3);
+            std::string left  = line.substr (0, arrow);
+            std::string right = line.substr (arrow + 3);
             trim (left);
             trim (right);
 
@@ -158,17 +167,16 @@ void mermaid_state_machine::parse_state_graph (const std::string &path) {
             uint64_t from_id = get_or_create_state_id (from);
             uint64_t to_id   = get_or_create_state_id (to);
 
-            natto_msgs::msg::StateTransition t;
-            t.from_state_id = from_id;
-            t.to_state_id   = to_id;
-            t.condition     = condition;
-            state_graph_.transitions.push_back (t);
-
-            RCLCPP_INFO (get_logger (), "Parsed transition: %s --> %s%s", from.c_str (), to.c_str (), condition.empty () ? "" : (" [condition: " + condition + "]").c_str ());
+            natto_msgs::msg::StateTransition transition;
+            transition.from_state_id = from_id;
+            transition.to_state_id   = to_id;
+            transition.condition     = condition;
+            state_graph_.transitions.push_back (transition);
         }
     }
 
     current_state_results_.resize (next_state_id_, false);
+    action_timeout_counts_.resize (next_state_id_, 0);
 }
 
 void mermaid_state_machine::state_result_callback (const natto_msgs::msg::StateResult::SharedPtr msg) {
@@ -189,72 +197,79 @@ void mermaid_state_machine::timer_callback () {
         current_state_ids_.push_back (get_or_create_state_id ("/_entry"));
     }
 
-    std::vector<uint64_t> next_states;
+    std::vector<uint64_t> next_state_ids = current_state_ids_;
+
+    for (auto state_id : current_state_ids_) {
+        if (action_timeout_counts_[state_id] > 0) {
+            action_timeout_counts_[state_id]--;
+        }
+    }
 
     for (auto state_id : current_state_ids_) {
         bool parents_done = true;
         for (const auto &t : state_graph_.transitions) {
-            if (t.to_state_id == state_id) {
-                if (std::find (current_state_ids_.begin (), current_state_ids_.end (), t.from_state_id) != current_state_ids_.end ()) {
-                    parents_done = false;
-                    break;
-                }
+            if (t.to_state_id == state_id && std::find (current_state_ids_.begin (), current_state_ids_.end (), t.from_state_id) != current_state_ids_.end ()) {
+                parents_done = false;
+                break;
             }
         }
         if (!parents_done) continue;
 
-        for (const auto &t : state_graph_.transitions) {
-            if (t.from_state_id == state_id && !t.condition.empty ()) {
-                if (!current_state_results_[state_id]) {
-                    natto_msgs::msg::StateAction action;
-                    action.state_id = state_id;
+        for (const auto &transition : state_graph_.transitions) {
+            if (transition.from_state_id != state_id || transition.condition.empty ()) continue;
 
-                    std::regex  action_regex (R"(^\s*([a-zA-Z0-9_]+)\((.*)\)\s*$)");
-                    std::smatch match;
-                    if (std::regex_match (t.condition, match, action_regex)) {
-                        action.action_name   = match[1];
-                        std::string args_str = match[2];
+            bool send_action = (!current_state_results_[state_id] || action_timeout_counts_[state_id] == 0);
+            if (send_action) {
+                natto_msgs::msg::StateAction action;
+                action.state_id = state_id;
 
-                        std::regex        arg_regex (R"(\s*([^=]+)\s*=\s*(.+)\s*)");
-                        std::stringstream ss (args_str);
-                        std::string       token;
-                        while (std::getline (ss, token, ',')) {
-                            std::smatch arg_match;
-                            if (std::regex_match (token, arg_match, arg_regex)) {
-                                std::string name  = arg_match[1];
-                                std::string value = arg_match[2];
+                std::regex  action_regex (R"(^\s*([a-zA-Z0-9_]+)\((.*)\)\s*$)");
+                std::smatch match;
+                if (std::regex_match (transition.condition, match, action_regex)) {
+                    action.action_name   = match[1];
+                    std::string args_str = match[2];
 
-                                name.erase (0, name.find_first_not_of (" \t"));
-                                name.erase (name.find_last_not_of (" \t") + 1);
-
-                                if (!value.empty () && value[0] != '\'' && value[0] != '"') {
-                                    value.erase (remove_if (value.begin (), value.end (), ::isspace), value.end ());
-                                }
-                                action.arguments_names.push_back (name);
-                                action.arguments_values.push_back (value);
+                    std::regex        arg_regex (R"(\s*([^=]+)\s*=\s*(.+)\s*)");
+                    std::stringstream ss (args_str);
+                    std::string       token;
+                    while (std::getline (ss, token, ',')) {
+                        std::smatch arg_match;
+                        if (std::regex_match (token, arg_match, arg_regex)) {
+                            std::string name  = arg_match[1];
+                            std::string value = arg_match[2];
+                            name.erase (0, name.find_first_not_of (" \t"));
+                            name.erase (name.find_last_not_of (" \t") + 1);
+                            if (!value.empty () && value[0] != '\'' && value[0] != '"') {
+                                value.erase (remove_if (value.begin (), value.end (), ::isspace), value.end ());
                             }
+                            action.arguments_names.push_back (name);
+                            action.arguments_values.push_back (value);
                         }
-                    } else {
-                        RCLCPP_WARN (get_logger (), "Invalid action format: '%s'", t.condition.c_str ());
                     }
-
-                    state_action_publisher_->publish (action);
-
-                    next_states.push_back (state_id);
                 }
+
+                state_action_publisher_->publish (action);
+                action_timeout_counts_[state_id] = timeout_count_;
             }
         }
-        for (const auto &t : state_graph_.transitions) {
-            if (t.from_state_id == state_id) {
-                bool can_transition = t.condition.empty () || current_state_results_[state_id];
+
+        for (const auto &transition : state_graph_.transitions) {
+            if (transition.from_state_id == state_id) {
+                bool can_transition = transition.condition.empty () || current_state_results_[state_id];
                 if (can_transition) {
-                    next_states.push_back (t.to_state_id);
+                    for (size_t i = 0; i < next_state_ids.size (); ++i) {
+                        if (next_state_ids[i] == state_id) {
+                            next_state_ids[i] = transition.to_state_id;
+                        }
+                    }
+                    current_state_results_[transition.to_state_id] = false;
+                    action_timeout_counts_[transition.to_state_id] = 0;
                 }
             }
         }
     }
 
-    current_state_ids_ = next_states;
+    current_state_ids_ = next_state_ids;
 }
 
 }  // namespace mermaid_state_machine

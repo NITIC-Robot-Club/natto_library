@@ -38,11 +38,13 @@ class mermaid_state_machine : public rclcpp::Node {
    private:
     natto_msgs::msg::StateGraph state_graph_;
 
-    std::vector<uint64_t>                     current_state_ids_;
     std::vector<bool>                         current_state_results_;
-    std::unordered_map<std::string, uint64_t> state_name_to_id_;
+    std::vector<uint64_t>                     action_timeout_counts_;
+    std::vector<uint64_t>                     current_state_ids_;
     std::vector<std::string>                  scope_stack_;
+    std::unordered_map<std::string, uint64_t> state_name_to_id_;
 
+    uint64_t timeout_count_;
     uint64_t next_state_id_ = 1;
 
     void        parse_state_graph (const std::string &mermaid_path);

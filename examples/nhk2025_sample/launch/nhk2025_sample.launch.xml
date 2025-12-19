@@ -16,7 +16,7 @@
     <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
     <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/simulation.yaml"/>
     <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
-    <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample_state.md"/>
+    <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
 
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
