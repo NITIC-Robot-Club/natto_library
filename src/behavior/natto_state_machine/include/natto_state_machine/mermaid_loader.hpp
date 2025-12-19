@@ -52,8 +52,7 @@ class mermaid_loader : public rclcpp::Node {
     std::string get_current_scope_name ();
     std::string join_scope (const std::string &scope, const std::string &name);
 
-
-    rclcpp::Publisher<natto_msgs::msg::StateGraph>::SharedPtr     state_graph_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::StateGraph>::SharedPtr state_graph_publisher_;
 };
 }  // namespace mermaid_loader
 

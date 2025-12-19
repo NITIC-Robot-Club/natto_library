@@ -55,16 +55,10 @@ void state_machine::state_graph_callback (const natto_msgs::msg::StateGraph::Sha
     current_state_results_.assign (required_size, false);
     action_timeout_counts_.assign (required_size, 0);
 
-    current_state_ids_.erase (
-        std::remove_if (
-            current_state_ids_.begin (), current_state_ids_.end (),
-            [required_size] (uint64_t id) { return id >= required_size; }),
-        current_state_ids_.end ());
+    current_state_ids_.erase (std::remove_if (current_state_ids_.begin (), current_state_ids_.end (), [required_size] (uint64_t id) { return id >= required_size; }), current_state_ids_.end ());
 
     if (current_state_ids_.empty () && !state_graph_.states.empty ()) {
-        const auto entry_it = std::find_if (
-            state_graph_.states.begin (), state_graph_.states.end (),
-            [] (const auto &state) { return state.state_name == "/_entry"; });
+        const auto entry_it = std::find_if (state_graph_.states.begin (), state_graph_.states.end (), [] (const auto &state) { return state.state_name == "/_entry"; });
         if (entry_it != state_graph_.states.end ()) {
             current_state_ids_.push_back (entry_it->state_id);
         } else {
@@ -103,9 +97,7 @@ void state_machine::timer_callback () {
         return;
     }
     if (current_state_ids_.empty ()) {
-        const auto entry_it = std::find_if (
-            state_graph_.states.begin (), state_graph_.states.end (),
-            [] (const auto &state) { return state.state_name == "/_entry"; });
+        const auto entry_it = std::find_if (state_graph_.states.begin (), state_graph_.states.end (), [] (const auto &state) { return state.state_name == "/_entry"; });
         if (entry_it != state_graph_.states.end ()) {
             current_state_ids_.push_back (entry_it->state_id);
         } else {

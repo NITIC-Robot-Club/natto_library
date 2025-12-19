@@ -18,7 +18,7 @@
 namespace mermaid_loader {
 
 mermaid_loader::mermaid_loader (const rclcpp::NodeOptions &node_options) : Node ("mermaid_loader", node_options) {
-    state_graph_publisher_      = this->create_publisher<natto_msgs::msg::StateGraph> ("state_graph", rclcpp::QoS (1).transient_local ().reliable ());
+    state_graph_publisher_ = this->create_publisher<natto_msgs::msg::StateGraph> ("state_graph", rclcpp::QoS (1).transient_local ().reliable ());
 
     std::string mermaid_path = this->declare_parameter<std::string> ("mermaid_path", "");
     parse_state_graph (mermaid_path);
