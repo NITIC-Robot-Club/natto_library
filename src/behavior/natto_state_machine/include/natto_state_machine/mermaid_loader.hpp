@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __MERMAID_STATE_MACHINE_HPP__
-#define __MERMAID_STATE_MACHINE_HPP__
+#ifndef __MERMAID_LOADER_HPP__
+#define __MERMAID_LOADER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -30,10 +30,10 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mermaid_state_machine {
-class mermaid_state_machine : public rclcpp::Node {
+namespace mermaid_loader {
+class mermaid_loader : public rclcpp::Node {
    public:
-    mermaid_state_machine (const rclcpp::NodeOptions &node_options);
+    mermaid_loader (const rclcpp::NodeOptions &node_options);
 
    private:
     natto_msgs::msg::StateGraph state_graph_;
@@ -52,17 +52,9 @@ class mermaid_state_machine : public rclcpp::Node {
     std::string get_current_scope_name ();
     std::string join_scope (const std::string &scope, const std::string &name);
 
-    void state_result_callback (const natto_msgs::msg::StateResult::SharedPtr msg);
-    void force_set_state_callback (const std_msgs::msg::UInt64::SharedPtr msg);
-
-    void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateGraph>::SharedPtr     state_graph_publisher_;
-    rclcpp::Publisher<natto_msgs::msg::StateAction>::SharedPtr    state_action_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::StateResult>::SharedPtr state_result_subscriber_;
-    rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr        force_set_state_subscriber_;
-    rclcpp::TimerBase::SharedPtr                                  timer_;
 };
-}  // namespace mermaid_state_machine
+}  // namespace mermaid_loader
 
-#endif  // __MERMAID_STATE_MACHINE_HPP__
+#endif  // __MERMAID_LOADER_HPP__

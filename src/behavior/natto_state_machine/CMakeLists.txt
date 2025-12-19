@@ -14,8 +14,13 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "mermaid_state_machine::mermaid_state_machine"
-    EXECUTABLE mermaid_state_machine
+    PLUGIN "mermaid_loader::mermaid_loader"
+    EXECUTABLE mermaid_loader
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "state_machine::state_machine"
+    EXECUTABLE state_machine
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
