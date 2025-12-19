@@ -1,6 +1,5 @@
 <launch>
     <arg name="chassis_type" default="swerve"/>
-    <arg name="use_joy_control" default="false"/>
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
@@ -22,7 +21,6 @@
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="use_odom_tf" value="false"/>
-        <arg name="use_joy_control" value="$(var use_joy_control)"/>
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
         <arg name="use_ransac" value="$(var use_ransac)"/>
         <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>

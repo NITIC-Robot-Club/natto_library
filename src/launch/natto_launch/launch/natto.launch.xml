@@ -68,7 +68,6 @@
         <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
-        <arg name="use_joy_control" value="$(var use_joy_control)"/>
     </include>
 
     <!-- 行動管理 -->
