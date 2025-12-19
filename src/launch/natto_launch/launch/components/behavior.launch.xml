@@ -1,0 +1,8 @@
+<launch>
+    <arg name="state_graph_path" default=""/>
+    <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/behavior">
+        <composable_node pkg="natto_state_machine" plugin="mermaid_state_machine::mermaid_state_machine" name="mermaid_state_machine" namespace="/behavior">
+            <param name="mermaid_path" value="$(var state_graph_path)"/>
+        </composable_node>
+    </node_container>
+</launch>
