@@ -27,4 +27,4 @@ SHELL ["/bin/bash", "-c"]
 
 RUN rosdep install -y --from-paths src --ignore-src && \
     source /opt/ros/humble/setup.bash && \
-    colcon build --symlink-install
+    ./colcon_build.sh

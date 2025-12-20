@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="publish_map" default="true"/>
     <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
     <arg name="circles_path" default="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
@@ -7,13 +8,13 @@
 
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/common">
         <!-- マップローダー -->
-        <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader" namespace="/common">
+        <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader" namespace="/common" if="$(var publish_map)">
             <param name="line_segments_path" value="$(var line_segments_path)"/>
             <param name="circles_path" value="$(var circles_path)"/>
         </composable_node>
 
         <!-- OccupancyGrid変換 -->
-        <composable_node pkg="natto_map" plugin="map_converter::map_converter" name="map_converter" namespace="/common">
+        <composable_node pkg="natto_map" plugin="map_converter::map_converter" name="map_converter" namespace="/common" if="$(var publish_map)">
             <param name="resolution" value="$(var occupancy_grid_resolution)"/>
         </composable_node>
 

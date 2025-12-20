@@ -9,6 +9,11 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "button_manager::button_manager"
+    EXECUTABLE button_manager
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "joy_to_twist::joy_to_twist"
     EXECUTABLE joy_to_twist
 )

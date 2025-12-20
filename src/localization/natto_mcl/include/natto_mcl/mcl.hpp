@@ -27,6 +27,7 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
@@ -48,26 +49,32 @@ class mcl : public rclcpp::Node {
 
    private:
     std::string map_frame_id_, odom_frame_id_, base_frame_id_;
+    bool        use_odom_tf_;
     int         num_particles_;
     double      initial_pose_x_, initial_pose_y_, initial_pose_yaw_deg_;
     double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_yaw_deg_;
     double      normal_noise_position_, normal_noise_orientation_deg_, expansion_radius_position_, expansion_radius_orientation_deg_;
     double      laser_likelihood_max_dist_, transform_tolerance_;
-    double      resolution_;
+    double      resolution_, delta_t_;
     int         width_, height_;
+    double      origin_x_, origin_y_;
 
-    double last_map_to_odom_theta_;
+    double last_map_to_odom_yaw_;
 
     std::vector<particle>             particles_;
     geometry_msgs::msg::Transform     last_odom_to_base_transform_;
+    nav_msgs::msg::Odometry           last_odometry_, latest_odometry_;
     std::vector<std::vector<uint8_t>> likelihood_field_;
 
     std::vector<float> scan_x_, scan_y_;
     int                scan_size_;
 
-    void   occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-    void   pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
-    void   initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+    void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+    void pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+    void initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+    void odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg);
+    void timer_callback ();
+
     void   initialize_particles (double x, double y, double yaw);
     void   motion_update (double delta_x, double delta_y, double delta_yaw);
     void   resample_particles ();
@@ -85,12 +92,19 @@ class mcl : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformListener>    tf_listener_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr trajectory_publisher_;
+    geometry_msgs::msg::PoseArray                               trajectory_msg_;
+    size_t                                                      max_trajectory_length_;
+
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr                  pose_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr                    particles_publisher_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr                  occupancy_grid_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr                 pointcloud2_subscriber_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                       odometry_subscriber_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr    pose_with_covariance_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_with_covariance_subscriber_;
+
+    rclcpp::TimerBase::SharedPtr timer_;
 };
 }  // namespace mcl
 

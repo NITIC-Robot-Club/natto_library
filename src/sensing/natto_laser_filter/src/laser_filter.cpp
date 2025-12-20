@@ -17,11 +17,11 @@
 namespace laser_filter {
 
 laser_filter::laser_filter (const rclcpp::NodeOptions &node_options) : Node ("laser_filter", node_options) {
-    publisher_  = this->create_publisher<sensor_msgs::msg::LaserScan> ("output", 10);
-    subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", 10, std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
+    publisher_  = this->create_publisher<sensor_msgs::msg::LaserScan> ("output", rclcpp::SensorDataQoS ());
+    subscriber_ = this->create_subscription<sensor_msgs::msg::LaserScan> ("input", rclcpp::SensorDataQoS (), std::bind (&laser_filter::scan_callback, this, std::placeholders::_1));
 
     threshold_ = this->declare_parameter<double> ("threshold", 0.83);
-    RCLCPP_INFO (this->get_logger (), "laser_filter node has been started.");
+    RCLCPP_INFO (this->get_logger (), "laser_filter node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "threshold : %0.2f", threshold_);
 }
 
@@ -37,8 +37,8 @@ void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr m
         double r1 = ranges[i], r2 = ranges[i + 1];
         if (!std::isfinite (r1) || !std::isfinite (r2)) continue;
 
-        double th1 = angle_min + i * angle_inc;
-        double th2 = angle_min + (i + 1) * angle_inc;
+        double th1 = angle_min + static_cast<double> (i) * angle_inc;
+        double th2 = angle_min + static_cast<double> (i + 1) * angle_inc;
 
         double Ax = r1 * std::cos (th1), Ay = r1 * std::sin (th1);
         double Bx = r2 * std::cos (th2), By = r2 * std::sin (th2);

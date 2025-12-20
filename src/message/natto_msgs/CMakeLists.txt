@@ -15,6 +15,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Map.msg"
   "msg/Omni.msg"
   "msg/SpeedPath.msg"
+  "msg/State.msg"
+  "msg/StateAction.msg"
+  "msg/StateGraph.msg"
+  "msg/StateResult.msg"
+  "msg/StateTransition.msg"
   "msg/Swerve.msg"
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces
 )

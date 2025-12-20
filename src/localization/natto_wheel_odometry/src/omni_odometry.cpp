@@ -17,39 +17,44 @@
 namespace omni_odometry {
 
 omni_odometry::omni_odometry (const rclcpp::NodeOptions &node_options) : Node ("omni_odometry", node_options) {
-    twist_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
-    pose_publisher_  = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
+    pose_publisher_     = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS ());
+
     omni_subscriber_ = this->create_subscription<natto_msgs::msg::Omni> ("omni_result", 10, std::bind (&omni_odometry::omni_callback, this, std::placeholders::_1));
     tf_broadcaster_  = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    wheel_radius_    = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    wheel_angle      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
-    frame_id_        = this->declare_parameter<std::string> ("frame_id", "odom");
-    child_frame_id_  = this->declare_parameter<std::string> ("child_frame_id", "base_link");
-    publish_tf_      = this->declare_parameter<bool> ("publish_tf", true);
+    wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
+    wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    wheel_angle_      = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {-45.0, 45.0, 135.0, -135.0});
+    odom_frame_id_    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    base_frame_id_    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
+    publish_tf_       = this->declare_parameter<bool> ("publish_tf", true);
 
-    num_wheels_ = wheel_position_x.size ();
-    if (wheel_position_y.size () != num_wheels_) {
+    num_wheels_ = wheel_position_x_.size ();
+    if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
     }
-    if (wheel_angle.size () != num_wheels_) {
+    if (wheel_angle_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
         throw std::runtime_error ("wheel_angle must have the same size as wheel_position_x and wheel_position_y.");
     }
 
     RCLCPP_INFO (this->get_logger (), "omni_odometry node has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "Wheel radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %d", num_wheels_);
-    for (int i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "Wheel %d position: (%.2f, %.2f), angle: %.2f", i, wheel_position_x[i], wheel_position_y[i], wheel_angle[i]);
+    RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
+    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    for (size_t i = 0; i < num_wheels_; i++) {
+        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f), wheel_angle[%zu]: %.2f", i, wheel_position_x_[i], wheel_position_y_[i], i, wheel_angle_[i]);
     }
-    RCLCPP_INFO (this->get_logger (), "frame id : %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
 
-    last_pose.header.frame_id = frame_id_;
-    last_pose.header.stamp    = this->now ();
+    RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "base_frame_id : %s", base_frame_id_.c_str ());
+
+    last_pose_.header.frame_id = odom_frame_id_;
+    last_pose_.header.stamp    = this->now ();
 }
 
 void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
@@ -61,13 +66,13 @@ void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
-    for (int i = 0; i < num_wheels_; i++) {
-        double angle = wheel_angle[i] * M_PI / 180.0;
+    for (size_t i = 0; i < num_wheels_; i++) {
+        double angle = wheel_angle_[i] * M_PI / 180.0;
         double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
 
         double c     = std::cos (angle);
         double s     = std::sin (angle);
-        double ax[3] = {c, s, (-wheel_position_y[i] * c + wheel_position_x[i] * s)};
+        double ax[3] = {c, s, (-wheel_position_y_[i] * c + wheel_position_x_[i] * s)};
         double b     = speed;
 
         for (int row = 0; row < 3; row++) {
@@ -98,41 +103,51 @@ void omni_odometry::omni_callback (const natto_msgs::msg::Omni::SharedPtr msg) {
     double vy   = A[1][3];
     double vyaw = A[2][3];
 
-    double delta_t   = (this->now () - last_pose.header.stamp).seconds ();
+    double delta_t   = (this->now () - last_pose_.header.stamp).seconds ();
     double delta_x   = vx * delta_t;
     double delta_y   = vy * delta_t;
     double delta_yaw = vyaw * delta_t;
 
-    double          last_yaw = tf2::getYaw (last_pose.pose.orientation);
+    double          last_yaw = tf2::getYaw (last_pose_.pose.orientation);
     double          new_yaw  = last_yaw + delta_yaw;
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, new_yaw);
-    last_pose.pose.position.x += delta_x * std::cos (last_yaw) - delta_y * std::sin (last_yaw);
-    last_pose.pose.position.y += delta_x * std::sin (last_yaw) + delta_y * std::cos (last_yaw);
-    last_pose.pose.orientation.x = q.x ();
-    last_pose.pose.orientation.y = q.y ();
-    last_pose.pose.orientation.z = q.z ();
-    last_pose.pose.orientation.w = q.w ();
-    last_pose.header.stamp       = this->now ();
-    pose_publisher_->publish (last_pose);
+    last_pose_.pose.position.x += delta_x * std::cos (last_yaw) - delta_y * std::sin (last_yaw);
+    last_pose_.pose.position.y += delta_x * std::sin (last_yaw) + delta_y * std::cos (last_yaw);
+    last_pose_.pose.orientation.x = q.x ();
+    last_pose_.pose.orientation.y = q.y ();
+    last_pose_.pose.orientation.z = q.z ();
+    last_pose_.pose.orientation.w = q.w ();
+    last_pose_.header.stamp       = this->now ();
+    pose_publisher_->publish (last_pose_);
 
     geometry_msgs::msg::TwistStamped twist;
-    twist.header.frame_id = child_frame_id_;
+    twist.header.frame_id = base_frame_id_;
     twist.header.stamp    = this->now ();
     twist.twist.linear.x  = vx;
     twist.twist.linear.y  = vy;
     twist.twist.angular.z = vyaw;
     twist_publisher_->publish (twist);
 
-    geometry_msgs::msg::TransformStamped tf_msg;
-    tf_msg.header.stamp            = this->now ();
-    tf_msg.header.frame_id         = frame_id_;
-    tf_msg.child_frame_id          = child_frame_id_;
-    tf_msg.transform.translation.x = last_pose.pose.position.x;
-    tf_msg.transform.translation.y = last_pose.pose.position.y;
-    tf_msg.transform.translation.z = last_pose.pose.position.z;
-    tf_msg.transform.rotation      = last_pose.pose.orientation;
-    tf_broadcaster_->sendTransform (tf_msg);
+    nav_msgs::msg::Odometry odom;
+    odom.header.frame_id = odom_frame_id_;
+    odom.child_frame_id  = base_frame_id_;
+    odom.header.stamp    = this->now ();
+    odom.pose.pose       = last_pose_.pose;
+    odom.twist.twist     = twist.twist;
+    odometry_publisher_->publish (odom);
+
+    if (publish_tf_) {
+        geometry_msgs::msg::TransformStamped tf_msg;
+        tf_msg.header.stamp            = this->now ();
+        tf_msg.header.frame_id         = odom_frame_id_;
+        tf_msg.child_frame_id          = base_frame_id_;
+        tf_msg.transform.translation.x = last_pose_.pose.position.x;
+        tf_msg.transform.translation.y = last_pose_.pose.position.y;
+        tf_msg.transform.translation.z = last_pose_.pose.position.z;
+        tf_msg.transform.rotation      = last_pose_.pose.orientation;
+        tf_broadcaster_->sendTransform (tf_msg);
+    }
 }
 
 }  // namespace omni_odometry

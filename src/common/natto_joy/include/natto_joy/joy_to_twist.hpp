@@ -19,7 +19,6 @@ class joy_to_twist : public rclcpp::Node {
 
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr         joy_subscriber_;
-    rclcpp::TimerBase::SharedPtr                                   timer_;
 };
 }  // namespace joy_to_twist
 

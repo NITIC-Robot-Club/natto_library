@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    power_on_button: 0
+    power_off_button: 1
+    allow_auto_drive_method: "toggle"
+    allow_auto_drive_on_button: 2
+    allow_auto_drive_off_button: 3

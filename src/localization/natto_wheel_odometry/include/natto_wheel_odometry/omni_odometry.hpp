@@ -23,6 +23,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "natto_msgs/msg/omni.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace omni_odometry {
@@ -32,22 +33,23 @@ class omni_odometry : public rclcpp::Node {
 
    private:
     double      wheel_radius_;
-    int         num_wheels_;
-    std::string frame_id_;
-    std::string child_frame_id_;
+    size_t      num_wheels_;
+    std::string odom_frame_id_;
+    std::string base_frame_id_;
     bool        publish_tf_;
 
-    std::vector<double> wheel_position_x;
-    std::vector<double> wheel_position_y;
-    std::vector<double> wheel_angle;
+    std::vector<double> wheel_position_x_;
+    std::vector<double> wheel_position_y_;
+    std::vector<double> wheel_angle_;
 
-    geometry_msgs::msg::PoseStamped last_pose;
+    geometry_msgs::msg::PoseStamped last_pose_;
 
     void omni_callback (const natto_msgs::msg::Omni::SharedPtr msg);
 
     // メンバ変数宣言例:
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr  pose_publisher_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr          odometry_publisher_;
     rclcpp::Subscription<natto_msgs::msg::Omni>::SharedPtr         omni_subscriber_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                 tf_broadcaster_;
 };

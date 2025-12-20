@@ -1,47 +1,42 @@
 <launch>
     <arg name="chassis_type" default="swerve"/>
-    <arg name="chassis_param_name" default="$(var chassis_type)_params.yaml"/>
-    <let name="chassis_param_path" value="$(find-pkg-share nhk2025_sample)/config/$(var chassis_param_name)"/>
+    <arg name="use_laserscan_convert" default="true"/>
+    <arg name="use_ransac" default="true"/>
+    <arg name="occupancy_grid_resolution" default="0.05"/>
+    <arg name="merged_lidar_publish_frequency" default="40.0"/>
+    <arg name="initial_allow_auto_drive" default="true"/>
 
+    <arg name="chassis_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve.yaml"/>
+    <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
+    <arg name="circles_path" default="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
+    <arg name="footprint_param_path" default="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
+    <arg name="lidar_param_path" default="$(find-pkg-share nhk2025_sample)/config/lidar.yaml"/>
+    <arg name="control_param_path" default="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
+    <arg name="planning_param_path" default="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
+    <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
+    <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/simulation.yaml"/>
+    <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
+    <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
 
-    <!-- コモン -->
-    <include file="$(find-pkg-share natto_launch)/launch/common.launch.xml">
-        <arg name="line_segments_path" value="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
-        <arg name="circles_path" value="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
-        <arg name="occupancy_grid_resolution" value="0.05"/>
-        <arg name="footprint_param_path" value="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
-    </include>
-
-    <!-- シミュレーション -->
-    <include file="$(find-pkg-share natto_launch)/launch/simulation.launch.xml">
+    <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="initial_pose_x" value="1.0"/>
-        <arg name="initial_pose_y" value="1.0"/>
-        <arg name="initial_pose_yaw_deg" value="0.0"/>
+        <arg name="use_odom_tf" value="false"/>
+        <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
+        <arg name="use_ransac" value="$(var use_ransac)"/>
+        <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
+        <arg name="merged_lidar_publish_frequency" value="$(var merged_lidar_publish_frequency)"/>
         <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="lidar_param_path" value="$(find-pkg-share nhk2025_sample)/config/lidar_params.yaml"/>
-    </include>
-
-    <!-- センシング -->
-    <include file="$(find-pkg-share natto_launch)/launch/sensing.launch.xml"/>
-
-    <!-- コントロール -->
-    <include file="$(find-pkg-share natto_launch)/launch/control.launch.xml">
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="control_param_path" value="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
-        <arg name="planning_param_path" value="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
-        <arg name="use_joy_control" value="false"/>
-    </include>
-
-    <!-- 表示 -->
-    <include file="$(find-pkg-share natto_launch)/launch/visualization.launch.xml">
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-    </include>
-
-    <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/localization.launch.xml">
-        <arg name="localization_param_path" value="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
+        <arg name="line_segments_path" value="$(var line_segments_path)"/>
+        <arg name="circles_path" value="$(var circles_path)"/>
+        <arg name="footprint_param_path" value="$(var footprint_param_path)"/>
+        <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
+        <arg name="planning_param_path" value="$(var planning_param_path)"/>
+        <arg name="control_param_path" value="$(var control_param_path)"/>
+        <arg name="controller_param_path" value="$(var controller_param_path)"/>
+        <arg name="localization_param_path" value="$(var localization_param_path)"/>
+        <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
+        <arg name="state_graph_path" value="$(var state_graph_path)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- TF -->

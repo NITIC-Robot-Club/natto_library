@@ -17,19 +17,19 @@
 namespace laserscan_to_pointcloud2 {
 
 laserscan_to_pointcloud2::laserscan_to_pointcloud2 (const rclcpp::NodeOptions &node_options) : Node ("laserscan_to_pointcloud2", node_options) {
-    pointcloud2_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2> ("pointcloud2", 10);
-    laserscan_subscriber_  = this->create_subscription<sensor_msgs::msg::LaserScan> ("laserscan", 10, std::bind (&laserscan_to_pointcloud2::laser_scan_callback, this, std::placeholders::_1));
+    pointcloud2_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS ());
+    laserscan_subscriber_  = this->create_subscription<sensor_msgs::msg::LaserScan> ("laserscan", rclcpp::SensorDataQoS (), std::bind (&laserscan_to_pointcloud2::laserscan_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 
     frame_id_ = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
 
-    RCLCPP_INFO (this->get_logger (), "laserscan_to_pointcloud2 node has been started.");
-    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "laserscan_to_pointcloud2 node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
 }
 
-void laserscan_to_pointcloud2::laser_scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
+void laserscan_to_pointcloud2::laserscan_callback (const sensor_msgs::msg::LaserScan::SharedPtr msg) {
     sensor_msgs::msg::PointCloud2 pointcloud2;
     pointcloud2.header = msg->header;
 
@@ -41,13 +41,13 @@ void laserscan_to_pointcloud2::laser_scan_callback (const sensor_msgs::msg::Lase
     sensor_msgs::PointCloud2Iterator<float> iter_y (pointcloud2, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z (pointcloud2, "z");
 
-    for (int i = 0; i < msg->ranges.size (); ++i, ++iter_x, ++iter_y, ++iter_z) {
+    for (size_t i = 0; i < msg->ranges.size (); ++i, ++iter_x, ++iter_y, ++iter_z) {
         float r = msg->ranges[i];
         if (r < msg->range_min || r > msg->range_max) {
             *iter_x = *iter_y = *iter_z = std::numeric_limits<float>::quiet_NaN ();
             continue;
         }
-        float angle = msg->angle_min + i * msg->angle_increment;
+        float angle = msg->angle_min + static_cast<float> (i) * msg->angle_increment;
         *iter_x     = r * std::cos (angle);
         *iter_y     = r * std::sin (angle);
         *iter_z     = 0.0;
