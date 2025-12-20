@@ -30,19 +30,28 @@ class default_action : public rclcpp::Node {
     default_action (const rclcpp::NodeOptions &node_options);
 
    private:
+    double frequency_;
+
     uint64_t                 set_pose_state_id_;
     bool                     set_pose_goal_sent_;
     double                   xy_tolerance_m_, yaw_tolerance_deg_;
     geometry_msgs::msg::Pose current_pose_, goal_pose_;
 
+    uint64_t     wait_state_id_;
+    bool         wait_started_;
+    rclcpp::Time wait_start_time_;
+    double       wait_duration_sec_;
+
     void state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);
+    void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateResult>::SharedPtr       state_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_publisher_;
     rclcpp::Subscription<natto_msgs::msg::StateAction>::SharedPtr    state_action_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr             goal_result_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_subscriber_;
+    rclcpp::TimerBase::SharedPtr                                     timer_;
 };
 }  // namespace default_action
 

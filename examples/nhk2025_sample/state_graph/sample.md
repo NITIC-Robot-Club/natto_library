@@ -1,7 +1,8 @@
 ```mermaid
 stateDiagram-v2
 
-[*] --> パイロンどかし : set_pose(x = 1.5, y = 1.0, yaw = 0.0)
+[*] --> 3秒待つ : wait(duration_sec = 3.0)
+3秒待つ --> パイロンどかし : set_pose(x = 1.5, y = 1.0, yaw = 0.0)
 パイロンどかし --> E取り
 E取り --> E落とし
 E落とし --> [*] : set_pose(x = 3.0, y = 3.0, yaw = 180.0)

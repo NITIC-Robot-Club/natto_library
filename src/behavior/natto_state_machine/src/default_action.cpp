@@ -25,10 +25,16 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
 
     xy_tolerance_m_    = this->declare_parameter<double> ("xy_tolerance_m", 0.2);
     yaw_tolerance_deg_ = this->declare_parameter<double> ("yaw_tolerance_deg", 10.0);
+    frequency_         = this->declare_parameter<double> ("frequency", 10.0);
+    timer_             = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency_)), std::bind (&default_action::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "default_action node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "xy_tolerance_m: %.3f", xy_tolerance_m_);
     RCLCPP_INFO (this->get_logger (), "yaw_tolerance_deg: %.3f", yaw_tolerance_deg_);
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
+
+    set_pose_goal_sent_ = false;
+    wait_started_       = false;
 }
 
 void default_action::state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg) {
@@ -51,6 +57,17 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         goal_publisher_->publish (goal);
         set_pose_state_id_  = msg->state_id;
         set_pose_goal_sent_ = true;
+    } else if (msg->action_name == "wait") {
+        wait_state_id_ = msg->state_id;
+        if (!wait_started_) {
+            wait_start_time_ = this->now ();
+        }
+        wait_started_ = true;
+        for (size_t i = 0; i < msg->arguments_names.size (); i++) {
+            if (msg->arguments_names[i] == "duration_sec") {
+                wait_duration_sec_ = std::stod (msg->arguments_values[i]);
+            }
+        }
     }
 }
 
@@ -84,6 +101,20 @@ void default_action::goal_result_callback (const std_msgs::msg::Bool::SharedPtr 
 
         if (msg->data) {
             set_pose_goal_sent_ = false;
+        }
+    }
+}
+
+void default_action::timer_callback () {
+    if (wait_started_) {
+        rclcpp::Time now = this->now ();
+        if ((now - wait_start_time_).seconds () >= wait_duration_sec_) {
+            natto_msgs::msg::StateResult result;
+            result.state_id    = wait_state_id_;
+            result.success     = true;
+            result.action_name = "wait";
+            state_result_publisher_->publish (result);
+            wait_started_ = false;
         }
     }
 }

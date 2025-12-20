@@ -27,7 +27,7 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
     double timeout_sec = this->declare_parameter<double> ("state_timeout_sec", 1.0);
     timeout_count_     = static_cast<uint64_t> (frequency * timeout_sec);
     timer_             = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&state_machine::timer_callback, this));
-
+    
     RCLCPP_INFO (this->get_logger (), "state_machine node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
     RCLCPP_INFO (this->get_logger (), "state_timeout_sec: %.2f sec -> %lu counts", timeout_sec, timeout_count_);
