@@ -99,7 +99,7 @@ void default_action::goal_result_callback (const std_msgs::msg::Bool::SharedPtr 
         result.action_name = "set_pose";
         state_result_publisher_->publish (result);
 
-        if (msg->data) {
+        if (result.success) {
             set_pose_goal_sent_ = false;
         }
     }

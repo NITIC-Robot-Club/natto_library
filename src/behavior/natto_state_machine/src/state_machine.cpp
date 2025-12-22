@@ -136,8 +136,7 @@ void state_machine::timer_callback () {
         for (const auto &transition : state_graph_.transitions) {
             if (transition.from_state_id != state_id || transition.condition.empty ()) continue;
 
-            bool send_action = (!current_state_results_[state_id] || action_timeout_counts_[state_id] == 0);
-            if (send_action) {
+            if (action_timeout_counts_[state_id] == 0) {
                 natto_msgs::msg::StateAction action;
                 action.state_id = state_id;
 
@@ -169,7 +168,7 @@ void state_machine::timer_callback () {
                 state_action_publisher_->publish (action);
                 action_timeout_counts_[state_id] = timeout_count_;
 
-                RCLCPP_DEBUG (this->get_logger (), "Publishing action '%s' for state ID %lu", action.action_name.c_str (), state_id);
+                RCLCPP_INFO (this->get_logger (), "Publishing action '%s' for state ID %lu", action.action_name.c_str (), state_id);
             }
         }
 
