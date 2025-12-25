@@ -149,6 +149,13 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
         } else {
             frame.can_id = (msg.id & CAN_SFF_MASK);
         }
+        bool valid = (msg.len <= 8) || (msg.len == 12 || msg.len == 16 || msg.len == 20 || msg.len == 24 || msg.len == 32 || msg.len == 48 || msg.len == 64);
+        if (!valid) {
+            RCLCPP_ERROR (get_logger (), "Invalid CAN FD data length: %d", msg.len);
+            return;
+        }
+        frame.flags = CANFD_BRS;
+
         frame.len = msg.len;
         std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
 
