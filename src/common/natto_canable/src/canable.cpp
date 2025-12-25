@@ -100,7 +100,7 @@ int canable::init_can_socket () {
 void canable::read_can_socket () {
     while (rclcpp::ok ()) {
         if (use_fd_) {
-            struct canfd_frame frame{};
+            struct canfd_frame frame {};
             ssize_t            nbytes = read (can_socket_, &frame, sizeof (frame));
             if (nbytes < 0) continue;
 
@@ -119,7 +119,7 @@ void canable::read_can_socket () {
             canable_pub_->publish (msg);
 
         } else {
-            struct can_frame frame{};
+            struct can_frame frame {};
             ssize_t          nbytes = read (can_socket_, &frame, sizeof (frame));
             if (nbytes < 0) continue;
 
@@ -143,7 +143,7 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
     int attempt = 0;
 
     if (use_fd_) {
-        struct canfd_frame frame{};
+        struct canfd_frame frame {};
         if (msg.is_extended) {
             frame.can_id = (msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG;
         } else {
@@ -170,7 +170,7 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
             std::this_thread::sleep_for (std::chrono::milliseconds (100));
         }
     } else {
-        struct can_frame frame{};
+        struct can_frame frame {};
         if (msg.is_extended) {
             frame.can_id = (msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG;
         } else {
