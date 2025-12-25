@@ -13,6 +13,7 @@ Panels:
         - /Chassis1
         - /Planning1
         - /Sensing1
+        - /Sensing1/Raw1
         - /Sensing1/Raw1/LaserScan1
         - /Sensing1/Raw1/PointCloud21
         - /Simulation1
@@ -597,6 +598,34 @@ Visualization Manager:
                   Value: true
               Enabled: false
               Name: PointCloud2
+            - Acceleration properties:
+                Acc. vector alpha: 1
+                Acc. vector color: 255; 0; 0
+                Acc. vector scale: 1
+                Derotate acceleration: true
+                Enable acceleration: true
+              Axes properties:
+                Axes scale: 1
+                Enable axes: true
+              Box properties:
+                Box alpha: 1
+                Box color: 255; 0; 0
+                Enable box: false
+                x_scale: 1
+                y_scale: 1
+                z_scale: 1
+              Class: rviz_imu_plugin/Imu
+              Enabled: true
+              Name: Imu
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                Filter size: 10
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /sensing/imu/data_raw
+              Value: true
+              fixed_frame_orientation: true
           Enabled: false
           Name: Raw
         - Alpha: 1
