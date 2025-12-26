@@ -59,7 +59,7 @@ void two_wheel_odometry::two_wheel_callback (const natto_msgs::msg::TwoWheel::Sh
 
     double delta_t   = (this->now () - last_pose_.header.stamp).seconds ();
     double delta_x   = vx * delta_t;
-    double delta_y   = vy * delta_t;
+    double delta_y   = 0.0;  // No lateral movement for differential drive
     double delta_yaw = vyaw * delta_t;
 
     double          last_yaw = tf2::getYaw (last_pose_.pose.orientation);
