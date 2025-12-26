@@ -59,3 +59,35 @@ wheel_angleを元にタイヤの回転方向を計算します。
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | command_velocity | geometry_msgs/msg/TwistStamped | ロボットの指令速度 |
+
+# mecanum_calculator
+mecanum_calculator ノードは、ロボットの指令速度からメカナムホイールの各ホイール速度を計算します
+
+## 機能
+- geometry_msgs/msg/TwistStamped メッセージを受信
+- 各ホイールの速度を計算
+- natto_msgs/msg/Mecanum メッセージとしてパブリッシュ
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| wheel_radius | double | 0.05 | ホイールの半径 |
+| wheel_position_x | std::vector<double> | {0.5, -0.5, -0.5, 0.5} | ホイールのX座標 |
+| wheel_position_y | std::vector<double> | {0.5, 0.5, -0.5, -0.5} | ホイールのY座標 |
+| wheel_angle | std::vector<double> | {-45.0, 45.0, 135.0, -135.0} | ホイールの取り付け角度（度） |
+
+※ホイールの取り付け角度は、ロボット前方を0度として反時計回りに測定します。
+例：　左前に斜め45度で取り付けられている場合、wheel_position_x,yはどちらも正の値となり、wheel_angleは-45.0度となります。
+wheel_angleを元にタイヤの回転方向を計算します。
+もし逆方向に回転する場合180度を加算してください。
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| mecanum_command | natto_msgs/msg/Mecanum | 計算された各ホイール速度 |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| command_velocity | geometry_msgs/msg/TwistStamped | ロボットの指令速度 |
+
