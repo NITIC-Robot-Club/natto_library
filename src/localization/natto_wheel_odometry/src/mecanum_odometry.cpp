@@ -22,7 +22,7 @@ mecanum_odometry::mecanum_odometry (const rclcpp::NodeOptions &node_options) : N
     odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS ());
 
     mecanum_subscriber_ = this->create_subscription<natto_msgs::msg::Mecanum> ("mecanum_result", 10, std::bind (&mecanum_odometry::mecanum_callback, this, std::placeholders::_1));
-    tf_broadcaster_  = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    tf_broadcaster_     = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});

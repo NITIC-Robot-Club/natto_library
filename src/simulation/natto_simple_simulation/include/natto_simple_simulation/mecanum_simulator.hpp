@@ -44,14 +44,14 @@ class mecanum_simulator : public rclcpp::Node {
     std::vector<natto_msgs::msg::Mecanum> received_commands_;
     natto_msgs::msg::Mecanum              command_;
     natto_msgs::msg::Mecanum              result_;
-    geometry_msgs::msg::PoseStamped    current_pose_;
+    geometry_msgs::msg::PoseStamped       current_pose_;
 
     void mecanum_command_callback (const natto_msgs::msg::Mecanum::SharedPtr msg);
     void timer_callback ();
 
-    rclcpp::Publisher<natto_msgs::msg::Mecanum>::SharedPtr           mecanum_result_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::Mecanum>::SharedPtr        mecanum_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::Mecanum>::SharedPtr        mecanum_command_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::Mecanum>::SharedPtr     mecanum_command_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
 };

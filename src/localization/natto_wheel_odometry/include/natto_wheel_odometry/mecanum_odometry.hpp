@@ -49,7 +49,7 @@ class mecanum_odometry : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr  pose_publisher_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr          odometry_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::Mecanum>::SharedPtr         mecanum_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::Mecanum>::SharedPtr      mecanum_subscriber_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                 tf_broadcaster_;
 };
 }  // namespace mecanum_odometry

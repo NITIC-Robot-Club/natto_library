@@ -17,8 +17,8 @@
 namespace mecanum_calculator {
 
 mecanum_calculator::mecanum_calculator (const rclcpp::NodeOptions &node_options) : Node ("mecanum_calculator", node_options) {
-    mecanum_command_publisher_   = this->create_publisher<natto_msgs::msg::Mecanum> ("mecanum_command", 10);
-    twist_command_subscriber_ = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&mecanum_calculator::command_velocity_callback, this, std::placeholders::_1));
+    mecanum_command_publisher_ = this->create_publisher<natto_msgs::msg::Mecanum> ("mecanum_command", 10);
+    twist_command_subscriber_  = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&mecanum_calculator::command_velocity_callback, this, std::placeholders::_1));
 
     wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});

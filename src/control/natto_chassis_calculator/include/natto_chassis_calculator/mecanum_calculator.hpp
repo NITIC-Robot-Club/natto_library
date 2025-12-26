@@ -35,7 +35,7 @@ class mecanum_calculator : public rclcpp::Node {
 
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
-    rclcpp::Publisher<natto_msgs::msg::Mecanum>::SharedPtr               mecanum_command_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::Mecanum>::SharedPtr            mecanum_command_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_subscriber_;
 };
 }  // namespace mecanum_calculator
