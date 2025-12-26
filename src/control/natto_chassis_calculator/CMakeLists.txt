@@ -18,4 +18,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE swerve_calculator
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "two_wheel_calculator::two_wheel_calculator"
+    EXECUTABLE two_wheel_calculator
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

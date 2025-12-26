@@ -23,4 +23,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE lidar_simulator
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "two_wheel_simulator::two_wheel_simulator"
+    EXECUTABLE two_wheel_simulator
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
