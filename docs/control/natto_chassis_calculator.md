@@ -1,5 +1,5 @@
 # natto_chassis_calculator
-natto_chassis_calculator パッケージは、ロボットの走行制御に関する計算ノードを提供します。現在、オムニホイールと独立ステアリングの計算ノードが含まれています。
+natto_chassis_calculator パッケージは、ロボットの走行制御に関する計算ノードを提供します。現在、オムニホイール、独立ステアリング、二輪駆動の計算ノードが含まれています。
 
 # swerve_calculator
 swerve_calculator ノードは、ロボットの指令速度から各ホイールの角度と速度を計算します
@@ -54,6 +54,34 @@ wheel_angleを元にタイヤの回転方向を計算します。
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | omni_command | natto_msgs/msg/Omni | 計算された各ホイール速度 |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| command_velocity | geometry_msgs/msg/TwistStamped | ロボットの指令速度 |
+
+
+# two_wheel_calculator
+two_wheel_calculator ノードは、ロボットの指令速度から二輪駆動の各ホイール速度を計算します
+
+## 機能
+- geometry_msgs/msg/TwistStamped メッセージを受信
+- 各ホイールの速度を計算（横移動は無効化）
+- natto_msgs/msg/TwoWheel メッセージとしてパブリッシュ
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| wheel_radius | double | 0.05 | ホイールの半径 |
+| wheel_base | double | 0.5 | 左右のホイール間の距離 |
+
+※二輪駆動は差動駆動キネマティクスを使用します。
+横移動（Y軸）は無効化され、前後移動（X軸）と回転（Z軸）のみが考慮されます。
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| two_wheel_command | natto_msgs/msg/TwoWheel | 計算された各ホイール速度 |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |

@@ -97,3 +97,33 @@ N輪独立ステアリングロボットの動作を模擬します。
 | - | - | - |
 | /simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
 | /map | natto_msgs::msg::Map | 環境マップデータ |
+
+
+# two_wheel_simulator
+二輪駆動ロボットの動作を模擬します。
+## 機能
+- ホイールの速度からロボットの移動を計算します（差動駆動）。
+- ロボットの位置と姿勢を更新します。
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| wheel_radius | double | 0.05 | ホイールの半径（m） |
+| wheel_base | double | 0.5 | 左右のホイール間の距離（m） |
+| wheel_speed_gain_p | double | 300.0 | ホイール速度の比例ゲイン |
+| wheel_speed_gain_d | double | 100.0 | ホイール速度の微分ゲイン |
+| frequency | double | 1000.0 | シミュレーションの周期（Hz） |
+| initial_pose_x | double | 1.0 | 初期位置のx座標（m） |
+| initial_pose_y | double | 1.0 | 初期位置のy座標（m） |
+| initial_pose_yaw_deg | double | 0.0 | 初期位置のヨー角（度） |
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| two_wheel_result | natto_msgs::msg::TwoWheel | シミュレートされたホイールの速度 |
+| simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| two_wheel_command | natto_msgs::msg::TwoWheel | ホイールの目標速度 |
