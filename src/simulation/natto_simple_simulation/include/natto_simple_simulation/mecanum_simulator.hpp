@@ -26,6 +26,8 @@
 
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <cmath>
+
 namespace mecanum_simulator {
 class mecanum_simulator : public rclcpp::Node {
    public:

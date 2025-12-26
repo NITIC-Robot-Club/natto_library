@@ -26,6 +26,8 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include <cmath>
+
 namespace mecanum_odometry {
 class mecanum_odometry : public rclcpp::Node {
    public:

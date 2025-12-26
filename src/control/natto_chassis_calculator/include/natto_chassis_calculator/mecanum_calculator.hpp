@@ -20,6 +20,8 @@
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "natto_msgs/msg/mecanum.hpp"
 
+#include <cmath>
+
 namespace mecanum_calculator {
 class mecanum_calculator : public rclcpp::Node {
    public:
