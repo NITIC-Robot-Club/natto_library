@@ -86,7 +86,7 @@ void mecanum_simulator::timer_callback () {
 
         result_.wheel_speed[i] += speed_adjustment / frequency_;
 
-        if (abs (received_commands_.back ().wheel_speed[i] - result_.wheel_speed[i]) < 0.01) {
+        if (std::fabs (received_commands_.back ().wheel_speed[i] - result_.wheel_speed[i]) < 0.01) {
             // +の目標から-0.0を目標にしたときなどの見た目の問題
             // 誤差が小さいときは見た目のために一致させる
             result_.wheel_speed[i] = received_commands_.back ().wheel_speed[i];

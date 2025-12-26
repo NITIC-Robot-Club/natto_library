@@ -40,9 +40,9 @@ omni_odometryノードはオムニホイールのオドメトリを計算しま�
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | wheel_radius | double | 0.05 | ホイールの半径（m） |
-| wheel_position_x | double[] | [0.5, -0.5, -0.5, 0.5] | 各ホイールのx座標位置（m） |
-| wheel_position_y | double[] | [0.5, 0.5, -0.5, -0.5] | 各ホイールのy座標位置（m） |
-| wheel_angle | double[] | [-45.0, 45.0, 135.0, -135.0] | 各ホイールの取り付け角度（度） |
+| wheel_position_x | std::vector<double> | [0.5, -0.5, -0.5, 0.5] | 各ホイールのx座標位置（m） |
+| wheel_position_y | std::vector<double> | [0.5, 0.5, -0.5, -0.5] | 各ホイールのy座標位置（m） |
+| wheel_angle | std::vector<double> | [-45.0, 45.0, 135.0, -135.0] | 各ホイールの取り付け角度（度） |
 | odom_frame_id | string | "odom" | オドメトリのフレームID |
 | base_frame_id | string | "base_link" | オドメトリの子フレームID |
 | publish_tf | bool | true | TFをパブリッシュするかどうか |
@@ -70,9 +70,9 @@ mecanum_odometryノードはメカナムホイールのオドメトリを計算�
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | wheel_radius | double | 0.05 | ホイールの半径（m） |
-| wheel_position_x | double[] | [0.5, -0.5, -0.5, 0.5] | 各ホイールのx座標位置（m） |
-| wheel_position_y | double[] | [0.5, 0.5, -0.5, -0.5] | 各ホイールのy座標位置（m） |
-| wheel_angle | double[] | [-45.0, 45.0, 135.0, -135.0] | 各ホイールの取り付け角度（度） |
+| wheel_position_x | std::vector<double> | [0.5, -0.5, -0.5, 0.5] | 各ホイールのx座標位置（m） |
+| wheel_position_y | std::vector<double> | [0.5, 0.5, -0.5, -0.5] | 各ホイールのy座標位置（m） |
+| wheel_angle | std::vector<double> | [-45.0, 45.0, 135.0, -135.0] | 各ホイールの取り付け角度（度） |
 | odom_frame_id | string | "odom" | オドメトリのフレームID |
 | base_frame_id | string | "base_link" | オドメトリの子フレームID |
 | publish_tf | bool | true | TFをパブリッシュするかどうか |

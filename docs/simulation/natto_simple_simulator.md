@@ -42,7 +42,7 @@
 | - | - | - | - |
 | wheel_radius | double | 0.05 | ホイールの半径（m） |
 | wheel_position_x | std::vector<double> | {0.5, -0.5, -0.5, 0.5} | 各ホイールのx座標（m） |
-| wheel_position_y | std::vector<double> | {0.5, 0.5, -0.5, -0.5} | | 各ホイールのy座標（m） |
+| wheel_position_y | std::vector<double> | {0.5, 0.5, -0.5, -0.5} | 各ホイールのy座標（m） |
 | wheel_angle | std::vector<double> | {-45.0, 45.0, 135.0, -135.0} | 各ホイールの取り付け角度（度） |
 | wheel_speed_gain_p | double | 300.0 | ホイール速度の比例ゲイン |
 | wheel_speed_gain_d | double | 100.0 | ホイール速度の微分ゲイン |
