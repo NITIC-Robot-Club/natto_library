@@ -18,18 +18,42 @@ namespace swerve_calculator {
 
 swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) : Node ("swerve_calculator", node_options) {
     swerve_command_publisher_ = this->create_publisher<natto_msgs::msg::Swerve> ("swerve_command", 10);
+    joint_state_publisher_    = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort ());
     twist_command_subscriber_ = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&swerve_calculator::command_velocity_callback, this, std::placeholders::_1));
     swerve_result_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_result", 10, std::bind (&swerve_calculator::swerve_result_callback, this, std::placeholders::_1));
 
     infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+    publish_joint_state_  = this->declare_parameter<bool> ("publish_joint_state", true);
     wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_position_x_     = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
     wheel_position_y_     = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
+    if (publish_joint_state_) {
+        steer_names_ = this->declare_parameter<std::vector<std::string>> ("steer_names", {"swerve_steer_0", "swerve_steer_1", "swerve_steer_2", "swerve_steer_3"});
+        wheel_names_ = this->declare_parameter<std::vector<std::string>> ("wheel_names", {"swerve_wheel_0", "swerve_wheel_1", "swerve_wheel_2", "swerve_wheel_3"});
+    }
 
     num_wheels_ = wheel_position_x_.size ();
     if (wheel_position_y_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
         throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
+    }
+
+    if (publish_joint_state_) {
+        if (steer_names_.size () != num_wheels_) {
+            RCLCPP_ERROR (this->get_logger (), "steer_names size must be equal to number of wheels.");
+            throw std::runtime_error ("steer_names size must be equal to number of wheels.");
+        }
+        if (wheel_names_.size () != num_wheels_) {
+            RCLCPP_ERROR (this->get_logger (), "wheel_names size must be equal to number of wheels.");
+            throw std::runtime_error ("wheel_names size must be equal to number of wheels.");
+        }
+        joint_state_msg_.name.resize (num_wheels_ * 2);
+        joint_state_msg_.position.resize (num_wheels_ * 2);
+        joint_state_msg_.velocity.resize (num_wheels_ * 2);
+        for (size_t i = 0; i < num_wheels_; i++) {
+            joint_state_msg_.name[i * 2 + 0] = steer_names_[i];
+            joint_state_msg_.name[i * 2 + 1] = wheel_names_[i];
+        }
     }
 
     RCLCPP_INFO (this->get_logger (), "swerve_calculator node has been initialized.");
@@ -38,6 +62,9 @@ swerve_calculator::swerve_calculator (const rclcpp::NodeOptions &node_options) :
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
     for (size_t i = 0; i < num_wheels_; i++) {
         RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu] : (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
+        if (publish_joint_state_) {
+            RCLCPP_INFO (this->get_logger (), "  steer_name: %s, wheel_name: %s", steer_names_[i].c_str (), wheel_names_[i].c_str ());
+        }
     }
 }
 
@@ -85,6 +112,14 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
         }
     }
     swerve_command_publisher_->publish (swerve_msg);
+
+    if (publish_joint_state_) {
+        for (size_t i = 0; i < num_wheels_; i++) {
+            joint_state_msg_.position[i * 2 + 0] = swerve_msg.wheel_angle[i];
+            joint_state_msg_.velocity[i * 2 + 1] = swerve_msg.wheel_speed[i] * 2.0 * M_PI;
+        }
+        joint_state_publisher_->publish (joint_state_msg_);
+    }
 }
 
 void swerve_calculator::swerve_result_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
