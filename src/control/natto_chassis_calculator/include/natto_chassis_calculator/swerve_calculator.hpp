@@ -31,20 +31,23 @@ class swerve_calculator : public rclcpp::Node {
     double wheel_radius_;
     size_t num_wheels_;
 
-    std::vector<double>     wheel_position_x_;
-    std::vector<double>     wheel_position_y_;
-    natto_msgs::msg::Swerve swerve_result_;
+    std::vector<double>          wheel_position_x_;
+    std::vector<double>          wheel_position_y_;
+    natto_msgs::msg::Swerve      swerve_result_;
+    sensor_msgs::msg::JointState joint_state_;
 
-    bool                         publish_joint_state_;
+    bool                         use_joint_state_;
     std::vector<std::string>     steer_names_;
     std::vector<std::string>     wheel_names_;
-    sensor_msgs::msg::JointState joint_state_msg_;
+    sensor_msgs::msg::JointState command_joint_state_;
 
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
     void swerve_result_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
+    void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
 
     rclcpp::Publisher<natto_msgs::msg::Swerve>::SharedPtr             swerve_command_publisher_;
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr        joint_state_publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr        command_joint_state_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr     joint_state_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr          swerve_result_subscriber_;
 };

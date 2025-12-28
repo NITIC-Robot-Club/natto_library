@@ -15,6 +15,7 @@
             <remap from="$(var chassis_type)_command" to="/$(var chassis_type)/command"/>
             <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
             <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
+            <remap from="joint_states" to="/joint_states"/>
             <remap from="command_velocity" to="/command_velocity"/>
         </composable_node>
 
