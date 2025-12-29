@@ -42,5 +42,14 @@
     <node pkg="robot_state_publisher" exec="robot_state_publisher" name="robot_state_publisher">
         <param name="robot_description" value="$(command 'xacro $(find-pkg-share nhk2025_sample)/urdf/swerve_sample.urdf.xacro')"/>
         <remap from="/joint_states" to="/joint_states"/>
+        <param name="frame_prefix" value=""/>
     </node>
+    
+    <node pkg="robot_state_publisher" exec="robot_state_publisher" name="command_robot_state_publisher">
+        <param name="robot_description" value="$(command 'xacro $(find-pkg-share nhk2025_sample)/urdf/swerve_sample.urdf.xacro')"/>
+        <remap from="/joint_states" to="/swerve/command_joint_states"/>
+        <param name="frame_prefix" value="command/"/>
+    </node>
+
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_to_command_base" output="screen" args="0 0 0 0 0 0 base_link command/base_link"/>
 </launch>

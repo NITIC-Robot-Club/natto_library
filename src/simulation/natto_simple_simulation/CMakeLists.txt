@@ -19,6 +19,11 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "joint_state_simulator::joint_state_simulator"
+    EXECUTABLE joint_state_simulator
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "lidar_simulator::lidar_simulator"
     EXECUTABLE lidar_simulator
 )
