@@ -44,8 +44,8 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         RCLCPP_ERROR (this->get_logger (), "chassis_type parameter is required.");
         throw std::runtime_error ("chassis_type parameter is required.");
     }
-    
-    wheel_base_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+
+    wheel_base_names_ = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
     if (wheel_base_names_.size () != num_wheels_) {
         RCLCPP_ERROR (this->get_logger (), "wheel_base_names size must be equal to number of wheels.");
         throw std::runtime_error ("wheel_base_names size must be equal to number of wheels.");
@@ -168,9 +168,9 @@ void joint_state_simulator::timer_callback () {
         double ATb[3]    = {};  // A^T * b
 
         for (size_t i = 0; i < num_wheels_; i++) {
-            double angle       = 0.0;
-            double speed       = 0.0;
-            bool   found_wheel = false;
+            double angle            = 0.0;
+            double speed            = 0.0;
+            bool   found_wheel      = false;
             bool   found_wheel_base = false;
             for (size_t j = 0; j < current_.name.size (); j++) {
                 if (current_.name[j] == wheel_names_[i]) {
@@ -178,7 +178,7 @@ void joint_state_simulator::timer_callback () {
                     found_wheel = true;
                 }
                 if (current_.name[j] == wheel_base_names_[i]) {
-                    angle       = current_.position[j];
+                    angle            = current_.position[j];
                     found_wheel_base = true;
                 }
             }
