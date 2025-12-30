@@ -25,16 +25,23 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
     tf_broadcaster_         = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_  = this->declare_parameter<double> ("wheel_radius", 0.05);
+    chassis_type_  = this->declare_parameter<std::string> ("chassis_type", "");
     odom_frame_id_ = this->declare_parameter<std::string> ("odom_frame_id", "odom");
     base_frame_id_ = this->declare_parameter<std::string> ("base_frame_id", "base_link");
     publish_tf_    = this->declare_parameter<bool> ("publish_tf", false);
 
     wheel_names_ = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    steer_names_ = this->declare_parameter<std::vector<std::string>> ("steer_names", {""});
     num_wheels_  = wheel_names_.size ();
-    if (steer_names_.size () != num_wheels_) {
-        RCLCPP_ERROR (this->get_logger (), "wheel_names and steer_names must have the same size.");
-        throw std::runtime_error ("Invalid parameters: wheel_names and steer_names size mismatch.");
+
+    if (chassis_type_ == "swerve") {
+        steer_names_ = this->declare_parameter<std::vector<std::string>> ("steer_names", {""});
+        if (steer_names_.size () != num_wheels_) {
+            RCLCPP_ERROR (this->get_logger (), "wheel_names and steer_names must have the same size.");
+            throw std::runtime_error ("Invalid parameters: wheel_names and steer_names size mismatch.");
+        }
+    } else {
+        RCLCPP_ERROR (this->get_logger (), "Unsupported chassis_type: %s", chassis_type_.c_str ());
+        throw std::runtime_error ("Invalid parameter: unsupported chassis_type.");
     }
 
     RCLCPP_INFO (this->get_logger (), "wheel_odometry node has been initialized.");
@@ -52,80 +59,86 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
 }
 
 void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
-    double ATA[3][3] = {};  // A^T * A
-    double ATb[3]    = {};  // A^T * b
+    double vx   = 0.0;
+    double vy   = 0.0;
+    double vyaw = 0.0;
+    
+    if (chassis_type_ == "swerve") {
+        double ATA[3][3] = {};  // A^T * A
+        double ATb[3]    = {};  // A^T * b
 
-    for (size_t i = 0; i < num_wheels_; i++) {
-        double angle       = 0.0;
-        double speed       = 0.0;
-        bool   found_wheel = false;
-        bool   found_steer = false;
-        for (size_t j = 0; j < msg->name.size (); j++) {
-            if (msg->name[j] == wheel_names_[i]) {
-                speed       = msg->velocity[j] * wheel_radius_;
-                found_wheel = true;
+        for (size_t i = 0; i < num_wheels_; i++) {
+            double angle       = 0.0;
+            double speed       = 0.0;
+            bool   found_wheel = false;
+            bool   found_steer = false;
+            for (size_t j = 0; j < msg->name.size (); j++) {
+                if (msg->name[j] == wheel_names_[i]) {
+                    speed       = msg->velocity[j] * wheel_radius_;
+                    found_wheel = true;
+                }
+                if (msg->name[j] == steer_names_[i]) {
+                    angle       = msg->position[j];
+                    found_steer = true;
+                }
             }
-            if (msg->name[j] == steer_names_[i]) {
-                angle       = msg->position[j];
-                found_steer = true;
+            if (!found_wheel) {
+                RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
+                return;
+            }
+            if (!found_steer) {
+                RCLCPP_WARN (this->get_logger (), "Could not find steer joint: %s", steer_names_[i].c_str ());
+                return;
+            }
+
+            double wheel_position_x = 0.0;
+            double wheel_position_y = 0.0;
+
+            try {
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + steer_names_[i] + "_link", tf2::TimePointZero);
+                wheel_position_x                                = tf_stamped.transform.translation.x;
+                wheel_position_y                                = tf_stamped.transform.translation.y;
+            } catch (tf2::TransformException &ex) {
+                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", steer_names_[i].c_str (), ex.what ());
+                return;
+            }
+            double ax[3] = {1.0, 0.0, -wheel_position_y};
+            double ay[3] = {0.0, 1.0, +wheel_position_x};
+
+            double bx = speed * std::cos (angle);
+            double by = speed * std::sin (angle);
+
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    ATA[row][col] += ax[row] * ax[col] + ay[row] * ay[col];
+                }
+                ATb[row] += ax[row] * bx + ay[row] * by;
             }
         }
-        if (!found_wheel) {
-            RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
-            return;
-        }
-        if (!found_steer) {
-            RCLCPP_WARN (this->get_logger (), "Could not find steer joint: %s", steer_names_[i].c_str ());
-            return;
-        }
+        double A[3][4] = {
+            {ATA[0][0], ATA[0][1], ATA[0][2], ATb[0]},
+            {ATA[1][0], ATA[1][1], ATA[1][2], ATb[1]},
+            {ATA[2][0], ATA[2][1], ATA[2][2], ATb[2]}
+        };
 
-        double wheel_position_x = 0.0;
-        double wheel_position_y = 0.0;
-
-        try {
-            geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + steer_names_[i] + "_link", tf2::TimePointZero);
-            wheel_position_x                                = tf_stamped.transform.translation.x;
-            wheel_position_y                                = tf_stamped.transform.translation.y;
-        } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", steer_names_[i].c_str (), ex.what ());
-            return;
-        }
-        double ax[3] = {1.0, 0.0, -wheel_position_y};
-        double ay[3] = {0.0, 1.0, +wheel_position_x};
-
-        double bx = speed * std::cos (angle);
-        double by = speed * std::sin (angle);
-
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                ATA[row][col] += ax[row] * ax[col] + ay[row] * ay[col];
-            }
-            ATb[row] += ax[row] * bx + ay[row] * by;
-        }
-    }
-    double A[3][4] = {
-        {ATA[0][0], ATA[0][1], ATA[0][2], ATb[0]},
-        {ATA[1][0], ATA[1][1], ATA[1][2], ATb[1]},
-        {ATA[2][0], ATA[2][1], ATA[2][2], ATb[2]}
-    };
-
-    for (int i = 0; i < 3; ++i) {
-        double pivot = A[i][i];
-        for (int j = i; j < 4; ++j) {
-            A[i][j] /= pivot;
-        }
-        for (int k = 0; k < 3; ++k) {
-            if (k == i) continue;
-            double factor = A[k][i];
+        for (int i = 0; i < 3; ++i) {
+            double pivot = A[i][i];
             for (int j = i; j < 4; ++j) {
-                A[k][j] -= factor * A[i][j];
+                A[i][j] /= pivot;
+            }
+            for (int k = 0; k < 3; ++k) {
+                if (k == i) continue;
+                double factor = A[k][i];
+                for (int j = i; j < 4; ++j) {
+                    A[k][j] -= factor * A[i][j];
+                }
             }
         }
-    }
 
-    double vx   = A[0][3];
-    double vy   = A[1][3];
-    double vyaw = A[2][3];
+        vx   = A[0][3];
+        vy   = A[1][3];
+        vyaw = A[2][3];
+    }
 
     double delta_t   = (this->now () - last_pose_.header.stamp).seconds ();
     double delta_x   = vx * delta_t;

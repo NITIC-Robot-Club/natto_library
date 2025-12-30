@@ -40,6 +40,7 @@ class wheel_odometry : public rclcpp::Node {
     size_t      num_wheels_;
     std::string odom_frame_id_;
     std::string base_frame_id_;
+    std::string chassis_type_;
     bool        publish_tf_;
 
     std::vector<std::string> wheel_names_;
