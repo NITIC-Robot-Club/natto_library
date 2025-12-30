@@ -101,7 +101,7 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
                 wheel_position_x                                = tf_stamped.transform.translation.x;
                 wheel_position_y                                = tf_stamped.transform.translation.y;
             } catch (tf2::TransformException &ex) {
-                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
                 return;
             }
             double ax[3] = {1.0, 0.0, -wheel_position_y};
