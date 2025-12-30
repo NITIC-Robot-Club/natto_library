@@ -83,7 +83,7 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
                 wheel_position_x                                = tf_stamped.transform.translation.x;
                 wheel_position_y                                = tf_stamped.transform.translation.y;
             } catch (tf2::TransformException &ex) {
-                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
                 return;
             }
 
@@ -137,7 +137,7 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
                 wheel_position_y = tf_stamped.transform.translation.y;
                 wheel_angle      = tf2::getYaw (tf_stamped.transform.rotation);
             } catch (tf2::TransformException &ex) {
-                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
                 return;
             }
             double wheel_vx        = x - z * wheel_position_y;

@@ -31,7 +31,7 @@
     <arg name="launch_control" default="true"/>
     <arg name="launch_visualization" default="true"/>
 
-    <arg name="joint_state_topics" default="['/swerve/command_joint_states']"/>
+    <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states']"/>
 
     <!-- 行動管理 -->
     <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">
