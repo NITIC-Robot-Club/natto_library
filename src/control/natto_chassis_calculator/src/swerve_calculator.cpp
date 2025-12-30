@@ -79,10 +79,10 @@ void swerve_calculator::command_velocity_callback (const geometry_msgs::msg::Twi
             double vx    = x - z * wheel_position_y_[i];
             double vy    = y + z * wheel_position_x_[i];
             double v     = std::hypot (vx, vy);
-            double angle = v / wheel_radius_;
+            double speed = v / wheel_radius_;
 
             command_joint_state_.position[i * 2 + 0] = std::atan2 (vy, vx);
-            command_joint_state_.velocity[i * 2 + 1] = angle;
+            command_joint_state_.velocity[i * 2 + 1] = speed;
         }
     }
     if (infinite_swerve_mode_) {

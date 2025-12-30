@@ -8,8 +8,10 @@
     <node_container pkg="rclcpp_components" exec="component_container" name="simulation_container" namespace="/simulation">
         <composable_node pkg="natto_simple_simulation" plugin="joint_state_simulator::joint_state_simulator" name="joint_state_simulator" namespace="/simulation">
             <param from="$(var simulation_param_path)"/>
+            <param from="$(var chassis_param_path)"/>
             <remap from="joint_states" to="/joint_states"/>
             <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
+            <remap from="simulation_pose" to="/simulation/pose"/>
         </composable_node>
     </node_container>
 

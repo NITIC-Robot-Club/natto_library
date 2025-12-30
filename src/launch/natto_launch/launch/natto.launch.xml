@@ -9,6 +9,7 @@
     <arg name="initial_allow_auto_drive" default="false"/>
     <arg name="state_timeout_sec" default="3.0"/>
 
+    <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>
     <arg name="line_segments_path" default=""/>
     <arg name="circles_path" default=""/>
@@ -29,6 +30,22 @@
     <arg name="launch_localization" default="true"/>
     <arg name="launch_control" default="true"/>
     <arg name="launch_visualization" default="true"/>
+
+    <!-- ロボット読み込み -->
+    <node pkg="robot_state_publisher" exec="robot_state_publisher" name="robot_state_publisher">
+        <param name="robot_description" value="$(command 'xacro $(var urdf_path)')"/>
+        <remap from="/joint_states" to="/joint_states"/>
+        <param name="frame_prefix" value=""/>
+    </node>
+    
+    <node pkg="robot_state_publisher" exec="robot_state_publisher" name="command_robot_state_publisher">
+        <param name="robot_description" value="$(command 'xacro $(var urdf_path)')"/>
+        <remap from="/joint_states" to="/swerve/command_joint_states"/>
+        <param name="frame_prefix" value="command/"/>
+    </node>
+
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_to_command_base" output="screen" args="0 0 0 0 0 0 base_link command/base_link"/>
+
 
     <!-- 行動管理 -->
     <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">

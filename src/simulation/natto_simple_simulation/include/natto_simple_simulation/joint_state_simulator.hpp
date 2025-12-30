@@ -18,13 +18,14 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
 #include "tf2/utils.hpp"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_broadcaster.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-
-#include <tf2_ros/transform_broadcaster.h>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace joint_state_simulator {
 class joint_state_simulator : public rclcpp::Node {
@@ -46,9 +47,9 @@ class joint_state_simulator : public rclcpp::Node {
     std::vector<double> wheel_positions_y_;
     std::vector<double> wheel_angle_;
 
-    double initial_x_   = 0.0;
-    double initial_y_   = 0.0;
-    double initial_yaw_ = 0.0;
+    double initial_pose_x_   = 0.0;
+    double initial_pose_y_   = 0.0;
+    double initial_pose_yaw_ = 0.0;
 
     std::vector<std::string> joint_names_;
     std::vector<std::string> control_modes_;
@@ -64,6 +65,9 @@ class joint_state_simulator : public rclcpp::Node {
 
     void timer_callback ();
     void command_joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
+
+    std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr    joint_state_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;

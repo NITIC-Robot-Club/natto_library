@@ -14,8 +14,8 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "swerve_odometry::swerve_odometry"
-    EXECUTABLE swerve_odometry
+    PLUGIN "wheel_odometry::wheel_odometry"
+    EXECUTABLE wheel_odometry
 )
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

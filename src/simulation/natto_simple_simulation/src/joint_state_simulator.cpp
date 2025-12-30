@@ -17,16 +17,28 @@
 namespace joint_state_simulator {
 
 joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_options) : Node ("joint_state_simulator", node_options) {
-    joint_state_publisher_     = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (rclcpp::KeepLast (10)).best_effort ());
+    joint_state_publisher_     = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort ());
     simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     command_joint_state_subscriber_ =
-        this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (rclcpp::KeepLast (10)).best_effort (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
+        this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_ = this->declare_parameter<std::string> ("chassis_type", "");
     wheel_names_  = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
     wheel_radius_ = this->declare_parameter<double> ("wheel_radius", 0.05);
     frequency_    = this->declare_parameter<double> ("frequency", 1000.0);
+
+    initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
+    initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
+    initial_pose_yaw_ = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0) * M_PI / 180.0;
+
+    current_pose_.header.frame_id = "map";
+    current_pose_.pose.position.x = initial_pose_x_;
+    current_pose_.pose.position.y = initial_pose_y_;
+
+    tf2::Quaternion q;
+    q.setRPY (0.0, 0.0, initial_pose_yaw_);
+    current_pose_.pose.orientation = tf2::toMsg (q);
 
     num_wheels_ = wheel_names_.size ();
     if (chassis_type_ == "") {
@@ -96,12 +108,14 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     current_.velocity.resize (joint_names_.size (), 0.0);
     current_.effort.resize (joint_names_.size (), 0.0);
 
-    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency_), std::bind (&joint_state_simulator::timer_callback, this));
+    tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
+    timer_       = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency_), std::bind (&joint_state_simulator::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "joint_state_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
-    RCLCPP_INFO (this->get_logger (), "initial pose: (%f, %f, %f)", initial_x_, initial_y_, initial_yaw_);
+    RCLCPP_INFO (this->get_logger (), "initial pose: (%f, %f, %f)", initial_pose_x_, initial_pose_y_, initial_pose_yaw_);
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
     for (size_t i = 0; i < num_wheels_; i++) {
@@ -149,6 +163,115 @@ void joint_state_simulator::timer_callback () {
 
     current_.header.stamp = this->now ();
     joint_state_publisher_->publish (current_);
+
+    double vx   = 0.0;
+    double vy   = 0.0;
+    double vyaw = 0.0;
+    if (chassis_type_ == "swerve") {
+        double ATA[3][3] = {};  // A^T * A
+        double ATb[3]    = {};  // A^T * b
+
+        for (size_t i = 0; i < num_wheels_; i++) {
+            double angle = 0.0;
+            double speed = 0.0;
+            bool found_wheel = false;
+            bool found_steer = false;
+            for (size_t j = 0; j < current_.name.size (); j++) {
+                if (current_.name[j] == wheel_names_[i]) {
+                    speed = current_.velocity[j] * wheel_radius_;
+                    found_wheel = true;
+                }
+                if (current_.name[j] == steer_names_[i]) {
+                    angle = current_.position[j];
+                    found_steer = true;
+                }
+            }
+
+            if (!found_wheel) {
+                RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
+                return;
+            }
+            if (!found_steer) {
+                RCLCPP_WARN (this->get_logger (), "Could not find steer joint: %s", steer_names_[i].c_str ());
+                return;
+            }
+
+            double wheel_position_x = 0.0;
+            double wheel_position_y = 0.0;
+
+            try {
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + steer_names_[i] + "_link", tf2::TimePointZero);
+                wheel_position_x                                = tf_stamped.transform.translation.x;
+                wheel_position_y                                = tf_stamped.transform.translation.y;
+            } catch (tf2::TransformException &ex) {
+                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", steer_names_[i].c_str (), ex.what ());
+                return;
+            }
+
+            double ax[3] = {1.0, 0.0, -wheel_position_y};
+            double ay[3] = {0.0, 1.0, +wheel_position_x};
+
+            double bx = speed * std::cos (angle);
+            double by = speed * std::sin (angle);
+
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    ATA[row][col] += ax[row] * ax[col] + ay[row] * ay[col];
+                }
+                ATb[row] += ax[row] * bx + ay[row] * by;
+            }
+        }
+        double A[3][4] = {
+            {ATA[0][0], ATA[0][1], ATA[0][2], ATb[0]},
+            {ATA[1][0], ATA[1][1], ATA[1][2], ATb[1]},
+            {ATA[2][0], ATA[2][1], ATA[2][2], ATb[2]}
+        };
+
+        for (int i = 0; i < 3; ++i) {
+            double pivot = A[i][i];
+            for (int j = i; j < 4; ++j) {
+                A[i][j] /= pivot;
+            }
+            for (int k = 0; k < 3; ++k) {
+                if (k == i) continue;
+                double factor = A[k][i];
+                for (int j = i; j < 4; ++j) {
+                    A[k][j] -= factor * A[i][j];
+                }
+            }
+        }
+        vx   = A[0][3];
+        vy   = A[1][3];
+        vyaw = A[2][3];
+    }
+
+    double yaw      = tf2::getYaw (current_pose_.pose.orientation);
+    double vx_world = vx * cos (yaw) - vy * sin (yaw);
+    double vy_world = vx * sin (yaw) + vy * cos (yaw);
+    current_pose_.pose.position.x += vx_world / frequency_;
+    current_pose_.pose.position.y += vy_world / frequency_;
+    yaw += vyaw / frequency_;
+
+    tf2::Quaternion q;
+    q.setRPY (0.0, 0.0, yaw);
+    current_pose_.pose.orientation.x = q.x ();
+    current_pose_.pose.orientation.y = q.y ();
+    current_pose_.pose.orientation.z = q.z ();
+    current_pose_.pose.orientation.w = q.w ();
+    current_pose_.header.stamp       = this->now ();
+    current_pose_.header.frame_id    = "map";
+    simulation_pose_publisher_->publish (current_pose_);
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    tf_msg.header.stamp            = this->now ();
+    tf_msg.header.frame_id         = "map";
+    tf_msg.child_frame_id          = "simulation";
+    tf_msg.transform.translation.x = current_pose_.pose.position.x;
+    tf_msg.transform.translation.y = current_pose_.pose.position.y;
+    tf_msg.transform.translation.z = current_pose_.pose.position.z;
+    tf_msg.transform.rotation      = current_pose_.pose.orientation;
+
+    tf_broadcaster_->sendTransform (tf_msg);
 }
 
 }  // namespace joint_state_simulator

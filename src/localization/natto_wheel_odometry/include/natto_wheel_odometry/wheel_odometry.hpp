@@ -12,24 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __SWERVE_ODOMETRY_HPP__
-#define __SWERVE_ODOMETRY_HPP__
+#ifndef __WHEEL_ODOMETRY_HPP__
+#define __WHEEL_ODOMETRY_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+#include "tf2/LinearMath/Quaternion.hpp"
 #include "tf2/utils.hpp"
+#include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/transform_broadcaster.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
-#include "natto_msgs/msg/swerve.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-namespace swerve_odometry {
-class swerve_odometry : public rclcpp::Node {
+namespace wheel_odometry {
+class wheel_odometry : public rclcpp::Node {
    public:
-    swerve_odometry (const rclcpp::NodeOptions &node_options);
+    wheel_odometry (const rclcpp::NodeOptions &node_options);
 
    private:
     double      wheel_radius_;
@@ -38,20 +42,22 @@ class swerve_odometry : public rclcpp::Node {
     std::string base_frame_id_;
     bool        publish_tf_;
 
-    std::vector<double> wheel_position_x_;
-    std::vector<double> wheel_position_y_;
+    std::vector<std::string> wheel_names_;
+    std::vector<std::string> steer_names_;
 
     geometry_msgs::msg::PoseStamped last_pose_;
 
-    void swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg);
+    void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
 
-    // メンバ変数宣言例:
+    std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr  pose_publisher_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr          odometry_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::Swerve>::SharedPtr       swerve_subscriber_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr  joint_state_subscriber_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                 tf_broadcaster_;
 };
-}  // namespace swerve_odometry
+}  // namespace wheel_odometry
 
-#endif  // __SWERVE_ODOMETRY_HPP__
+#endif  // __WHEEL_ODOMETRY_HPP__

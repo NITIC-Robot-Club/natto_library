@@ -12,60 +12,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_wheel_odometry/swerve_odometry.hpp"
+#include "natto_wheel_odometry/wheel_odometry.hpp"
 
-namespace swerve_odometry {
+namespace wheel_odometry {
 
-swerve_odometry::swerve_odometry (const rclcpp::NodeOptions &node_options) : Node ("swerve_odometry", node_options) {
+wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node ("wheel_odometry", node_options) {
     twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("twist", 10);
     pose_publisher_     = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
     odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS ());
 
-    swerve_subscriber_ = this->create_subscription<natto_msgs::msg::Swerve> ("swerve_result", 10, std::bind (&swerve_odometry::swerve_callback, this, std::placeholders::_1));
-    tf_broadcaster_    = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort (), std::bind (&wheel_odometry::joint_state_callback, this, std::placeholders::_1));
+    tf_broadcaster_         = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_position_x_ = this->declare_parameter<std::vector<double>> ("wheel_position_x", {0.5, -0.5, -0.5, 0.5});
-    wheel_position_y_ = this->declare_parameter<std::vector<double>> ("wheel_position_y", {0.5, 0.5, -0.5, -0.5});
-    odom_frame_id_    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
-    base_frame_id_    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    publish_tf_       = this->declare_parameter<bool> ("publish_tf", true);
+    wheel_radius_  = this->declare_parameter<double> ("wheel_radius", 0.05);
+    odom_frame_id_ = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    base_frame_id_ = this->declare_parameter<std::string> ("base_frame_id", "base_link");
+    publish_tf_    = this->declare_parameter<bool> ("publish_tf", false);
 
-    num_wheels_ = wheel_position_x_.size ();
-    if (wheel_position_y_.size () != num_wheels_) {
-        RCLCPP_ERROR (this->get_logger (), "wheel_position_x and wheel_position_y must have the same size.");
-        throw std::runtime_error ("wheel_position_x and wheel_position_y must have the same size.");
+    wheel_names_ = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    steer_names_ = this->declare_parameter<std::vector<std::string>> ("steer_names", {""});
+    num_wheels_  = wheel_names_.size ();
+    if (steer_names_.size () != num_wheels_) {
+        RCLCPP_ERROR (this->get_logger (), "wheel_names and steer_names must have the same size.");
+        throw std::runtime_error ("Invalid parameters: wheel_names and steer_names size mismatch.");
     }
 
-    RCLCPP_INFO (this->get_logger (), "swerve_odometry node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "wheel_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
-    for (size_t i = 0; i < num_wheels_; i++) {
-        RCLCPP_INFO (this->get_logger (), "wheel_position_xy[%zu]: (%.2f, %.2f)", i, wheel_position_x_[i], wheel_position_y_[i]);
-    }
     RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "base_frame_id : %s", base_frame_id_.c_str ());
 
     last_pose_.header.frame_id = odom_frame_id_;
     last_pose_.header.stamp    = this->now ();
+
+    tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 }
 
-void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr msg) {
-    if (msg->wheel_angle.size () != num_wheels_ || msg->wheel_speed.size () != num_wheels_) {
-        RCLCPP_ERROR (this->get_logger (), "Received swerve message with incorrect number of wheels.");
-        return;
-    }
-
+void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     double ATA[3][3] = {};  // A^T * A
     double ATb[3]    = {};  // A^T * b
 
     for (size_t i = 0; i < num_wheels_; i++) {
-        double angle = msg->wheel_angle[i];
-        double speed = msg->wheel_speed[i] * 2.0 * M_PI * wheel_radius_;
+        double angle       = 0.0;
+        double speed       = 0.0;
+        bool   found_wheel = false;
+        bool   found_steer = false;
+        for (size_t j = 0; j < msg->name.size (); j++) {
+            if (msg->name[j] == wheel_names_[i]) {
+                speed       = msg->velocity[j] * wheel_radius_;
+                found_wheel = true;
+            }
+            if (msg->name[j] == steer_names_[i]) {
+                angle       = msg->position[j];
+                found_steer = true;
+            }
+        }
+        if (!found_wheel) {
+            RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
+            return;
+        }
+        if (!found_steer) {
+            RCLCPP_WARN (this->get_logger (), "Could not find steer joint: %s", steer_names_[i].c_str ());
+            return;
+        }
 
-        double ax[3] = {1.0, 0.0, -wheel_position_y_[i]};
-        double ay[3] = {0.0, 1.0, +wheel_position_x_[i]};
+        double wheel_position_x = 0.0;
+        double wheel_position_y = 0.0;
+
+        try {
+            geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + steer_names_[i] + "_link", tf2::TimePointZero);
+            wheel_position_x                                = tf_stamped.transform.translation.x;
+            wheel_position_y                                = tf_stamped.transform.translation.y;
+        } catch (tf2::TransformException &ex) {
+            RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", steer_names_[i].c_str (), ex.what ());
+            return;
+        }
+        double ax[3] = {1.0, 0.0, -wheel_position_y};
+        double ay[3] = {0.0, 1.0, +wheel_position_x};
 
         double bx = speed * std::cos (angle);
         double by = speed * std::sin (angle);
@@ -148,7 +174,7 @@ void swerve_odometry::swerve_callback (const natto_msgs::msg::Swerve::SharedPtr 
     }
 }
 
-}  // namespace swerve_odometry
+}  // namespace wheel_odometry
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (swerve_odometry::swerve_odometry)
+RCLCPP_COMPONENTS_REGISTER_NODE (wheel_odometry::wheel_odometry)
