@@ -31,7 +31,7 @@ void joint_state_merger::joint_states_callback (const sensor_msgs::msg::JointSta
     for (size_t i = 0; i < msg->name.size (); i++) {
         auto it = std::find (merged_joint_states_.name.begin (), merged_joint_states_.name.end (), msg->name[i]);
         if (it != merged_joint_states_.name.end ()) {
-            size_t index = static_cast<size_t>(std::distance (merged_joint_states_.name.begin (), it));
+            size_t index = static_cast<size_t> (std::distance (merged_joint_states_.name.begin (), it));
             if (!msg->position.empty ()) {
                 merged_joint_states_.position[index] = msg->position[i];
             }
