@@ -12,39 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __SWERVE_CALCULATOR_HPP__
-#define __SWERVE_CALCULATOR_HPP__
+#ifndef __CHASISS_CALCULATOR_HPP__
+#define __CHASISS_CALCULATOR_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+#include "tf2/LinearMath/Quaternion.hpp"
+#include "tf2/utils.hpp"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-namespace swerve_calculator {
-class swerve_calculator : public rclcpp::Node {
+namespace chassis_calculator {
+class chassis_calculator : public rclcpp::Node {
    public:
-    swerve_calculator (const rclcpp::NodeOptions &node_options);
+    chassis_calculator (const rclcpp::NodeOptions &node_options);
 
    private:
-    bool   infinite_swerve_mode_;
-    double wheel_radius_;
-    size_t num_wheels_;
+    std::string chassis_type_;
+    bool        infinite_swerve_mode_;
+    double      wheel_radius_;
+    size_t      num_wheels_;
 
-    std::vector<double>          wheel_position_x_;
-    std::vector<double>          wheel_position_y_;
     sensor_msgs::msg::JointState joint_state_;
 
-    std::vector<std::string>     steer_names_;
     std::vector<std::string>     wheel_names_;
+    std::vector<std::string>     wheel_base_names_;
     sensor_msgs::msg::JointState command_joint_state_;
 
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
     void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
 
+    std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr        command_joint_state_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr     joint_state_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_subscriber_;
 };
-}  // namespace swerve_calculator
+}  // namespace chassis_calculator
 
-#endif  // __SWERVE_CALCULATOR_HPP__
+#endif  // __CHASSIS_CALCULATOR_HPP__

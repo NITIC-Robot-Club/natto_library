@@ -17,11 +17,10 @@
 namespace joint_state_simulator {
 
 joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_options) : Node ("joint_state_simulator", node_options) {
-    joint_state_publisher_     = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort ());
-    simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
-    command_joint_state_subscriber_ =
-        this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
-    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort ());
+    simulation_pose_publisher_      = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
+    command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
+    tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_ = this->declare_parameter<std::string> ("chassis_type", "");
     wheel_names_  = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
@@ -45,20 +44,17 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         RCLCPP_ERROR (this->get_logger (), "chassis_type parameter is required.");
         throw std::runtime_error ("chassis_type parameter is required.");
     }
+    
+    wheel_base_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+    if (wheel_base_names_.size () != num_wheels_) {
+        RCLCPP_ERROR (this->get_logger (), "wheel_base_names size must be equal to number of wheels.");
+        throw std::runtime_error ("wheel_base_names size must be equal to number of wheels.");
+    }
 
     if (chassis_type_ == "swerve") {
         infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-        steer_names_          = this->declare_parameter<std::vector<std::string>> ("steer_names", {""});
-        if (steer_names_.size () != num_wheels_) {
-            RCLCPP_ERROR (this->get_logger (), "steer_names size must be equal to number of wheels.");
-            throw std::runtime_error ("steer_names size must be equal to number of wheels.");
-        }
     } else if (chassis_type_ == "omni" || chassis_type_ == "mecanum") {
-        wheel_angle_ = this->declare_parameter<std::vector<double>> ("wheel_angle_deg", {0.0});
-        if (wheel_angle_.size () != num_wheels_) {
-            RCLCPP_ERROR (this->get_logger (), "wheel_angle_deg size must be equal to number of wheels.");
-            throw std::runtime_error ("wheel_angle_deg size must be equal to number of wheels.");
-        }
+        // No additional parameters needed for omni or mecanum wheels
     } else {
         RCLCPP_ERROR (this->get_logger (), "Unsupported chassis_type: %s", chassis_type_.c_str ());
         throw std::runtime_error ("Unsupported chassis_type: " + chassis_type_);
@@ -172,18 +168,18 @@ void joint_state_simulator::timer_callback () {
         double ATb[3]    = {};  // A^T * b
 
         for (size_t i = 0; i < num_wheels_; i++) {
-            double angle = 0.0;
-            double speed = 0.0;
-            bool found_wheel = false;
-            bool found_steer = false;
+            double angle       = 0.0;
+            double speed       = 0.0;
+            bool   found_wheel = false;
+            bool   found_wheel_base = false;
             for (size_t j = 0; j < current_.name.size (); j++) {
                 if (current_.name[j] == wheel_names_[i]) {
-                    speed = current_.velocity[j] * wheel_radius_;
+                    speed       = current_.velocity[j] * wheel_radius_;
                     found_wheel = true;
                 }
-                if (current_.name[j] == steer_names_[i]) {
-                    angle = current_.position[j];
-                    found_steer = true;
+                if (current_.name[j] == wheel_base_names_[i]) {
+                    angle       = current_.position[j];
+                    found_wheel_base = true;
                 }
             }
 
@@ -191,8 +187,8 @@ void joint_state_simulator::timer_callback () {
                 RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
                 return;
             }
-            if (!found_steer) {
-                RCLCPP_WARN (this->get_logger (), "Could not find steer joint: %s", steer_names_[i].c_str ());
+            if (!found_wheel_base) {
+                RCLCPP_WARN (this->get_logger (), "Could not find wheel_base joint: %s", wheel_base_names_[i].c_str ());
                 return;
             }
 
@@ -200,11 +196,11 @@ void joint_state_simulator::timer_callback () {
             double wheel_position_y = 0.0;
 
             try {
-                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + steer_names_[i] + "_link", tf2::TimePointZero);
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + wheel_base_names_[i] + "_link", tf2::TimePointZero);
                 wheel_position_x                                = tf_stamped.transform.translation.x;
                 wheel_position_y                                = tf_stamped.transform.translation.y;
             } catch (tf2::TransformException &ex) {
-                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", steer_names_[i].c_str (), ex.what ());
+                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
                 return;
             }
 
@@ -243,8 +239,69 @@ void joint_state_simulator::timer_callback () {
         vx   = A[0][3];
         vy   = A[1][3];
         vyaw = A[2][3];
-    }
+    } else if (chassis_type_ == "omni") {
+        double ATA[3][3] = {};  // A^T * A
+        double ATb[3]    = {};  // A^T * b
 
+        for (size_t i = 0; i < num_wheels_; i++) {
+            double speed = 0.0;
+            bool   found = false;
+            for (size_t j = 0; j < current_.name.size (); j++)
+                if (current_.name[j] == wheel_names_[i]) {
+                    speed = current_.velocity[j] * wheel_radius_;
+                    found = true;
+                }
+            if (!found) {
+                RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
+                return;
+            }
+
+            double wheel_position_x = 0.0;
+            double wheel_position_y = 0.0;
+            double wheel_angle      = 0.0;
+
+            try {
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + wheel_base_names_[i] + "_link", tf2::TimePointZero);
+                wheel_position_x                                = tf_stamped.transform.translation.x;
+                wheel_position_y                                = tf_stamped.transform.translation.y;
+                wheel_angle                                     = tf2::getYaw (tf_stamped.transform.rotation);
+            } catch (tf2::TransformException &ex) {
+                RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                return;
+            }
+
+            double cos   = std::cos (wheel_angle);
+            double sin   = std::sin (wheel_angle);
+            double ax[3] = {cos, sin, (-wheel_position_y * cos + wheel_position_x * sin)};
+            double b     = speed;
+
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    ATA[row][col] += ax[row] * ax[col];
+                }
+                ATb[row] += ax[row] * b;
+            }
+        }
+        double A[3][4] = {
+            {ATA[0][0], ATA[0][1], ATA[0][2], ATb[0]},
+            {ATA[1][0], ATA[1][1], ATA[1][2], ATb[1]},
+            {ATA[2][0], ATA[2][1], ATA[2][2], ATb[2]}
+        };
+
+        for (int i = 0; i < 3; ++i) {
+            double pivot = A[i][i];
+            if (std::fabs (pivot) < 1e-9) return;
+            for (int j = i; j < 4; ++j) A[i][j] /= pivot;
+            for (int k = 0; k < 3; ++k) {
+                if (k == i) continue;
+                double factor = A[k][i];
+                for (int j = i; j < 4; ++j) A[k][j] -= factor * A[i][j];
+            }
+        }
+        vx   = A[0][3];
+        vy   = A[1][3];
+        vyaw = A[2][3];
+    }
     double yaw      = tf2::getYaw (current_pose_.pose.orientation);
     double vx_world = vx * cos (yaw) - vy * sin (yaw);
     double vy_world = vx * sin (yaw) + vy * cos (yaw);

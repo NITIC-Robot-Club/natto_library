@@ -3,9 +3,9 @@
     initial_pose_x: 1.0
     initial_pose_y: 1.0
     initial_pose_yaw_deg: 0.0
-    frequency: 100.0
+    frequency: 1000.0
     joint_names : ["swerve_wheel_0", "swerve_wheel_1", "swerve_wheel_2", "swerve_wheel_3",
-                   "swerve_steer_0", "swerve_steer_1", "swerve_steer_2", "swerve_steer_3"]
+                   "swerve_wheel_base_0", "swerve_wheel_base_1", "swerve_wheel_base_2", "swerve_wheel_base_3"]
     control_modes : ["speed", "speed", "speed", "speed",
                      "position", "position", "position", "position"]
     initial_positions : [0.0, 0.0, 0.0, 0.0,

@@ -9,11 +9,6 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "omni_simulator::omni_simulator"
-    EXECUTABLE omni_simulator
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "joint_state_simulator::joint_state_simulator"
     EXECUTABLE joint_state_simulator
 )

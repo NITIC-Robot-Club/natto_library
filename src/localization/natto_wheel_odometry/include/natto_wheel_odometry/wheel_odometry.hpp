@@ -19,7 +19,6 @@
 #include "tf2/LinearMath/Quaternion.hpp"
 #include "tf2/utils.hpp"
 #include "tf2_ros/buffer.hpp"
-#include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_broadcaster.hpp"
 #include "tf2_ros/transform_listener.hpp"
 
@@ -44,7 +43,7 @@ class wheel_odometry : public rclcpp::Node {
     bool        publish_tf_;
 
     std::vector<std::string> wheel_names_;
-    std::vector<std::string> steer_names_;
+    std::vector<std::string> wheel_base_names_;
 
     geometry_msgs::msg::PoseStamped last_pose_;
 

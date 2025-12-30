@@ -40,7 +40,7 @@
     
     <node pkg="robot_state_publisher" exec="robot_state_publisher" name="command_robot_state_publisher">
         <param name="robot_description" value="$(command 'xacro $(var urdf_path)')"/>
-        <remap from="/joint_states" to="/swerve/command_joint_states"/>
+        <remap from="/joint_states" to="/$(var chassis_type)/command_joint_states"/>
         <param name="frame_prefix" value="command/"/>
     </node>
 

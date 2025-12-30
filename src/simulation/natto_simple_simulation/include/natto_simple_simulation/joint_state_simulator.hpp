@@ -41,11 +41,7 @@ class joint_state_simulator : public rclcpp::Node {
     double      frequency_;
 
     std::vector<std::string> wheel_names_;
-    std::vector<std::string> steer_names_;
-
-    std::vector<double> wheel_positions_x_;
-    std::vector<double> wheel_positions_y_;
-    std::vector<double> wheel_angle_;
+    std::vector<std::string> wheel_base_names_;
 
     double initial_pose_x_   = 0.0;
     double initial_pose_y_   = 0.0;
