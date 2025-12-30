@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __CHASISS_CALCULATOR_HPP__
-#define __CHASISS_CALCULATOR_HPP__
+#ifndef __CHASSIS_CALCULATOR_HPP__
+#define __CHASSIS_CALCULATOR_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
