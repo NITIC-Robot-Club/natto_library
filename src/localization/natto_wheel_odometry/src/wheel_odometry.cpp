@@ -70,9 +70,9 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
         double ATb[3]    = {};  // A^T * b
 
         for (size_t i = 0; i < num_wheels_; i++) {
-            double angle           = 0.0;
-            double speed           = 0.0;
-            bool   found_wheel     = false;
+            double angle            = 0.0;
+            double speed            = 0.0;
+            bool   found_wheel      = false;
             bool   found_wheel_base = false;
             for (size_t j = 0; j < msg->name.size (); j++) {
                 if (msg->name[j] == wheel_names_[i]) {
