@@ -35,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LiDAR Merged
 Visualization Manager:
   Class: ""
   Displays:
@@ -68,13 +68,9 @@ Visualization Manager:
               Value: true
             command/base_link:
               Value: true
-            command/swerve_steer_0_link:
+            command/lidar_front:
               Value: true
-            command/swerve_steer_1_link:
-              Value: true
-            command/swerve_steer_2_link:
-              Value: true
-            command/swerve_steer_3_link:
+            command/lidar_rear:
               Value: true
             command/swerve_wheel_0_link:
               Value: true
@@ -84,19 +80,21 @@ Visualization Manager:
               Value: true
             command/swerve_wheel_3_link:
               Value: true
+            command/swerve_wheel_base_0_link:
+              Value: true
+            command/swerve_wheel_base_1_link:
+              Value: true
+            command/swerve_wheel_base_2_link:
+              Value: true
+            command/swerve_wheel_base_3_link:
+              Value: true
             lidar_front:
               Value: true
             lidar_rear:
               Value: true
             map:
               Value: true
-            swerve_steer_0_link:
-              Value: true
-            swerve_steer_1_link:
-              Value: true
-            swerve_steer_2_link:
-              Value: true
-            swerve_steer_3_link:
+            simulation:
               Value: true
             swerve_wheel_0_link:
               Value: true
@@ -105,6 +103,14 @@ Visualization Manager:
             swerve_wheel_2_link:
               Value: true
             swerve_wheel_3_link:
+              Value: true
+            swerve_wheel_base_0_link:
+              Value: true
+            swerve_wheel_base_1_link:
+              Value: true
+            swerve_wheel_base_2_link:
+              Value: true
+            swerve_wheel_base_3_link:
               Value: true
           Marker Scale: 1
           Name: TF
@@ -115,34 +121,40 @@ Visualization Manager:
             map:
               base_link:
                 command/base_link:
-                  command/swerve_steer_0_link:
+                  command/lidar_front:
+                    {}
+                  command/lidar_rear:
+                    {}
+                  command/swerve_wheel_base_0_link:
                     command/swerve_wheel_0_link:
                       {}
-                  command/swerve_steer_1_link:
+                  command/swerve_wheel_base_1_link:
                     command/swerve_wheel_1_link:
                       {}
-                  command/swerve_steer_2_link:
+                  command/swerve_wheel_base_2_link:
                     command/swerve_wheel_2_link:
                       {}
-                  command/swerve_steer_3_link:
+                  command/swerve_wheel_base_3_link:
                     command/swerve_wheel_3_link:
                       {}
                 lidar_front:
                   {}
                 lidar_rear:
                   {}
-                swerve_steer_0_link:
+                swerve_wheel_base_0_link:
                   swerve_wheel_0_link:
                     {}
-                swerve_steer_1_link:
+                swerve_wheel_base_1_link:
                   swerve_wheel_1_link:
                     {}
-                swerve_steer_2_link:
+                swerve_wheel_base_2_link:
                   swerve_wheel_2_link:
                     {}
-                swerve_steer_3_link:
+                swerve_wheel_base_3_link:
                   swerve_wheel_3_link:
                     {}
+              simulation:
+                {}
           Update Interval: 0
           Value: true
         - Class: rviz_default_plugins/MarkerArray
@@ -213,19 +225,11 @@ Visualization Manager:
               Alpha: 1
               Show Axes: false
               Show Trail: false
-            swerve_steer_0_link:
+            lidar_front:
               Alpha: 1
               Show Axes: false
               Show Trail: false
-            swerve_steer_1_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            swerve_steer_2_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            swerve_steer_3_link:
+            lidar_rear:
               Alpha: 1
               Show Axes: false
               Show Trail: false
@@ -249,6 +253,22 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
+            swerve_wheel_base_0_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_1_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_2_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_3_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
           Mass Properties:
             Inertia: false
             Mass: false
