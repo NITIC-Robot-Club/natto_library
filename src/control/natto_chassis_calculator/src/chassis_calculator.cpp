@@ -61,7 +61,9 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
 
     RCLCPP_INFO (this->get_logger (), "chassis_calculator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
-    RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
+    if (chassis_type_ == "swerve") {
+        RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
+    }
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
 }
