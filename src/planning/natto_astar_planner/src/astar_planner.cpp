@@ -742,11 +742,10 @@ bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, 
         return false;
     }
 
-    // Calculate distance between the two goals
+    // Calculate 2D distance between the two goals (consistent with calculate_min_distance_to_path)
     double dx = goal1.pose.position.x - goal2.pose.position.x;
     double dy = goal1.pose.position.y - goal2.pose.position.y;
-    double dz = goal1.pose.position.z - goal2.pose.position.z;
-    double distance = std::sqrt (dx * dx + dy * dy + dz * dz);
+    double distance = std::hypot (dx, dy);
 
     return distance < tolerance;
 }
