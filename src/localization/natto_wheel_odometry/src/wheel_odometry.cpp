@@ -70,25 +70,25 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
         double ATb[3]    = {};  // A^T * b
 
         for (size_t i = 0; i < num_wheels_; i++) {
-            double angle       = 0.0;
-            double speed       = 0.0;
-            bool   found_wheel = false;
-            bool   wheel_base  = false;
+            double angle           = 0.0;
+            double speed           = 0.0;
+            bool   found_wheel     = false;
+            bool   found_wheel_base = false;
             for (size_t j = 0; j < msg->name.size (); j++) {
                 if (msg->name[j] == wheel_names_[i]) {
                     speed       = msg->velocity[j] * wheel_radius_;
                     found_wheel = true;
                 }
                 if (msg->name[j] == wheel_base_names_[i]) {
-                    angle      = msg->position[j];
-                    wheel_base = true;
+                    angle            = msg->position[j];
+                    found_wheel_base = true;
                 }
             }
             if (!found_wheel) {
                 RCLCPP_WARN (this->get_logger (), "Could not find wheel joint: %s", wheel_names_[i].c_str ());
                 return;
             }
-            if (!wheel_base) {
+            if (!found_wheel_base) {
                 RCLCPP_WARN (this->get_logger (), "Could not find wheel_base joint: %s", wheel_base_names_[i].c_str ());
                 return;
             }
