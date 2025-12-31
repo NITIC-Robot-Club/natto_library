@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <queue>
@@ -45,11 +46,13 @@ class astar_planner : public rclcpp::Node {
     int    theta_resolution_deg_;
     double xy_inflation_, xy_offset_, yaw_offset_;
     double grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
+    double replan_distance_threshold_;
 
     nav_msgs::msg::OccupancyGrid       raw_map_;
     nav_msgs::msg::OccupancyGrid       costmap_;
     nav_msgs::msg::OccupancyGrid       obstacle_costmap_;
     geometry_msgs::msg::PoseStamped    goal_pose_;
+    geometry_msgs::msg::PoseStamped    previous_goal_pose_;
     geometry_msgs::msg::PoseStamped    current_pose_;
     geometry_msgs::msg::PolygonStamped footprint_;
     nav_msgs::msg::Path                path_;
@@ -63,12 +66,15 @@ class astar_planner : public rclcpp::Node {
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     void current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+    void replan_timer_callback ();
 
     void   create_path ();
     void   build_footprint_mask ();
     void   create_costmap ();
     void   create_obstacle_costmap ();
     double fix_angle (double angle);
+    double calculate_min_distance_to_path ();
+    bool   is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, const geometry_msgs::msg::PoseStamped &goal2, double tolerance = 0.1);
     bool   rectangle_is_collision_free (const size_t cx, const size_t cy, const double yaw);
     bool   rectangle_is_collision_free (const geometry_msgs::msg::Pose &pose);
 
@@ -86,6 +92,7 @@ class astar_planner : public rclcpp::Node {
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
+    rclcpp::TimerBase::SharedPtr                                        replan_timer_;
 };
 
 }  // namespace astar_planner
