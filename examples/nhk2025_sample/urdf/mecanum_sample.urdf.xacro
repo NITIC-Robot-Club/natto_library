@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot name="mecanum_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- ==================== -->
+  <!-- Parameters           -->
+  <!-- ==================== -->
+  <xacro:property name="wheel_radius" value="0.05"/>
+  <xacro:property name="wheel_width"  value="0.02"/>
+  <xacro:property name="color_alpha" value="1.0"/>
+
+  <!-- ==================== -->
+  <!-- Base link             -->
+  <!-- ==================== -->
+  <link name="base_link"/>
+
+  <!-- ==================== -->
+  <!-- Wheel module macro    -->
+  <!-- ==================== -->
+  <xacro:macro name="mecanum" params="wheel_name x y angle">
+
+    <!-- wheel base link -->
+    <link name="${wheel_name}_base_link"/>
+
+    <!-- wheel base joint -->
+    <joint name="${wheel_name}_base" type="fixed">
+      <parent link="base_link"/>
+      <child link="${wheel_name}_base_link"/>
+      <origin xyz="${x} ${y} ${wheel_radius}" rpy="0 0 ${angle}"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- wheel link -->
+    <link name="${wheel_name}_link">
+      <visual>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <origin rpy="1.5708 0 0"/>
+        <material name="black">
+          <color rgba="0.1 0.1 0.1 ${color_alpha}"/>
+        </material>
+      </visual>
+    </link>
+
+    <!-- wheel joint -->
+    <joint name="${wheel_name}" type="continuous">
+      <parent link="${wheel_name}_base_link"/>
+      <child link="${wheel_name}_link"/>
+      <!-- <origin xyz="0 0 0" rpy="0 0 0"/> -->
+      <axis xyz="0 1 0"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- ==================== -->
+  <!-- Mecanum instances    -->
+  <!-- ==================== -->
+  <xacro:mecanum wheel_name="mecanum_wheel_0" x="0.45"  y="0.45"  angle="-0.7853981635"/>  <!-- angle = -45° -->
+  <xacro:mecanum wheel_name="mecanum_wheel_1" x="-0.45" y="0.45"  angle="0.7853981635"/>  <!-- angle = +45° -->
+  <xacro:mecanum wheel_name="mecanum_wheel_2" x="-0.45" y="-0.45" angle="2.3561944902"/>  <!-- angle = +135° -->
+  <xacro:mecanum wheel_name="mecanum_wheel_3" x="0.45"  y="-0.45" angle="-2.3561944902"/>  <!-- angle = -135° -->
+
+  <!-- ==================== -->
+  <!-- Lidar Front          -->
+  <!-- ==================== -->
+  <link name="lidar_front"/>
+  <joint name="base_to_lidar_front" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_front"/>
+    <origin xyz="0.4 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ==================== -->
+  <!-- Lidar Rear           -->
+  <!-- ==================== -->
+  <link name="lidar_rear"/>
+  <joint name="base_to_lidar_rear" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_rear"/>
+    <origin xyz="-0.4 0 0" rpy="0 0 3.1415926535"/> <!-- rpy = 0 0 pi -->
+  </joint>
+</robot>

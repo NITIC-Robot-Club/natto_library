@@ -62,13 +62,3 @@ ax+by+c=0 の形で表される直線のメッセージです。
 | - | - | - |
 | wheel_angle | float64[] | ホイール角度 |
 | wheel_speed | float64[] | ホイール速度(rps) |
-
-### Omni.msg
-| フィールド名 | 型 | 説明 |
-| - | - | - |
-| wheel_speed | float64[] | ホイール速度(rps) |
-
-### Mecanum.msg
-| フィールド名 | 型 | 説明 |
-| - | - | - |
-| wheel_speed | float64[] | ホイール速度(rps) |

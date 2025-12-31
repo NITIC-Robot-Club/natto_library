@@ -18,9 +18,4 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE lidar_simulator
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "mecanum_simulator::mecanum_simulator"
-    EXECUTABLE mecanum_simulator
-)
-
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

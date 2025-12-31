@@ -13,9 +13,4 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE wheel_odometry
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "mecanum_odometry::mecanum_odometry"
-    EXECUTABLE mecanum_odometry
-)
-
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
