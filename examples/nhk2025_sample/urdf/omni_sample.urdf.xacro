@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="swerve_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="omni_robot" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <!-- ==================== -->
   <!-- Parameters           -->
