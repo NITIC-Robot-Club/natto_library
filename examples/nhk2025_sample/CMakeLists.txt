@@ -8,4 +8,5 @@ ament_auto_package(
     config
     launch
     state_graph
+    urdf
 )
