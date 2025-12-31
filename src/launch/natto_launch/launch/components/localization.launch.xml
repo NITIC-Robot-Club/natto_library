@@ -6,12 +6,12 @@
 
     <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
         <!-- オドメトリ -->
-        <composable_node pkg="natto_wheel_odometry" plugin="$(var chassis_type)_odometry::$(var chassis_type)_odometry" name="$(var chassis_type)_odometry" namespace="localization/wheel_odometry">
+        <composable_node pkg="natto_wheel_odometry" plugin="wheel_odometry::wheel_odometry" name="wheel_odometry" namespace="localization/wheel_odometry">
             <param from="$(var chassis_param_path)"/>
             <param name="publish_tf" value="$(var use_odom_tf)"/>
             <param name="odom_frame_id" value="odom"/>
             <param name="base_frame_id" value="base_link"/>
-            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
+            <remap from="joint_states" to="/joint_states"/>
         </composable_node>
 
         <composable_node pkg="natto_mcl" plugin="mcl::mcl" name="mcl" namespace="localization/mcl">

@@ -66,6 +66,28 @@ Visualization Manager:
             All Enabled: true
             base_link:
               Value: true
+            command/base_link:
+              Value: true
+            command/lidar_front:
+              Value: true
+            command/lidar_rear:
+              Value: true
+            command/swerve_wheel_0_link:
+              Value: true
+            command/swerve_wheel_1_link:
+              Value: true
+            command/swerve_wheel_2_link:
+              Value: true
+            command/swerve_wheel_3_link:
+              Value: true
+            command/swerve_wheel_base_0_link:
+              Value: true
+            command/swerve_wheel_base_1_link:
+              Value: true
+            command/swerve_wheel_base_2_link:
+              Value: true
+            command/swerve_wheel_base_3_link:
+              Value: true
             lidar_front:
               Value: true
             lidar_rear:
@@ -74,18 +96,63 @@ Visualization Manager:
               Value: true
             simulation:
               Value: true
+            swerve_wheel_0_link:
+              Value: true
+            swerve_wheel_1_link:
+              Value: true
+            swerve_wheel_2_link:
+              Value: true
+            swerve_wheel_3_link:
+              Value: true
+            swerve_wheel_base_0_link:
+              Value: true
+            swerve_wheel_base_1_link:
+              Value: true
+            swerve_wheel_base_2_link:
+              Value: true
+            swerve_wheel_base_3_link:
+              Value: true
           Marker Scale: 1
           Name: TF
-          Show Arrows: true
+          Show Arrows: false
           Show Axes: true
           Show Names: false
           Tree:
             map:
               base_link:
+                command/base_link:
+                  command/lidar_front:
+                    {}
+                  command/lidar_rear:
+                    {}
+                  command/swerve_wheel_base_0_link:
+                    command/swerve_wheel_0_link:
+                      {}
+                  command/swerve_wheel_base_1_link:
+                    command/swerve_wheel_1_link:
+                      {}
+                  command/swerve_wheel_base_2_link:
+                    command/swerve_wheel_2_link:
+                      {}
+                  command/swerve_wheel_base_3_link:
+                    command/swerve_wheel_3_link:
+                      {}
                 lidar_front:
                   {}
                 lidar_rear:
                   {}
+                swerve_wheel_base_0_link:
+                  swerve_wheel_0_link:
+                    {}
+                swerve_wheel_base_1_link:
+                  swerve_wheel_1_link:
+                    {}
+                swerve_wheel_base_2_link:
+                  swerve_wheel_2_link:
+                    {}
+                swerve_wheel_base_3_link:
+                  swerve_wheel_3_link:
+                    {}
               simulation:
                 {}
           Update Interval: 0
@@ -136,6 +203,80 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /common/footprint
           Value: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            lidar_front:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            lidar_rear:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_0_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            swerve_wheel_1_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            swerve_wheel_2_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            swerve_wheel_3_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            swerve_wheel_base_0_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_1_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_2_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+            swerve_wheel_base_3_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: RobotModel
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
       Enabled: true
       Name: Common
     - Class: rviz_common/Group
@@ -386,7 +527,7 @@ Visualization Manager:
           Enabled: true
           Name: Result
           Namespaces:
-            swerve_wheel: true
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -749,21 +890,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -1.5699985027313232
-      Class: rviz_default_plugins/TopDownOrtho
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 160.56320190429688
+      Pitch: 0.8999999761581421
       Target Frame: base_link
-      Value: TopDownOrtho (rviz_default_plugins)
-      X: 0
-      Y: 0
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 3.141592025756836
     Saved: ~
 Window Geometry:
   Displays:
