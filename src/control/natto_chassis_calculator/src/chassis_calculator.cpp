@@ -65,7 +65,7 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
         RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     }
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
 }
 
 void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
