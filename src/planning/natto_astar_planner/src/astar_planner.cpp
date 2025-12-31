@@ -25,20 +25,18 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     current_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
     footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
 
-    theta_resolution_deg_ = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
-    xy_inflation_         = this->declare_parameter<double> ("xy_inflation", 0.5);
-    xy_offset_            = this->declare_parameter<double> ("xy_offset", 0.1);
-    yaw_offset_           = this->declare_parameter<double> ("yaw_offset", 0.1);
-    grad_alpha_           = this->declare_parameter<double> ("grad_alpha", 1.0);
-    grad_beta_            = this->declare_parameter<double> ("grad_beta", 8.0);
-    grad_gamma_           = this->declare_parameter<double> ("grad_gamma", 0.0);
-    grad_step_size_       = this->declare_parameter<double> ("grad_step_size", 0.1);
+    theta_resolution_deg_      = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
+    xy_inflation_              = this->declare_parameter<double> ("xy_inflation", 0.5);
+    xy_offset_                 = this->declare_parameter<double> ("xy_offset", 0.1);
+    yaw_offset_                = this->declare_parameter<double> ("yaw_offset", 0.1);
+    grad_alpha_                = this->declare_parameter<double> ("grad_alpha", 1.0);
+    grad_beta_                 = this->declare_parameter<double> ("grad_beta", 8.0);
+    grad_gamma_                = this->declare_parameter<double> ("grad_gamma", 0.0);
+    grad_step_size_            = this->declare_parameter<double> ("grad_step_size", 0.1);
     replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.5);
 
     // Create timer for periodic path validation (100ms = 10Hz)
-    replan_timer_ = this->create_wall_timer (
-        std::chrono::milliseconds (100),
-        std::bind (&astar_planner::replan_timer_callback, this));
+    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (100), std::bind (&astar_planner::replan_timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "theta_resolution_deg: %d", theta_resolution_deg_);
@@ -71,7 +69,7 @@ void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::S
         }
     }
 
-    goal_pose_ = *msg;
+    goal_pose_          = *msg;
     previous_goal_pose_ = *msg;
     create_path ();
 }
@@ -714,13 +712,13 @@ double astar_planner::calculate_min_distance_to_path () {
     }
 
     double min_distance = std::numeric_limits<double>::infinity ();
-    double current_x = current_pose_.pose.position.x;
-    double current_y = current_pose_.pose.position.y;
+    double current_x    = current_pose_.pose.position.x;
+    double current_y    = current_pose_.pose.position.y;
 
     // Loop through all path poses to find minimum distance
     for (const auto &pose : path_.poses) {
-        double dx = pose.pose.position.x - current_x;
-        double dy = pose.pose.position.y - current_y;
+        double dx       = pose.pose.position.x - current_x;
+        double dy       = pose.pose.position.y - current_y;
         double distance = std::hypot (dx, dy);
 
         if (distance < min_distance) {
@@ -743,8 +741,8 @@ bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, 
     }
 
     // Calculate 2D distance between the two goals (consistent with calculate_min_distance_to_path)
-    double dx = goal1.pose.position.x - goal2.pose.position.x;
-    double dy = goal1.pose.position.y - goal2.pose.position.y;
+    double dx       = goal1.pose.position.x - goal2.pose.position.x;
+    double dy       = goal1.pose.position.y - goal2.pose.position.y;
     double distance = std::hypot (dx, dy);
 
     return distance < tolerance;
