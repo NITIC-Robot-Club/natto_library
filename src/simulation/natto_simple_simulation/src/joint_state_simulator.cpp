@@ -113,11 +113,11 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
     RCLCPP_INFO (this->get_logger (), "initial pose: (%f, %f, %f)", initial_pose_x_, initial_pose_y_, initial_pose_yaw_);
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
     for (size_t i = 0; i < num_wheels_; i++) {
         RCLCPP_INFO (this->get_logger (), "wheel_name[%zu]: %s", i, wheel_names_[i].c_str ());
     }
-    RCLCPP_INFO (this->get_logger (), "Number of joints: %zu", num_joints_);
+    RCLCPP_INFO (this->get_logger (), "num_joints: %zu", num_joints_);
     for (size_t i = 0; i < num_joints_; i++) {
         RCLCPP_INFO (this->get_logger (), "joint_name[%zu]: %s control_mode[%zu]: %s", i, joint_names_[i].c_str (), i, control_modes_[i].c_str ());
     }

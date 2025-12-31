@@ -39,7 +39,7 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &node_options) :
 
     RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency : %.2f", frequency);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "arrow_color: (%.2f, %.2f, %.2f)", arrow_r, arrow_g, arrow_b);
     RCLCPP_INFO (this->get_logger (), "arrow_scale: %.2f", arrow_scale);
     for (size_t i = 0; i < num_wheels_; i++) {

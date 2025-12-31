@@ -48,7 +48,7 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
 
     RCLCPP_INFO (this->get_logger (), "wheel_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
-    RCLCPP_INFO (this->get_logger (), "Number of wheels: %zu", num_wheels_);
+    RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
     RCLCPP_INFO (this->get_logger (), "publish_tf : %s", publish_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "odom_frame_id : %s", odom_frame_id_.c_str ());
     RCLCPP_INFO (this->get_logger (), "base_frame_id : %s", base_frame_id_.c_str ());
