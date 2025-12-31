@@ -24,6 +24,7 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
     current_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
     footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
+    goal_reached_subscription_ = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&astar_planner::goal_reached_callback, this, std::placeholders::_1));
 
     theta_resolution_deg_      = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
     xy_inflation_              = this->declare_parameter<double> ("xy_inflation", 0.5);
@@ -33,9 +34,8 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     grad_beta_                 = this->declare_parameter<double> ("grad_beta", 8.0);
     grad_gamma_                = this->declare_parameter<double> ("grad_gamma", 0.0);
     grad_step_size_            = this->declare_parameter<double> ("grad_step_size", 0.1);
-    replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.5);
+    replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.2);
 
-    // Create timer for periodic path validation (100ms = 10Hz)
     replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (100), std::bind (&astar_planner::replan_timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
@@ -59,12 +59,9 @@ void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid:
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    // Check if this is the same goal as before
     if (is_same_goal (*msg, previous_goal_pose_)) {
-        // Check if robot is following the path (within threshold)
         double min_dist = calculate_min_distance_to_path ();
         if (min_dist <= replan_distance_threshold_) {
-            RCLCPP_DEBUG (this->get_logger (), "Same goal received and robot is following path (dist: %.3f), skipping replanning", min_dist);
             return;
         }
     }
@@ -706,7 +703,6 @@ double astar_planner::fix_angle (double angle) {
 }
 
 double astar_planner::calculate_min_distance_to_path () {
-    // Return infinity if path is empty or current pose is not set
     if (path_.poses.empty () || current_pose_.header.frame_id.empty ()) {
         return std::numeric_limits<double>::infinity ();
     }
@@ -715,7 +711,6 @@ double astar_planner::calculate_min_distance_to_path () {
     double current_x    = current_pose_.pose.position.x;
     double current_y    = current_pose_.pose.position.y;
 
-    // Loop through all path poses to find minimum distance
     for (const auto &pose : path_.poses) {
         double dx       = pose.pose.position.x - current_x;
         double dy       = pose.pose.position.y - current_y;
@@ -730,17 +725,14 @@ double astar_planner::calculate_min_distance_to_path () {
 }
 
 bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, const geometry_msgs::msg::PoseStamped &goal2, double tolerance) {
-    // If either goal is empty, they are not the same
     if (goal1.header.frame_id.empty () || goal2.header.frame_id.empty ()) {
         return false;
     }
 
-    // Check if frame_ids match
     if (goal1.header.frame_id != goal2.header.frame_id) {
         return false;
     }
 
-    // Calculate 2D distance between the two goals (consistent with calculate_min_distance_to_path)
     double dx       = goal1.pose.position.x - goal2.pose.position.x;
     double dy       = goal1.pose.position.y - goal2.pose.position.y;
     double distance = std::hypot (dx, dy);
@@ -749,21 +741,25 @@ bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, 
 }
 
 void astar_planner::replan_timer_callback () {
-    // Only check if we have a valid goal and path
     if (goal_pose_.header.frame_id.empty () || path_.poses.empty ()) {
         return;
     }
 
-    // Calculate minimum distance from current position to path
     double min_distance = calculate_min_distance_to_path ();
 
-    // If distance exceeds threshold, trigger replanning
     if (min_distance > replan_distance_threshold_) {
         RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_);
         create_path ();
     }
 }
 
+void astar_planner::goal_reached_callback (const std_msgs::msg::Bool::SharedPtr msg) {
+    if (msg->data) {
+        path_.poses.clear ();
+        path_.header.stamp = this->now ();
+        path_publisher_->publish (path_);
+    }
+}
 }  // namespace astar_planner
 
 #include "rclcpp_components/register_node_macro.hpp"

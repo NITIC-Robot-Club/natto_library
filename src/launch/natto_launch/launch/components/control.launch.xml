@@ -25,6 +25,7 @@
             <remap from="current_pose" to="$(var current_pose_topic)"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/common/footprint"/>
+            <remap from="goal_reached" to="/control/goal_reached"/>
         </composable_node>
 
         <!-- 経路追従 -->

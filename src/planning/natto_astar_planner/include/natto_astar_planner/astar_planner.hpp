@@ -23,6 +23,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <algorithm>
@@ -66,6 +67,7 @@ class astar_planner : public rclcpp::Node {
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     void current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+    void goal_reached_callback (const std_msgs::msg::Bool::SharedPtr msg);
     void replan_timer_callback ();
 
     void   create_path ();
@@ -92,6 +94,7 @@ class astar_planner : public rclcpp::Node {
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                goal_reached_subscription_;
     rclcpp::TimerBase::SharedPtr                                        replan_timer_;
 };
 
