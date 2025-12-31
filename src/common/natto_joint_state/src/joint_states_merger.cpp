@@ -40,19 +40,19 @@ void joint_state_merger::joint_states_callback (const sensor_msgs::msg::JointSta
             if (!msg->position.empty ()) {
                 merged_joint_states_.position[index] = msg->position[i];
             }
-            if (!msg->velocity.empty ()) {
+            if (!msg->velocity.empty () && i < msg->velocity.size ()) {
                 merged_joint_states_.velocity[index] = msg->velocity[i];
             }
-            if (!msg->effort.empty ()) {
+            if (!msg->effort.empty () && i < msg->effort.size ()) {
                 merged_joint_states_.effort[index] = msg->effort[i];
             }
         } else {
             merged_joint_states_.name.push_back (msg->name[i]);
             merged_joint_states_.position.push_back (msg->position[i]);
-            if (!msg->velocity.empty ()) {
+            if (!msg->velocity.empty () && i < msg->velocity.size ()) {
                 merged_joint_states_.velocity.push_back (msg->velocity[i]);
             }
-            if (!msg->effort.empty ()) {
+            if (!msg->effort.empty () && i < msg->effort.size ()) {
                 merged_joint_states_.effort.push_back (msg->effort[i]);
             }
         }
