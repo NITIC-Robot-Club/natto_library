@@ -24,15 +24,19 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
     current_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&astar_planner::current_pose_callback, this, std::placeholders::_1));
     footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
+    goal_reached_subscription_ = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&astar_planner::goal_reached_callback, this, std::placeholders::_1));
 
-    theta_resolution_deg_ = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
-    xy_inflation_         = this->declare_parameter<double> ("xy_inflation", 0.5);
-    xy_offset_            = this->declare_parameter<double> ("xy_offset", 0.1);
-    yaw_offset_           = this->declare_parameter<double> ("yaw_offset", 0.1);
-    grad_alpha_           = this->declare_parameter<double> ("grad_alpha", 1.0);
-    grad_beta_            = this->declare_parameter<double> ("grad_beta", 8.0);
-    grad_gamma_           = this->declare_parameter<double> ("grad_gamma", 0.0);
-    grad_step_size_       = this->declare_parameter<double> ("grad_step_size", 0.1);
+    theta_resolution_deg_      = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
+    xy_inflation_              = this->declare_parameter<double> ("xy_inflation", 0.5);
+    xy_offset_                 = this->declare_parameter<double> ("xy_offset", 0.1);
+    yaw_offset_                = this->declare_parameter<double> ("yaw_offset", 0.1);
+    grad_alpha_                = this->declare_parameter<double> ("grad_alpha", 1.0);
+    grad_beta_                 = this->declare_parameter<double> ("grad_beta", 8.0);
+    grad_gamma_                = this->declare_parameter<double> ("grad_gamma", 0.0);
+    grad_step_size_            = this->declare_parameter<double> ("grad_step_size", 0.1);
+    replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.2);
+
+    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (100), std::bind (&astar_planner::replan_timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "theta_resolution_deg: %d", theta_resolution_deg_);
@@ -43,6 +47,7 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     RCLCPP_INFO (this->get_logger (), "grad_beta: %.2f", grad_beta_);
     RCLCPP_INFO (this->get_logger (), "grad_gamma: %.2f", grad_gamma_);
     RCLCPP_INFO (this->get_logger (), "grad_step_size: %.2f", grad_step_size_);
+    RCLCPP_INFO (this->get_logger (), "replan_distance_threshold: %.2f", replan_distance_threshold_);
 }
 
 void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -54,7 +59,15 @@ void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid:
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    goal_pose_ = *msg;
+    if (is_same_goal (*msg, previous_goal_pose_)) {
+        double min_dist = calculate_min_distance_to_path ();
+        if (min_dist <= replan_distance_threshold_) {
+            return;
+        }
+    }
+
+    goal_pose_          = *msg;
+    previous_goal_pose_ = *msg;
     create_path ();
 }
 
@@ -689,6 +702,64 @@ double astar_planner::fix_angle (double angle) {
     return angle;
 }
 
+double astar_planner::calculate_min_distance_to_path () {
+    if (path_.poses.empty () || current_pose_.header.frame_id.empty ()) {
+        return std::numeric_limits<double>::infinity ();
+    }
+
+    double min_distance = std::numeric_limits<double>::infinity ();
+    double current_x    = current_pose_.pose.position.x;
+    double current_y    = current_pose_.pose.position.y;
+
+    for (const auto &pose : path_.poses) {
+        double dx       = pose.pose.position.x - current_x;
+        double dy       = pose.pose.position.y - current_y;
+        double distance = std::hypot (dx, dy);
+
+        if (distance < min_distance) {
+            min_distance = distance;
+        }
+    }
+
+    return min_distance;
+}
+
+bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, const geometry_msgs::msg::PoseStamped &goal2, double tolerance) {
+    if (goal1.header.frame_id.empty () || goal2.header.frame_id.empty ()) {
+        return false;
+    }
+
+    if (goal1.header.frame_id != goal2.header.frame_id) {
+        return false;
+    }
+
+    double dx       = goal1.pose.position.x - goal2.pose.position.x;
+    double dy       = goal1.pose.position.y - goal2.pose.position.y;
+    double distance = std::hypot (dx, dy);
+
+    return distance < tolerance;
+}
+
+void astar_planner::replan_timer_callback () {
+    if (goal_pose_.header.frame_id.empty () || path_.poses.empty ()) {
+        return;
+    }
+
+    double min_distance = calculate_min_distance_to_path ();
+
+    if (min_distance > replan_distance_threshold_) {
+        RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_);
+        create_path ();
+    }
+}
+
+void astar_planner::goal_reached_callback (const std_msgs::msg::Bool::SharedPtr msg) {
+    if (msg->data) {
+        path_.poses.clear ();
+        path_.header.stamp = this->now ();
+        path_publisher_->publish (path_);
+    }
+}
 }  // namespace astar_planner
 
 #include "rclcpp_components/register_node_macro.hpp"
