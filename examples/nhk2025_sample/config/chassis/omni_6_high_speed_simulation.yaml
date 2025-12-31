@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    initial_pose_x: 1.0
+    initial_pose_y: 1.0
+    initial_pose_yaw_deg: 0.0
+    frequency: 100.0
+    joint_names : ["omni_wheel_0", "omni_wheel_1", "omni_wheel_2", "omni_wheel_3", "omni_wheel_4", "omni_wheel_5"]
+    control_modes : ["speed", "speed", "speed", "speed", "speed", "speed"]
+    initial_positions : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    joint_position_tau : [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    joint_velocity_tau : [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    joint_velocity_max : [60.0, 60.0, 60.0, 60.0, 60.0, 60.0]
