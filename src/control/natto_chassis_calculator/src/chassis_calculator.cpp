@@ -17,8 +17,8 @@
 namespace chassis_calculator {
 
 chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options) : Node ("chassis_calculator", node_options) {
-    command_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort ());
-    joint_state_subscriber_        = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort (), std::bind (&chassis_calculator::joint_state_callback, this, std::placeholders::_1));
+    command_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
+    joint_state_subscriber_        = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&chassis_calculator::joint_state_callback, this, std::placeholders::_1));
     twist_command_subscriber_      = this->create_subscription<geometry_msgs::msg::TwistStamped> ("command_velocity", 10, std::bind (&chassis_calculator::command_velocity_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());

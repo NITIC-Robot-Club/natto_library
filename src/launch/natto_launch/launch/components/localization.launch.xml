@@ -9,8 +9,6 @@
         <composable_node pkg="natto_wheel_odometry" plugin="wheel_odometry::wheel_odometry" name="wheel_odometry" namespace="localization/wheel_odometry">
             <param from="$(var chassis_param_path)"/>
             <param name="publish_tf" value="$(var use_odom_tf)"/>
-            <param name="odom_frame_id" value="odom"/>
-            <param name="base_frame_id" value="base_link"/>
             <remap from="joint_states" to="/joint_states"/>
         </composable_node>
 

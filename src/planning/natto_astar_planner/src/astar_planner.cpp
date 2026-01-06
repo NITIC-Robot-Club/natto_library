@@ -520,6 +520,7 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
 
     const size_t start_idx = to_index (0, start_theta);
     gscore[start_idx]      = 0.0;
+    came_from[start_idx]   = start_idx;
 
     open.push ({0, start_theta, 0.0, heuristic (0, start_theta)});
 
@@ -568,11 +569,6 @@ nav_msgs::msg::Path astar_planner::angular_astar (const nav_msgs::msg::Path &lin
     }
 
     size_t yawcur = goal_idx;
-
-    if (came_from[goal_idx] == static_cast<size_t> (-1)) {
-        RCLCPP_WARN (this->get_logger (), "angular_astar failed");
-        return out;
-    }
 
     std::vector<std::pair<size_t, size_t>> seq;
 

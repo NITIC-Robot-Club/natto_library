@@ -59,7 +59,7 @@ void laserscan_to_pointcloud2::laserscan_callback (const sensor_msgs::msg::Laser
         tf2::doTransform (pointcloud2, pointcloud2_transformed, tf);
         pointcloud2_publisher_->publish (pointcloud2_transformed);
     } catch (tf2::TransformException &ex) {
-        RCLCPP_WARN (this->get_logger (), "Transform error: %s", ex.what ());
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Transform error: %s", ex.what ());
         return;
     }
 }

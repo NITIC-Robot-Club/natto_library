@@ -17,9 +17,9 @@
 namespace joint_state_simulator {
 
 joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_options) : Node ("joint_state_simulator", node_options) {
-    joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort ());
+    joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     simulation_pose_publisher_      = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
-    command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::QoS (10).best_effort (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
+    command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_ = this->declare_parameter<std::string> ("chassis_type", "");
