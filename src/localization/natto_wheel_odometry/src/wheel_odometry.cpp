@@ -21,7 +21,7 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
     pose_publisher_     = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
     odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS ());
 
-    joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::QoS (10).best_effort (), std::bind (&wheel_odometry::joint_state_callback, this, std::placeholders::_1));
+    joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&wheel_odometry::joint_state_callback, this, std::placeholders::_1));
     tf_broadcaster_         = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_  = this->declare_parameter<double> ("wheel_radius", 0.05);

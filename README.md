@@ -30,3 +30,16 @@
    ```bash
    echo "source ~/natto_library/install/setup.bash" >> ~/.bashrc
    ```
+
+## サンプル実行
+NHK高専ロボコン2025のサンプルデータがあります
+
+```bash
+ros2 launch nhk2025_sample nhk2025_sample.launch.xml
+```
+
+オムニホイールのサンプルもあります
+
+```bash
+ros2 launch nhk2025_sample omni_sample.launch.xml
+```

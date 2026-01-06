@@ -57,7 +57,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
         }
     }
     if (!available) {
-        RCLCPP_WARN (this->get_logger (), "No pointclouds received yet.");
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "No pointclouds received yet.");
         return;
     }
 
@@ -71,7 +71,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
             auto tf = tf_buffer_->lookupTransform (frame_id_, pc.header.frame_id, pc.header.stamp);
             tf2::doTransform (pc, pc_tf, tf);
         } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN (this->get_logger (), "TF transform failed: %s", ex.what ());
+            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "TF transform failed: %s", ex.what ());
             continue;
         }
 
@@ -104,7 +104,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
                 footprint_points_tf.push_back (p_tf);
             }
         } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN (this->get_logger (), "TF transform for footprint failed: %s", ex.what ());
+            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "TF transform for footprint failed: %s", ex.what ());
             footprint_points_tf.clear ();
         }
     }

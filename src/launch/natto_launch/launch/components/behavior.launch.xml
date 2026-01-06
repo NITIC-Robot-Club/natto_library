@@ -1,6 +1,6 @@
 <launch>
     <arg name="state_graph_path" default=""/>
-    <arg name="state_timeout_sec" default="5.0"/>
+    <arg name="state_timeout_sec" default="1.0"/>
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/behavior">
         <composable_node pkg="natto_state_machine" plugin="mermaid_loader::mermaid_loader" name="mermaid_loader" namespace="/behavior">
             <param name="mermaid_path" value="$(var state_graph_path)"/>

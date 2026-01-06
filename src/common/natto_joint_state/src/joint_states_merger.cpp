@@ -17,11 +17,11 @@
 namespace joint_state_merger {
 
 joint_state_merger::joint_state_merger (const rclcpp::NodeOptions &node_options) : Node ("joint_state_merger", node_options) {
-    merged_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("merged_joint_states", rclcpp::QoS (10).best_effort ());
+    merged_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("merged_joint_states", rclcpp::SensorDataQoS ());
 
     std::vector<std::string> joint_state_topics = this->declare_parameter<std::vector<std::string>> ("joint_state_topics", {""});
     for (const auto &topic : joint_state_topics) {
-        joint_state_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::JointState> (topic, rclcpp::QoS (10).best_effort (), std::bind (&joint_state_merger::joint_states_callback, this, std::placeholders::_1)));
+        joint_state_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::JointState> (topic, rclcpp::SensorDataQoS (), std::bind (&joint_state_merger::joint_states_callback, this, std::placeholders::_1)));
     }
     RCLCPP_INFO (this->get_logger (), "joint_state_merger node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "Subscribed topics:");

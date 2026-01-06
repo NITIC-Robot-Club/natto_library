@@ -55,10 +55,30 @@
   <!-- ==================== -->
   <!-- Omni instances       -->
   <!-- ==================== -->
-  <xacro:omni wheel_name="omni_wheel_0" x="0.45"  y="0.45"  angle="-0.7853981635"/> 
-  <xacro:omni wheel_name="omni_wheel_1" x="-0.45" y="0.45"  angle="0.7853981635"/>  
-  <xacro:omni wheel_name="omni_wheel_2" x="-0.45" y="-0.45" angle="2.3561944902"/>  
-  <xacro:omni wheel_name="omni_wheel_3" x="0.45"  y="-0.45" angle="-2.3561944902"/>
+  <!-- パラメータ -->
+  <xacro:property name="WHEEL_NUM" value="100"/>
+  <xacro:property name="R" value="0.45"/>
+  <xacro:property name="PI" value="3.141592653589793"/>
+
+ <!-- 再帰マクロ -->
+  <xacro:macro name="omni_loop" params="i">
+    <xacro:if value="${i &lt; WHEEL_NUM}">
+      <xacro:property name="theta"
+        value="${2 * PI * i / WHEEL_NUM}"/>
+
+      <xacro:omni
+        wheel_name="omni_wheel_${i}"
+        x="${R * cos(theta)}"
+        y="${R * sin(theta)}"
+        angle="${theta + PI / 2}"/>
+
+      <!-- 次 -->
+      <xacro:omni_loop i="${i + 1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!-- 開始 -->
+  <xacro:omni_loop i="0"/>
 
   <!-- ==================== -->
   <!-- Lidar Front          -->

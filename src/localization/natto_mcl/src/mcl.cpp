@@ -164,7 +164,7 @@ void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
 
 void mcl::timer_callback () {
     if (likelihood_field_.empty ()) {
-        RCLCPP_WARN (this->get_logger (), "Likelihood field is not ready yet.");
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Likelihood field is not ready yet.");
         return;
     }
 
@@ -176,7 +176,7 @@ void mcl::timer_callback () {
         try {
             odom_to_base_link = tf_buffer_->lookupTransform (odom_frame_id_, base_frame_id_, tf2::TimePointZero);
         } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
+            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
             return;
         }
         double delta_x_in_odom = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
