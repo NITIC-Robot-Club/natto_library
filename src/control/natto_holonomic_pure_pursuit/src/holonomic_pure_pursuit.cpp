@@ -78,7 +78,7 @@ void holonomic_pure_pursuit::path_callback (const nav_msgs::msg::Path::SharedPtr
 }
 
 void holonomic_pure_pursuit::timer_callback () {
-    if (path_.poses.empty ()) {
+    if (path_.poses.empty () || path_.poses.size () < 2) {
         geometry_msgs::msg::TwistStamped cmd_vel;
         cmd_vel.header.stamp    = this->now ();
         cmd_vel.header.frame_id = "base_link";
@@ -101,10 +101,6 @@ void holonomic_pure_pursuit::timer_callback () {
     bool   goal_speed_xy_reached  = (current_speed_xy < goal_speed_tolerance_xy_m_s_);
     double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
     bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
-
-    if (path_.poses.empty ()) {
-        return;
-    }
 
     size_t closest_index = 0;
     double min_distance  = std::numeric_limits<double>::max ();
@@ -152,8 +148,18 @@ void holonomic_pure_pursuit::timer_callback () {
     while (dyaw2 > +M_PI) dyaw2 -= 2.0 * M_PI;
     while (dyaw2 < -M_PI) dyaw2 += 2.0 * M_PI;
 
-    double xy_ratio  = std::clamp ((lookahead_distance_ - dxy1) / (dxy2 - dxy1), 0.0, 1.0);
-    double yaw_ratio = std::clamp ((lookahead_distance_ - dxy1) / (dxy2 - dxy1), 0.0, 1.0);
+    double delta_dxy = dxy2 - dxy1;
+    if (std::abs (delta_dxy) < 1e-6) {
+        delta_dxy = 1e-6;
+    }
+
+    double delta_dyaw = dyaw2 - dyaw1;
+    if (std::abs (delta_dyaw) < 1e-6) {
+        delta_dyaw = 1e-6;
+    }
+
+    double xy_ratio  = std::clamp ((lookahead_distance_ - dxy1) / delta_dxy, 0.0, 1.0);
+    double yaw_ratio = std::clamp ((lookahead_distance_ - dxy1) / delta_dyaw, 0.0, 1.0);
 
     double lookahead_x   = path_.poses[lookahead_index].pose.position.x + (path_.poses[next_index].pose.position.x - path_.poses[lookahead_index].pose.position.x) * xy_ratio;
     double lookahead_y   = path_.poses[lookahead_index].pose.position.y + (path_.poses[next_index].pose.position.y - path_.poses[lookahead_index].pose.position.y) * xy_ratio;
@@ -179,7 +185,11 @@ void holonomic_pure_pursuit::timer_callback () {
     double b         = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);
     double c         = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p3].pose.position.y);
     double s         = (a + b + c) / 2.0;
-    double area      = std::sqrt (s * (s - a) * (s - b) * (s - c));
+    double t         = s * (s - a) * (s - b) * (s - c);
+    if (t < 0.0) {
+        t = 0.0;
+    }
+    double area      = std::sqrt (t);
     double curvature = 0.0;
     if (a * b * c > 1e-6) {
         curvature = 4.0 * area / (a * b * c);
