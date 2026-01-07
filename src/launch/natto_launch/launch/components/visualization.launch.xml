@@ -14,28 +14,6 @@
             <remap from="marker_array" to="/visualization/map"/>
         </composable_node>
 
-        <!-- 足回りコマンド -->
-        <!-- <composable_node pkg="natto_visualization_converter" plugin="$(var chassis_type)_visualizer::$(var chassis_type)_visualizer" name="command" namespace="visualization/$(var chassis_type)">
-            <param name="arrow_r" value="0.0"/>
-            <param name="arrow_g" value="0.0"/>
-            <param name="arrow_b" value="1.0"/>
-            <param name="frequency" value="$(var fps)"/>
-            <param from="$(var chassis_param_path)"/>
-            <remap from="$(var chassis_type)" to="/$(var chassis_type)/command"/>
-            <remap from="marker_array" to="/visualization/chassis/command"/>
-        </composable_node> -->
-
-        <!-- 足回り結果 -->
-        <!-- <composable_node pkg="natto_visualization_converter" plugin="$(var chassis_type)_visualizer::$(var chassis_type)_visualizer" name="result" namespace="visualization/$(var chassis_type)">
-            <param name="frequency" value="$(var fps)"/>
-            <param name="arrow_r" value="1.0"/>
-            <param name="arrow_g" value="0.0"/>
-            <param name="arrow_b" value="0.0"/>
-            <param from="$(var chassis_param_path)"/>
-            <remap from="$(var chassis_type)" to="/$(var chassis_type)/result"/>
-            <remap from="marker_array" to="/visualization/chassis/result"/>
-        </composable_node> -->
-
         <!-- 直線表示 -->
         <composable_node pkg="natto_visualization_converter" plugin="line_visualizer::line_visualizer" name="lines" namespace="visualization/lines">
             <param name="frequency" value="$(var fps)"/>
