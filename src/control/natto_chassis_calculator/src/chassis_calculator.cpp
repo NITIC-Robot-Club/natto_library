@@ -54,6 +54,14 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
         for (size_t i = 0; i < num_wheels_; i++) {
             command_joint_state_.name[i] = wheel_names_[i];
         }
+    } else if (chassis_type_ == "mecanum") {
+        command_joint_state_.header.frame_id = "base_link";
+        command_joint_state_.name.resize (num_wheels_);
+        command_joint_state_.position.resize (num_wheels_);
+        command_joint_state_.velocity.resize (num_wheels_);
+        for (size_t i = 0; i < num_wheels_; i++) {
+            command_joint_state_.name[i] = wheel_names_[i];
+        }
     } else {
         RCLCPP_ERROR (this->get_logger (), "Unsupported chassis_type: %s", chassis_type_.c_str ());
         throw std::runtime_error ("Invalid parameter: unsupported chassis_type.");
@@ -127,6 +135,32 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
         }
         command_joint_state_publisher_->publish (command_joint_state_);
     } else if (chassis_type_ == "omni") {
+        for (size_t i = 0; i < num_wheels_; i++) {
+            double wheel_position_x;
+            double wheel_position_y;
+            double wheel_angle;
+
+            try {
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("base_link", wheel_base_names_[i] + "_link", tf2::TimePointZero);
+
+                wheel_position_x = tf_stamped.transform.translation.x;
+                wheel_position_y = tf_stamped.transform.translation.y;
+                wheel_angle      = tf2::getYaw (tf_stamped.transform.rotation);
+            } catch (tf2::TransformException &ex) {
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                return;
+            }
+            double wheel_vx        = x - z * wheel_position_y;
+            double wheel_vy        = y + z * wheel_position_x;
+            double wheel_speed     = std::sqrt (wheel_vx * wheel_vx + wheel_vy * wheel_vy);
+            double wheel_direction = std::atan2 (wheel_vy, wheel_vx);
+
+            double adjusted_wheel_speed = wheel_speed * std::cos (wheel_direction - wheel_angle);
+
+            command_joint_state_.velocity[i] = adjusted_wheel_speed / wheel_radius_;
+        }
+        command_joint_state_publisher_->publish (command_joint_state_);
+    } else if (chassis_type_ == "mecanum") {
         for (size_t i = 0; i < num_wheels_; i++) {
             double wheel_position_x;
             double wheel_position_y;
