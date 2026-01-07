@@ -181,11 +181,11 @@ void holonomic_pure_pursuit::timer_callback () {
     size_t p2 = (lookahead_index + closest_index) / 2;
     size_t p3 = lookahead_index;
 
-    double a         = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p2].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p2].pose.position.y);
-    double b         = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);
-    double c         = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p3].pose.position.y);
-    double s         = (a + b + c) / 2.0;
-    double t         = s * (s - a) * (s - b) * (s - c);
+    double a = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p2].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p2].pose.position.y);
+    double b = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);
+    double c = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p3].pose.position.y);
+    double s = (a + b + c) / 2.0;
+    double t = s * (s - a) * (s - b) * (s - c);
     if (t < 0.0) {
         t = 0.0;
     }
