@@ -28,8 +28,8 @@ canable::canable (const rclcpp::NodeOptions &node_options) : Node ("canable", no
         throw std::runtime_error ("CAN socket init failed");
     }
 
-    canable_pub_ = this->create_publisher<natto_msgs::msg::Can> ("receive", 10);
-    canable_sub_ = this->create_subscription<natto_msgs::msg::Can> ("transmit", 10, [this] (const natto_msgs::msg::Can::SharedPtr msg) { write_can_socket (*msg); });
+    canable_pub_ = this->create_publisher<natto_msgs::msg::Can> ("receive", 255);
+    canable_sub_ = this->create_subscription<natto_msgs::msg::Can> ("transmit", 255, [this] (const natto_msgs::msg::Can::SharedPtr msg) { write_can_socket (*msg); });
 
     RCLCPP_INFO (this->get_logger (), "canable node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "can_interface : %s", can_interface_.c_str ());

@@ -26,14 +26,16 @@
     <node_container pkg="rclcpp_components" exec="component_container" name="common_robot_container" namespace="/">
         <composable_node pkg="robot_state_publisher" plugin="robot_state_publisher::RobotStatePublisher" name="robot_state_publisher" namespace="/">
             <param name="robot_description" value="$(command 'xacro $(var urdf_path)')"/>
-            <remap from="/joint_states" to="/joint_states"/>
             <param name="frame_prefix" value=""/>
+            <param name="publish_frequency" value="100.0"/>
         </composable_node>
 
         <composable_node pkg="robot_state_publisher" plugin="robot_state_publisher::RobotStatePublisher" name="command_robot_state_publisher" namespace="/">
             <param name="robot_description" value="$(command 'xacro $(var urdf_path)')"/>
             <remap from="/joint_states" to="/command_joint_states"/>
             <param name="frame_prefix" value="command/"/>
+            <remap from="/robot_description" to="/command_robot_description"/>
+            <param name="publish_frequency" value="100.0"/>
         </composable_node>
 
         <composable_node pkg="natto_joint_state" plugin="joint_state_merger::joint_state_merger" name="joint_state_merger" namespace="/">
