@@ -115,7 +115,7 @@ void canable::read_can_socket () {
         }
 
         if (use_fd_) {
-            struct canfd_frame frame{};
+            struct canfd_frame frame {};
             ssize_t            nbytes = read (fd, &frame, sizeof (frame));
             if (nbytes < 0) {
                 init_can_socket ();
@@ -132,7 +132,7 @@ void canable::read_can_socket () {
             msg.header.stamp = this->now ();
             canable_pub_->publish (msg);
         } else {
-            struct can_frame frame{};
+            struct can_frame frame {};
             ssize_t          nbytes = read (fd, &frame, sizeof (frame));
             if (nbytes < 0) {
                 init_can_socket ();
@@ -168,14 +168,14 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
 
         ssize_t ret;
         if (use_fd_) {
-            struct canfd_frame frame{};
+            struct canfd_frame frame {};
             frame.can_id = msg.is_extended ? ((msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG) : (msg.id & CAN_SFF_MASK);
             frame.len    = msg.len;
             frame.flags  = CANFD_BRS;
             std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
             ret = write (fd, &frame, sizeof (frame));
         } else {
-            struct can_frame frame{};
+            struct can_frame frame {};
             frame.can_id  = msg.is_extended ? ((msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG) : (msg.id & CAN_SFF_MASK);
             frame.can_dlc = msg.len;
             frame.len     = msg.len;

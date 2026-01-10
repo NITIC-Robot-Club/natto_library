@@ -51,8 +51,8 @@ class canable : public rclcpp::Node {
     int can_socket_ = -1;
 
     std::string         can_interface_;
-    struct sockaddr_can addr_{};
-    struct ifreq        ifr_{};
+    struct sockaddr_can addr_ {};
+    struct ifreq        ifr_ {};
 
     std::mutex        can_mutex_;
     std::atomic<bool> running_{false};
