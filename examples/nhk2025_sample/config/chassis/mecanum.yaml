@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    chassis_type : "mecanum"
+    wheel_radius : 0.05
+    wheel_names : ["mecanum_wheel_0", "mecanum_wheel_1", "mecanum_wheel_2", "mecanum_wheel_3"]
+    wheel_base_names: ["mecanum_wheel_0_base", "mecanum_wheel_1_base", "mecanum_wheel_2_base", "mecanum_wheel_3_base"]
