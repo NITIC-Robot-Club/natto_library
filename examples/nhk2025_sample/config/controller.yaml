@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    num_button: 4
+    button_0:
+      function: "power"
+      mode: "toggle_off"
+    button_1:
+      function: "power"
+      mode: "toggle_on"
+    button_2:
+      function: "allow_auto_drive"
+      mode: "toggle_on"
+    button_3:
+      function: "allow_auto_drive"
+      mode: "toggle_off"

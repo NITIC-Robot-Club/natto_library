@@ -6,15 +6,20 @@
 [![Deploy Docs and Map Builder](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml/badge.svg)](https://github.com/NITIC-Robot-Club/natto_library/actions/workflows/mkdocs.yaml)
 
 ## パッケージ一覧
+### behavior
+- [natto_state_machine](behavior/natto_state_machine) : 状態遷移を管理するステートマシン
+
 ### common
 - [natto_canable](common/natto_canable) : CAN通信を扱う
 - [natto_map](common/natto_map) : 地図情報を扱う
+- [natto_joy](common/natto_joy) : ジョイスティック入力を扱う
 
 ### control
 - [natto_holonomic_pure_pursuit](control/natto_holonomic_pure_pursuit) : ホロノミックロボットのためのピュアパシュート制御を行う
-- [natto_swerve_calculator](control/natto_swerve_calculator) : N輪独立ステアリングのホイール指令を計算する
+- [natto_chassis_calculator](control/natto_chassis_calculator) :足回りのホイール指令を計算する
 
 ### localization
+- [natto_mcl](localization/natto_mcl) : モンテカルロ法を用いて自己位置推定を行う
 - [natto_wheel_odometry](localization/natto_wheel_odometry) : 計測輪や足回りの出力結果からオドメトリを計算する
 
 ### message

@@ -17,7 +17,7 @@
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /laser_scan | sensor_msgs::msg::LaserScan | 入力となるLaserScanデータ |
+| /laserscan | sensor_msgs::msg::LaserScan | 入力となるLaserScanデータ |
 
 
 # pointcloud2_to_laserscan
@@ -34,7 +34,7 @@
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /laser_scan | sensor_msgs::msg::LaserScan | 変換されたLaserScanデータ |
+| /laserscan | sensor_msgs::msg::LaserScan | 変換されたLaserScanデータ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |

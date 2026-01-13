@@ -1,0 +1,3 @@
+uint64 state_id
+string state_name
+bool is_selectable

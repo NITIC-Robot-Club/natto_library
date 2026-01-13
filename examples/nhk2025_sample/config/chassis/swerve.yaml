@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    chassis_type : "swerve"
+    wheel_radius : 0.05
+    infinite_swerve_mode : true
+    wheel_names : ["swerve_wheel_0", "swerve_wheel_1", "swerve_wheel_2", "swerve_wheel_3"]
+    wheel_base_names : ["swerve_wheel_base_0", "swerve_wheel_base_1", "swerve_wheel_base_2", "swerve_wheel_base_3"]

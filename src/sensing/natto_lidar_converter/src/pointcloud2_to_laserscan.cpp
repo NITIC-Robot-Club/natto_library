@@ -17,8 +17,8 @@
 namespace pointcloud2_to_laserscan {
 
 pointcloud2_to_laserscan::pointcloud2_to_laserscan (const rclcpp::NodeOptions &node_options) : Node ("pointcloud2_to_laserscan", node_options) {
-    laserscan_publisher_    = this->create_publisher<sensor_msgs::msg::LaserScan> ("laserscan", 10);
-    pointcloud2_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", 10, std::bind (&pointcloud2_to_laserscan::pointcloud2_callback, this, std::placeholders::_1));
+    laserscan_publisher_    = this->create_publisher<sensor_msgs::msg::LaserScan> ("laserscan", rclcpp::SensorDataQoS ());
+    pointcloud2_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&pointcloud2_to_laserscan::pointcloud2_callback, this, std::placeholders::_1));
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -28,11 +28,11 @@ pointcloud2_to_laserscan::pointcloud2_to_laserscan (const rclcpp::NodeOptions &n
     range_min_       = this->declare_parameter<double> ("range_min", 0.0);
     range_max_       = this->declare_parameter<double> ("range_max", 30.0);
 
-    RCLCPP_INFO (this->get_logger (), "pointcloud2_to_laserscan node has been started.");
-    RCLCPP_INFO (this->get_logger (), "frame id: %s", frame_id_.c_str ());
-    RCLCPP_INFO (this->get_logger (), "angle increment: %f", angle_increment_);
-    RCLCPP_INFO (this->get_logger (), "range min: %f", range_min_);
-    RCLCPP_INFO (this->get_logger (), "range max: %f", range_max_);
+    RCLCPP_INFO (this->get_logger (), "pointcloud2_to_laserscan node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "angle_increment: %f", angle_increment_);
+    RCLCPP_INFO (this->get_logger (), "range_min: %f", range_min_);
+    RCLCPP_INFO (this->get_logger (), "range_max: %f", range_max_);
 }
 
 void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
@@ -55,15 +55,44 @@ void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::Poi
         min_angle   = std::min (min_angle, angle);
         max_angle   = std::max (max_angle, angle);
     }
+    if (min_angle == std::numeric_limits<float>::max () || max_angle == std::numeric_limits<float>::lowest ()) {
+        min_angle = -static_cast<float> (M_PI);
+        max_angle = static_cast<float> (M_PI);
+    }
 
+    if (angle_increment_ <= 0.0) {
+        RCLCPP_WARN (this->get_logger (), "angle_increment is non positive, resetting to 1 deg");
+        angle_increment_ = M_PI / 180.0;
+    }
+
+    auto normalize = [] (float a) {
+        while (a <= -static_cast<float> (M_PI)) a += 2.0f * static_cast<float> (M_PI);
+        while (a > static_cast<float> (M_PI)) a -= 2.0f * static_cast<float> (M_PI);
+        return a;
+    };
+
+    min_angle = normalize (min_angle);
+    max_angle = normalize (max_angle);
+
+    if (max_angle < min_angle) {
+        max_angle += 2.0f * static_cast<float> (M_PI);
+    }
+
+    float span = max_angle - min_angle;
+    if (span > 2.0f * static_cast<float> (M_PI)) {
+        min_angle = -static_cast<float> (M_PI);
+        max_angle = static_cast<float> (M_PI);
+    }
+
+    RCLCPP_DEBUG (this->get_logger (), "Computed angle range: [%f, %f], span=%f", min_angle, max_angle, max_angle - min_angle);
     sensor_msgs::msg::LaserScan scan;
     scan.header.stamp    = cloud_transformed.header.stamp;
     scan.header.frame_id = frame_id_;
     scan.angle_min       = min_angle;
     scan.angle_max       = max_angle;
-    scan.angle_increment = angle_increment_;
-    scan.range_min       = range_min_;
-    scan.range_max       = range_max_;
+    scan.angle_increment = static_cast<float> (angle_increment_);
+    scan.range_min       = static_cast<float> (range_min_);
+    scan.range_max       = static_cast<float> (range_max_);
     size_t num_ranges    = static_cast<size_t> ((scan.angle_max - scan.angle_min) / scan.angle_increment) + 1;
     scan.ranges.assign (num_ranges, std::numeric_limits<float>::infinity ());
 
@@ -80,8 +109,9 @@ void pointcloud2_to_laserscan::pointcloud2_callback (const sensor_msgs::msg::Poi
         float angle = std::atan2 (y, x);
         int   index = static_cast<int> ((angle - scan.angle_min) / scan.angle_increment);
         if (index >= 0 && index < static_cast<int> (num_ranges)) {
-            if (range < scan.ranges[index]) {
-                scan.ranges[index] = range;
+            size_t idx = static_cast<size_t> (index);
+            if (range < scan.ranges[idx]) {
+                scan.ranges[idx] = range;
             }
         }
     }

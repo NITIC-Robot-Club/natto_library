@@ -33,12 +33,11 @@ class pointcloud2_merger : public rclcpp::Node {
 
    private:
     std::string frame_id_;
+    std::size_t num_lidars_;
 
-    geometry_msgs::msg::PolygonStamped footprint_;
-    sensor_msgs::msg::PointCloud2      first_pointcloud2_, second_pointcloud2_;
+    geometry_msgs::msg::PolygonStamped         footprint_;
+    std::vector<sensor_msgs::msg::PointCloud2> latest_pointclouds_;
 
-    void pointcloud2_callback_first (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
-    void pointcloud2_callback_second (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     bool check_footprint (double x, double y);
     void publish_pointcloud2 ();
@@ -46,10 +45,10 @@ class pointcloud2_merger : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr         pointcloud2_publisher_;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr      pointcloud2_first_subscriber_;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr      pointcloud2_second_subscriber_;
-    rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr                 pointcloud2_publisher_;
+    std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> pointcloud2_subscribers_;
+    rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr         footprint_subscriber_;
+    rclcpp::TimerBase::SharedPtr                                                publish_timer_;
 };
 }  // namespace pointcloud2_merger
 

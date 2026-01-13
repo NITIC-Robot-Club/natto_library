@@ -14,18 +14,15 @@
 
 #include "natto_map/map_converter.hpp"
 
-#include <algorithm>
-#include <cmath>
-
 namespace map_converter {
 
 map_converter::map_converter (const rclcpp::NodeOptions &node_options) : Node ("map_converter", node_options) {
-    occupancy_grid_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", 10);
-    map_subscription_         = this->create_subscription<natto_msgs::msg::Map> ("map", 10, std::bind (&map_converter::map_callback, this, std::placeholders::_1));
+    occupancy_grid_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    map_subscription_         = this->create_subscription<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&map_converter::map_callback, this, std::placeholders::_1));
 
     resolution_ = this->declare_parameter<double> ("resolution", 0.05);
 
-    RCLCPP_INFO (this->get_logger (), "map_converter node has been started.");
+    RCLCPP_INFO (this->get_logger (), "map_converter node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "resolution: %f", resolution_);
 }
 
@@ -62,7 +59,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     int width  = static_cast<int> ((max_x - min_x) / resolution_) + 1;
     int height = static_cast<int> ((max_y - min_y) / resolution_) + 1;
 
-    std::vector<int8_t> grid (width * height, 0);
+    std::vector<int8_t> grid (static_cast<size_t> (width * height), 0);
 
     auto world_to_grid = [&] (double x, double y, int &gx, int &gy) {
         gx = static_cast<int> ((x - min_x) / resolution_);
@@ -71,7 +68,7 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
 
     auto set_cell = [&] (int gx, int gy) {
         if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
-            grid[gy * width + gx] = 100;
+            grid[static_cast<size_t> (gy * width + gx)] = 100;
         }
     };
 
@@ -193,9 +190,9 @@ void map_converter::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
     nav_msgs::msg::OccupancyGrid occupancy_grid;
     occupancy_grid.header.stamp              = this->now ();
     occupancy_grid.header.frame_id           = "map";
-    occupancy_grid.info.resolution           = resolution_;
-    occupancy_grid.info.width                = width;
-    occupancy_grid.info.height               = height;
+    occupancy_grid.info.resolution           = static_cast<float> (resolution_);
+    occupancy_grid.info.width                = static_cast<uint32_t> (width);
+    occupancy_grid.info.height               = static_cast<uint32_t> (height);
     occupancy_grid.info.origin.position.x    = min_x;
     occupancy_grid.info.origin.position.y    = min_y;
     occupancy_grid.info.origin.position.z    = 0.0;

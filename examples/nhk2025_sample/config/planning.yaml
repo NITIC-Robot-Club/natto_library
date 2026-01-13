@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    theta_resolution_deg: 5
+    xy_inflation: 0.5
+    xy_offset: 0.5

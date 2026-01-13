@@ -20,6 +20,9 @@
 #include "natto_msgs/msg/map.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace map_converter {
 class map_converter : public rclcpp::Node {
    public:

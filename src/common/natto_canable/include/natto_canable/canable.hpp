@@ -25,31 +25,43 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cstring>
+#include <mutex>
+#include <thread>
 
 namespace canable {
+
 class canable : public rclcpp::Node {
    public:
-    canable (const rclcpp::NodeOptions &node_options);
+    explicit canable (const rclcpp::NodeOptions &node_options);
     ~canable ();
 
    private:
-    int  init_can_socket ();                                    // Initialize CAN socket
-    void read_can_socket ();                                    // Read messages from CAN socket
-    void write_can_socket (const natto_msgs::msg::Can &frame);  // Write messages to CAN socket
-    bool retry_open_can        = true;
-    bool retry_write_can       = true;
-    int  retry_write_count     = 0;
-    int  max_retry_write_count = 5;
-    int  can_socket_;
+    int  init_can_socket ();
+    void read_can_socket ();
+    void write_can_socket (const natto_msgs::msg::Can &frame);
 
-    std::string         can_interface;
-    struct sockaddr_can addr_;
-    struct ifreq        ifr_;
+    bool retry_open_can_        = true;
+    bool retry_write_can_       = true;
+    bool use_fd_                = false;
+    int  retry_write_count_     = 0;
+    int  max_retry_write_count_ = 5;
+
+    int can_socket_ = -1;
+
+    std::string         can_interface_;
+    struct sockaddr_can addr_ {};
+    struct ifreq        ifr_ {};
+
+    std::mutex        can_mutex_;
+    std::atomic<bool> running_{false};
+    std::thread       read_thread_;
 
     rclcpp::Publisher<natto_msgs::msg::Can>::SharedPtr    canable_pub_;
     rclcpp::Subscription<natto_msgs::msg::Can>::SharedPtr canable_sub_;
 };
+
 }  // namespace canable
 
 #endif  // __CANABLE_HPP__

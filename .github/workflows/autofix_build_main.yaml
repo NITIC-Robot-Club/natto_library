@@ -50,7 +50,7 @@ jobs:
         working-directory: /home/nitic-robot-club/natto_library
         run: |
           . /opt/ros/humble/setup.sh && 
-          colcon build --symlink-install
+          ./colcon_build.sh
         continue-on-error: true
     
       - name: build_test command success
