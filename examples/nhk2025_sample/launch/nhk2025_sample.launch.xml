@@ -19,6 +19,8 @@
     <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
     <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
 
+    <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states', '/controller/joint_states', '/behavior/command_joint_states']"/>
+
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
         <arg name="urdf_path" value="$(var urdf_path)"/>
         <arg name="chassis_type" value="$(var chassis_type)"/>
@@ -39,5 +41,6 @@
         <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
         <arg name="state_graph_path" value="$(var state_graph_path)"/>
         <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
+        <arg name="joint_state_topics" value="$(var joint_state_topics)"/>
     </include>
 </launch>
