@@ -37,6 +37,7 @@
     <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">
         <arg name="state_graph_path" value="$(var state_graph_path)"/>
         <arg name="state_timeout_sec" value="$(var state_timeout_sec)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- コモン -->
@@ -81,6 +82,7 @@
         <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- 表示 -->

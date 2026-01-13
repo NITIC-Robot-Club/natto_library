@@ -28,6 +28,7 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
 
     xy_tolerance_m_    = this->declare_parameter<double> ("xy_tolerance_m", 0.2);
     yaw_tolerance_deg_ = this->declare_parameter<double> ("yaw_tolerance_deg", 10.0);
+    allow_auto_drive_  = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
 
     frequency_ = this->declare_parameter<double> ("frequency", 10.0);
     timer_     = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency_)), std::bind (&default_action::timer_callback, this));
