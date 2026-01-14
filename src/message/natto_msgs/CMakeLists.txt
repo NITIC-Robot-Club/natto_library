@@ -1,26 +1,20 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.12)
 project(natto_msgs)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
+set(natto_msgs_files "")
+
+file(
+  GLOB natto_msgs_files
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+  CONFIGURE_DEPENDS
+  "msg/*.msg"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Can.msg"
-  "msg/Circle.msg"
-  "msg/CircleArray.msg"
-  "msg/Line.msg"
-  "msg/LineArray.msg"
-  "msg/LineSegment.msg"
-  "msg/LineSegmentArray.msg"
-  "msg/Map.msg"
-  "msg/Omni.msg"
-  "msg/SpeedPath.msg"
-  "msg/State.msg"
-  "msg/StateAction.msg"
-  "msg/StateGraph.msg"
-  "msg/StateResult.msg"
-  "msg/StateTransition.msg"
-  "msg/Swerve.msg"
+  ${natto_msgs_files}
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces
 )
 

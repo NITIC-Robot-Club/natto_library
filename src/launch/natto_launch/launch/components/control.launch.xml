@@ -10,10 +10,10 @@
 
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- 目標計算 -->
-        <composable_node pkg="natto_chassis_calculator" plugin="$(var chassis_type)_calculator::$(var chassis_type)_calculator" name="calculator" namespace="/control/$(var chassis_type)">
+        <composable_node pkg="natto_chassis_calculator" plugin="chassis_calculator::chassis_calculator" name="chassis_calculator" namespace="/control/$(var chassis_type)">
             <param from="$(var chassis_param_path)"/>
-            <remap from="$(var chassis_type)_command" to="/$(var chassis_type)/command"/>
-            <remap from="$(var chassis_type)_result" to="/$(var chassis_type)/result"/>
+            <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
+            <remap from="joint_states" to="/joint_states"/>
             <remap from="command_velocity" to="/command_velocity"/>
         </composable_node>
 
@@ -25,6 +25,7 @@
             <remap from="current_pose" to="$(var current_pose_topic)"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/common/footprint"/>
+            <remap from="goal_reached" to="/control/goal_reached"/>
         </composable_node>
 
         <!-- 経路追従 -->
@@ -46,6 +47,7 @@
         <!-- joy ボタン選択 -->
         <composable_node pkg="natto_joy" plugin="button_manager::button_manager" name="button_manager" namespace="/controller">
             <param from="$(var controller_param_path)"/>
+            <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
         </composable_node>
 
         <!-- コマンド選択 -->
@@ -58,5 +60,5 @@
         </composable_node>
     </node_container>
 
-    <node pkg="joy" exec="game_controller_node" name="joy" output="screen" namespace="/controller"/>
+    <node pkg="joy" exec="joy_node" name="joy" output="screen" namespace="/controller"/>
 </launch>
