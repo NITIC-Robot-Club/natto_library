@@ -240,7 +240,7 @@ void holonomic_pure_pursuit::timer_callback () {
 
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.stamp    = this->now ();
-    cmd_vel.header.frame_id = "base_link";
+    cmd_vel.header.frame_id = "command/base_link";
     cmd_vel.twist.linear.x  = speed * std::cos (angle_diff);
     cmd_vel.twist.linear.y  = speed * std::sin (angle_diff);
     cmd_vel.twist.angular.z = yaw_speed;
