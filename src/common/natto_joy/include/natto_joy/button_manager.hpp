@@ -20,6 +20,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 
 namespace button_manager {
 class button_manager : public rclcpp::Node {
@@ -36,6 +37,7 @@ class button_manager : public rclcpp::Node {
     std::vector<double>      speed_on_;
     std::vector<double>      speed_off_;
     std::vector<bool>        publish_always_;
+    std::vector<int>         last_button_state_;
 
     std::string zr_mode_, zl_mode_;
     std::string zr_function_, zl_function_;
@@ -54,6 +56,7 @@ class button_manager : public rclcpp::Node {
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr          power_publisher_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr          allow_auto_drive_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        origin_get_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr     joy_subscriber_;
 };
 }  // namespace button_manager

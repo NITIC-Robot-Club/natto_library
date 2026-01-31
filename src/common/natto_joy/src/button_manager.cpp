@@ -20,11 +20,14 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     power_publisher_            = this->create_publisher<std_msgs::msg::Bool> ("power", 10);
     joint_state_publisher_      = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     allow_auto_drive_publisher_ = this->create_publisher<std_msgs::msg::Bool> ("allow_auto_drive", 10);
+    origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
     joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 10, std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
 
     RCLCPP_INFO (this->get_logger (), "button_manager node has been initialized.");
     num_button_ = static_cast<size_t> (this->declare_parameter<int> ("num_button", 0));
     RCLCPP_INFO (this->get_logger (), "num_button: %zu", num_button_);
+
+    last_button_state_.resize (num_button_, 0);
 
     for (size_t i = 0; i < num_button_; i++) {
         button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "toggle"));
@@ -38,10 +41,10 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         speed_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0));
         publish_always_.push_back (this->declare_parameter<bool> ("button_" + std::to_string (i) + ".publish_always", false));
 
-        if (button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none") {
+        if (button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none" && button_mode_[i] != "click") {
             button_mode_[i] = "none";
             RCLCPP_ERROR (this->get_logger (), "button_%zu.mode: %s is invalid. selected 'none'.", i, button_mode_[i].c_str ());
-            RCLCPP_INFO (this->get_logger (), "Please set 'toggle_on' or 'toggle_off' or 'hold' or 'none'.");
+            RCLCPP_INFO (this->get_logger (), "Please set 'toggle_on' or 'toggle_off' or 'hold' or 'none' or 'click'.");
         }
 
         if (button_function_[i] == "none") {
@@ -65,6 +68,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
                 command_joint_state_always_msg_.position.push_back (position_off_[i]);
                 command_joint_state_always_msg_.velocity.push_back (speed_off_[i]);
             }
+        } else if (button_function_[i] == "get_origin") {
         } else {
             button_function_[i] = "none";
             RCLCPP_ERROR (this->get_logger (), "button_%zu.function: %s is invalid. selected 'none'.", i, button_function_[i].c_str ());
@@ -218,7 +222,16 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     command_joint_state_msg_.velocity[index] = speed_off_[i];
                 }
             }
+        } else if (button_function_[i] == "get_origin") {
+            if (button_mode_[i] == "click") {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    std_msgs::msg::String origin_get_msg;
+                    origin_get_msg.data = joint_name_[i];
+                    origin_get_publisher_->publish (origin_get_msg);
+                }
+            }
         }
+        last_button_state_[i] = msg->buttons[i];
     }
     if (zl_function_ != "none" && zl_mode_ != "none") {
         if (zl_function_ == "joint_position") {
@@ -239,7 +252,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     command_joint_state_msg_.position[index] = zl_position_off_;
                 }
             } else if (zl_mode_ == "hold") {
-                command_joint_state_msg_.position[index] = ((-msg->axes[4] + 1.0) / 2.0) * (zl_position_on_ - zl_position_off_) + zl_position_off_;
+                command_joint_state_msg_.position[index] = -msg->axes[4] * (zl_position_on_ - zl_position_off_) + zl_position_off_;
             }
         } else if (zl_function_ == "joint_speed") {
             command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
@@ -259,7 +272,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     command_joint_state_msg_.velocity[index] = zl_speed_off_;
                 }
             } else if (zl_mode_ == "hold") {
-                command_joint_state_msg_.velocity[index] = ((-msg->axes[4] + 1.0) / 2.0) * (zl_speed_on_ - zl_speed_off_) + zl_speed_off_;
+                command_joint_state_msg_.velocity[index] = -msg->axes[4] * (zl_speed_on_ - zl_speed_off_) + zl_speed_off_;
             }
         }
     }
@@ -282,7 +295,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     command_joint_state_msg_.position[index] = zr_position_off_;
                 }
             } else if (zr_mode_ == "hold") {
-                command_joint_state_msg_.position[index] = ((-msg->axes[5] + 1.0) / 2.0) * (zr_position_on_ - zr_position_off_) + zr_position_off_;
+                command_joint_state_msg_.position[index] = -msg->axes[5] * (zr_position_on_ - zr_position_off_) + zr_position_off_;
             }
         } else if (zr_function_ == "joint_speed") {
             command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
@@ -302,7 +315,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     command_joint_state_msg_.velocity[index] = zr_speed_off_;
                 }
             } else if (zr_mode_ == "hold") {
-                command_joint_state_msg_.velocity[index] = ((-msg->axes[5] + 1.0) / 2.0) * (zr_speed_on_ - zr_speed_off_) + zr_speed_off_;
+                command_joint_state_msg_.velocity[index] = -msg->axes[5] * (zr_speed_on_ - zr_speed_off_) + zr_speed_off_;
             }
         }
     }

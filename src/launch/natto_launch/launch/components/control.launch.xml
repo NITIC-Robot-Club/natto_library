@@ -48,6 +48,7 @@
         <composable_node pkg="natto_joy" plugin="button_manager::button_manager" name="button_manager" namespace="/controller">
             <param from="$(var controller_param_path)"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
+            <remap from="get_origin_joint_name" to="/get_origin_joint_name"/>
         </composable_node>
 
         <!-- コマンド選択 -->
@@ -60,5 +61,5 @@
         </composable_node>
     </node_container>
 
-    <node pkg="joy" exec="joy_node" name="joy" output="screen" namespace="/controller"/>
+    <node pkg="joy" exec="game_controller_node" name="joy" output="screen" namespace="/controller"/>
 </launch>
