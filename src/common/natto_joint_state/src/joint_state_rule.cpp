@@ -40,6 +40,12 @@ void joint_state_rule::parse_rules () {
     std::map<std::string, rclcpp::Parameter> params;
     this->get_parameters ("joint_state_rule", params);
     rules_.clear ();
+    
+    if (params.empty ()) {
+        RCLCPP_INFO (this->get_logger (), "No joint_state_rule parameters found");
+        return;
+    }
+    
     std::set<std::string> rule_names;
     for (const auto &kv : params) {
         auto pos = kv.first.find ('.');
@@ -76,13 +82,19 @@ void joint_state_rule::joint_states_callback (const sensor_msgs::msg::JointState
 
 void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     sensor_msgs::msg::JointState fixed_command = *msg;
+    
+    if (rules_.empty ()) {
+        fixed_command_joint_states_publisher_->publish (fixed_command);
+        return;
+    }
+    
     for (const auto &kv : rules_) {
         const Rule &rule       = kv.second;
         bool        need_clamp = false;
         for (const auto &if_condition : rule.if_conditions) {
             auto it_command = std::find (msg->name.begin (), msg->name.end (), if_condition.joint_name);
             if (it_command != msg->name.end ()) {
-                size_t index = std::distance (msg->name.begin (), it_command);
+                size_t index = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
                 if (if_condition.min <= msg->position[index] && msg->position[index] <= if_condition.max) {
                     need_clamp = true;
                     break;
@@ -92,7 +104,7 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
             if (current_joint_states_) {
                 auto it_current = std::find (current_joint_states_->name.begin (), current_joint_states_->name.end (), if_condition.joint_name);
                 if (it_current != current_joint_states_->name.end ()) {
-                    size_t index = std::distance (current_joint_states_->name.begin (), it_current);
+                    size_t index = static_cast<size_t> (std::distance (current_joint_states_->name.begin (), it_current));
                     if (if_condition.min <= current_joint_states_->position[index] && current_joint_states_->position[index] <= if_condition.max) {
                         need_clamp = true;
                         break;
@@ -103,7 +115,7 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
         if (need_clamp) {
             auto it_fixed = std::find (fixed_command.name.begin (), fixed_command.name.end (), rule.then_condition.joint_name);
             if (it_fixed != fixed_command.name.end ()) {
-                size_t index                  = std::distance (fixed_command.name.begin (), it_fixed);
+                size_t index                  = static_cast<size_t> (std::distance (fixed_command.name.begin (), it_fixed));
                 double value                  = fixed_command.position[index];
                 fixed_command.position[index] = std::clamp (value, rule.then_condition.min, rule.then_condition.max);
             }
