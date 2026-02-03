@@ -10,6 +10,8 @@
     <arg name="state_timeout_sec" default="3.0"/>
     <arg name="fps" default="30.0"/>
     <arg name="use_dark_rviz" default="true"/>
+    <arg name="controller_max_xy_speed_m_s" default="2.0"/>
+    <arg name="controller_max_yaw_speed_rad_s" default="6.0"/>
 
     <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>
