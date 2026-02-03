@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef __JOINT_STATES_RULE_HPP__
-#define __JOINT_STATES_RULE_HPP__
+#ifndef __JOINT_STATE_RULE_HPP__
+#define __JOINT_STATE_RULE_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 
 #include "sensor_msgs/msg/joint_state.hpp"
 
-namespace joint_states_rule {
+namespace joint_state_rule {
 
 struct JointRange {
     std::string joint_name;
@@ -33,9 +33,9 @@ struct Rule {
 
 using RuleMap = std::map<std::string, Rule>;
 
-class joint_states_rule : public rclcpp::Node {
+class joint_state_rule : public rclcpp::Node {
    public:
-    joint_states_rule (const rclcpp::NodeOptions &node_options);
+    joint_state_rule (const rclcpp::NodeOptions &node_options);
 
    private:
     sensor_msgs::msg::JointState::SharedPtr current_joint_states_;
@@ -51,6 +51,6 @@ class joint_states_rule : public rclcpp::Node {
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_states_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr command_joint_states_subscriber_;
 };
-}  // namespace joint_states_rule
+}  // namespace joint_state_rule
 
-#endif  // __JOINT_STATES_RULE_HPP__
+#endif  // __JOINT_STATE_RULE_HPP__

@@ -1,10 +1,4 @@
 <launch>
-    <arg name="chassis_type" default=""/>
-    <arg name="chassis_param_path" default=""/>
-    <arg name="rviz_path" default=""/>
-    <arg name="use_dark_rviz" default="true"/>
-    <arg name="fps" default="100.0"/>
-
     <!-- 表示コンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
         <!-- マップ表示 -->

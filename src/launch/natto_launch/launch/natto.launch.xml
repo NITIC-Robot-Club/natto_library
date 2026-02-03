@@ -8,6 +8,8 @@
     <arg name="publish_map" default="true"/>
     <arg name="initial_allow_auto_drive" default="false"/>
     <arg name="state_timeout_sec" default="3.0"/>
+    <arg name="fps" default="30.0"/>
+    <arg name="use_dark_rviz" default="true"/>
 
     <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>
@@ -21,6 +23,7 @@
     <arg name="controller_param_path" default=""/>
     <arg name="simulation_param_path" default=""/>
     <arg name="state_graph_path" default=""/>
+    <arg name="joint_rule_path" default=""/>
     <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
 
     <arg name="launch_behavior" default="true"/>
@@ -34,61 +37,23 @@
     <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states', '/controller/joint_states', '/behavior/command_joint_states']"/>
 
     <!-- 行動管理 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">
-        <arg name="state_graph_path" value="$(var state_graph_path)"/>
-        <arg name="state_timeout_sec" value="$(var state_timeout_sec)"/>
-        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)"/>
 
     <!-- コモン -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/common.launch.xml" if="$(var launch_common)">
-        <arg name="line_segments_path" value="$(var line_segments_path)"/>
-        <arg name="circles_path" value="$(var circles_path)"/>
-        <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
-        <arg name="footprint_param_path" value="$(var footprint_param_path)"/>
-        <arg name="publish_map" value="$(var publish_map)"/>
-        <arg name="urdf_path" value="$(var urdf_path)"/>
-        <arg name="joint_state_topics" value="$(var joint_state_topics)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/common.launch.xml" if="$(var launch_common)"/>
 
     <!-- シミュレーション -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/simulation.launch.xml" if="$(var launch_simulation)">
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
-        <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/simulation.launch.xml" if="$(var launch_simulation)"/>
 
     <!-- センシング -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)">
-        <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
-        <arg name="use_ransac" value="true"/>
-        <arg name="merged_lidar_publish_frequency" value="$(var merged_lidar_publish_frequency)"/>
-        <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)"/>
 
     <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
-        <arg name="localization_param_path" value="$(var localization_param_path)"/>
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="use_odom_tf" value="$(var use_odom_tf)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)"/>
 
     <!-- コントロール -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)">
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="control_param_path" value="$(var control_param_path)"/>
-        <arg name="controller_param_path" value="$(var controller_param_path)"/>
-        <arg name="planning_param_path" value="$(var planning_param_path)"/>
-        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)"/>
 
     <!-- 表示 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/visualization.launch.xml" if="$(var launch_visualization)">
-        <arg name="chassis_type" value="$(var chassis_type)"/>
-        <arg name="chassis_param_path" value="$(var chassis_param_path)"/>
-        <arg name="rviz_path" value="$(var rviz_path)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/visualization.launch.xml" if="$(var launch_visualization)"/>
 </launch>

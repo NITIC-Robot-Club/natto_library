@@ -1,13 +1,4 @@
 <launch>
-    <arg name="chassis_type" default=""/>
-    <arg name="chassis_param_path" default=""/>
-    <arg name="control_param_path" default=""/>
-    <arg name="planning_param_path" default=""/>
-    <arg name="controller_param_path" default=""/>
-    <arg name="current_pose_topic" default="/localization/current_pose"/>
-    <arg name="publish_odom_tf" default="false"/>
-    <arg name="initial_allow_auto_drive" default="false"/>
-
     <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
         <!-- 目標計算 -->
         <composable_node pkg="natto_chassis_calculator" plugin="chassis_calculator::chassis_calculator" name="chassis_calculator" namespace="/control/$(var chassis_type)">
@@ -22,7 +13,7 @@
             <param from="$(var planning_param_path)"/>
             <remap from="occupancy_grid" to="/common/occupancy_grid"/>
             <remap from="goal_pose" to="/goal_pose"/>
-            <remap from="current_pose" to="$(var current_pose_topic)"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/common/footprint"/>
             <remap from="goal_reached" to="/control/goal_reached"/>
@@ -31,7 +22,7 @@
         <!-- 経路追従 -->
         <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
             <param from="$(var control_param_path)"/>
-            <remap from="current_pose" to="$(var current_pose_topic)"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>

@@ -14,17 +14,17 @@
 
 #include "natto_joint_state/joint_state_rule.hpp"
 
-namespace joint_states_rule {
+namespace joint_state_rule {
 
-joint_states_rule::joint_states_rule (const rclcpp::NodeOptions &node_options) : Node ("joint_states_rule", rclcpp::NodeOptions (node_options).allow_undeclared_parameters (true).automatically_declare_parameters_from_overrides (true)) {
-    fixed_command_joint_states_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("fixed_command_joint_states", 10);
-    joint_states_subscriber_              = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", 10, std::bind (&joint_states_rule::joint_states_callback, this, std::placeholders::_1));
-    command_joint_states_subscriber_      = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", 10, std::bind (&joint_states_rule::command_joint_states_callback, this, std::placeholders::_1));
+joint_state_rule::joint_state_rule (const rclcpp::NodeOptions &node_options) : Node ("joint_state_rule", rclcpp::NodeOptions (node_options).allow_undeclared_parameters (true).automatically_declare_parameters_from_overrides (true)) {
+    fixed_command_joint_states_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("fixed_command_joint_states", rclcpp::SensorDataQoS ());
+    joint_states_subscriber_              = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_rule::joint_states_callback, this, std::placeholders::_1));
+    command_joint_states_subscriber_      = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_rule::command_joint_states_callback, this, std::placeholders::_1));
 
     parse_rules ();
 }
 
-JointRange joint_states_rule::parse_joint_range (const std::string &base_key) const {
+JointRange joint_state_rule::parse_joint_range (const std::string &base_key) const {
     JointRange jr;
     jr.joint_name = this->get_parameter (base_key + ".joint_name").as_string ();
     auto range    = this->get_parameter (base_key + ".range").as_double_array ();
@@ -36,7 +36,7 @@ JointRange joint_states_rule::parse_joint_range (const std::string &base_key) co
     return jr;
 }
 
-void joint_states_rule::parse_rules () {
+void joint_state_rule::parse_rules () {
     std::map<std::string, rclcpp::Parameter> params;
     this->get_parameters ("joint_state_rule", params);
     rules_.clear ();
@@ -70,21 +70,21 @@ void joint_states_rule::parse_rules () {
     RCLCPP_INFO (this->get_logger (), "Loaded %zu joint_state_rule rules", rules_.size ());
 }
 
-void joint_states_rule::joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
+void joint_state_rule::joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     current_joint_states_ = msg;
 }
 
-void joint_states_rule::command_joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
+void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     sensor_msgs::msg::JointState fixed_command = *msg;
     for (const auto &kv : rules_) {
         const Rule &rule       = kv.second;
-        bool        need_clamp = true;
+        bool        need_clamp = false;
         for (const auto &if_condition : rule.if_conditions) {
             auto it_command = std::find (msg->name.begin (), msg->name.end (), if_condition.joint_name);
             if (it_command != msg->name.end ()) {
                 size_t index = std::distance (msg->name.begin (), it_command);
-                if (msg->position[index] < if_condition.min || msg->position[index] > if_condition.max) {
-                    need_clamp = false;
+                if (if_condition.min <= msg->position[index] && msg->position[index] <= if_condition.max) {
+                    need_clamp = true;
                     break;
                 }
             }
@@ -93,8 +93,8 @@ void joint_states_rule::command_joint_states_callback (const sensor_msgs::msg::J
                 auto it_current = std::find (current_joint_states_->name.begin (), current_joint_states_->name.end (), if_condition.joint_name);
                 if (it_current != current_joint_states_->name.end ()) {
                     size_t index = std::distance (current_joint_states_->name.begin (), it_current);
-                    if (current_joint_states_->position[index] < if_condition.min || current_joint_states_->position[index] > if_condition.max) {
-                        need_clamp = false;
+                    if (if_condition.min <= current_joint_states_->position[index] && current_joint_states_->position[index] <= if_condition.max) {
+                        need_clamp = true;
                         break;
                     }
                 }
@@ -112,7 +112,7 @@ void joint_states_rule::command_joint_states_callback (const sensor_msgs::msg::J
     fixed_command_joint_states_publisher_->publish (fixed_command);
 }
 
-}  // namespace joint_states_rule
+}  // namespace joint_state_rule
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (joint_states_rule::joint_states_rule)
+RCLCPP_COMPONENTS_REGISTER_NODE (joint_state_rule::joint_state_rule)
