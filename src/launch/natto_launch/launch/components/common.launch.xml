@@ -35,7 +35,6 @@
         </composable_node>
 
         <composable_node pkg="natto_joint_state" plugin="joint_state_rule::joint_state_rule" name="joint_state_rule" namespace="/">
-            <remap from="/joint_states" to="/joint_states"/>
             <remap from="/command_joint_states" to="/merged_joint_states"/>
             <remap from="/fixed_command_joint_states" to="/command_joint_states"/>
             <param from="$(var joint_rule_path)"/>
