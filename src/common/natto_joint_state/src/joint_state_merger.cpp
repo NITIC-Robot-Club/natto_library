@@ -1,4 +1,4 @@
-// Copyright 2025 Kazusa Hashimoto
+// Copyright 2026 Kazusa Hashimoto
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "natto_joint_state/joint_states_merger.hpp"
+#include "natto_joint_state/joint_state_merger.hpp"
 
 namespace joint_state_merger {
 
