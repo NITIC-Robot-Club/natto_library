@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
+    chassis_type : "omni"
     wheel_radius : 0.05
-    wheel_position_x : [+0.45, -0.45, -0.45, +0.45]
-    wheel_position_y : [+0.45, +0.45, -0.45, -0.45]
-    wheel_angle_deg: [-45.0, +45.0, +135.0, -135.0]
+    wheel_names : ["omni_wheel_0", "omni_wheel_1", "omni_wheel_2", "omni_wheel_3"]
+    wheel_base_names: ["omni_wheel_0_base", "omni_wheel_1_base", "omni_wheel_2_base", "omni_wheel_3_base"]

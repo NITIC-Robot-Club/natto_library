@@ -9,6 +9,7 @@
     <arg name="initial_allow_auto_drive" default="false"/>
     <arg name="state_timeout_sec" default="3.0"/>
 
+    <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>
     <arg name="line_segments_path" default=""/>
     <arg name="circles_path" default=""/>
@@ -30,10 +31,13 @@
     <arg name="launch_control" default="true"/>
     <arg name="launch_visualization" default="true"/>
 
+    <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states', '/controller/joint_states', '/behavior/command_joint_states']"/>
+
     <!-- 行動管理 -->
     <include file="$(find-pkg-share natto_launch)/launch/components/behavior.launch.xml" if="$(var launch_behavior)">
         <arg name="state_graph_path" value="$(var state_graph_path)"/>
         <arg name="state_timeout_sec" value="$(var state_timeout_sec)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- コモン -->
@@ -43,6 +47,8 @@
         <arg name="occupancy_grid_resolution" value="$(var occupancy_grid_resolution)"/>
         <arg name="footprint_param_path" value="$(var footprint_param_path)"/>
         <arg name="publish_map" value="$(var publish_map)"/>
+        <arg name="urdf_path" value="$(var urdf_path)"/>
+        <arg name="joint_state_topics" value="$(var joint_state_topics)"/>
     </include>
 
     <!-- シミュレーション -->
@@ -76,6 +82,7 @@
         <arg name="control_param_path" value="$(var control_param_path)"/>
         <arg name="controller_param_path" value="$(var controller_param_path)"/>
         <arg name="planning_param_path" value="$(var planning_param_path)"/>
+        <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
     </include>
 
     <!-- 表示 -->

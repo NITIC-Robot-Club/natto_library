@@ -28,14 +28,4 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE map_visualizer
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "omni_visualizer::omni_visualizer"
-    EXECUTABLE omni_visualizer
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "swerve_visualizer::swerve_visualizer"
-    EXECUTABLE swerve_visualizer
-)
-
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

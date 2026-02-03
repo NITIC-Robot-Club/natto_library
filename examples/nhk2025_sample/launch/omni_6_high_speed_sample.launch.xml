@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find-pkg-share nhk2025_sample)/launch/nhk2025_sample.launch.xml">
+        <arg name="chassis_type" value="omni"/>
+        <arg name="chassis_param_path" value="$(find-pkg-share nhk2025_sample)/config/chassis/omni_6_high_speed.yaml"/>
+        <arg name="urdf_path" value="$(find-pkg-share nhk2025_sample)/urdf/omni_6_high_speed.urdf.xacro"/>
+        <arg name="simulation_param_path" value="$(find-pkg-share nhk2025_sample)/config/chassis/omni_6_high_speed_simulation.yaml"/>
+    </include>
+</launch>

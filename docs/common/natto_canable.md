@@ -62,6 +62,7 @@ Classic CAN ~1Mbpsの場合
     ```
     SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="606f", ATTR{serial}=="004A00433136500C2039384D", SYMLINK+="can", MODE="0666", \
     RUN+="/sbin/ip link set can0 type can bitrate 1000000", \
+    RUN+="/sbin/ip link set can0 txqueuelen 1000", \
     RUN+="/sbin/ip link set can0 up"
     ```
 
@@ -93,5 +94,6 @@ udevルールの設定に dbitrate, fd の設定を追加してください
 ```
 SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="606f", ATTR{serial}=="004A00433136500C2039384D", SYMLINK+="can", MODE="0666", \
 RUN+="/sbin/ip link set can0 type can bitrate 1000000 dbitrate 2000000 fd on", \
+RUN+="/sbin/ip link set can0 txqueuelen 1000", \
 RUN+="/sbin/ip link set can0 up"
 ```

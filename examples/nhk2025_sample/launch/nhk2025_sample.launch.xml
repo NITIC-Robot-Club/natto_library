@@ -6,6 +6,7 @@
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
     <arg name="initial_allow_auto_drive" default="true"/>
 
+    <arg name="urdf_path" default="$(find-pkg-share nhk2025_sample)/urdf/swerve_sample.urdf.xacro"/>
     <arg name="chassis_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve.yaml"/>
     <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
     <arg name="circles_path" default="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
@@ -14,11 +15,14 @@
     <arg name="control_param_path" default="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
     <arg name="planning_param_path" default="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
     <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
-    <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/simulation.yaml"/>
+    <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve_simulation.yaml"/>
     <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
     <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
 
+    <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states', '/controller/joint_states', '/behavior/command_joint_states']"/>
+
     <include file="$(find-pkg-share natto_launch)/launch/natto.launch.xml">
+        <arg name="urdf_path" value="$(var urdf_path)"/>
         <arg name="chassis_type" value="$(var chassis_type)"/>
         <arg name="use_odom_tf" value="false"/>
         <arg name="use_laserscan_convert" value="$(var use_laserscan_convert)"/>
@@ -37,11 +41,6 @@
         <arg name="simulation_param_path" value="$(var simulation_param_path)"/>
         <arg name="state_graph_path" value="$(var state_graph_path)"/>
         <arg name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
+        <arg name="joint_state_topics" value="$(var joint_state_topics)"/>
     </include>
-
-    <!-- TF -->
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_front" output="screen"
-        args="+0.4 0 0 0 0 0 1 base_link lidar_front"/>
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_lidar_rear" output="screen"
-        args="-0.4 0 0 0 0 1 0 base_link lidar_rear"/>
 </launch>

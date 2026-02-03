@@ -130,12 +130,23 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
             if (msg->data[index] == -1) {
                 likelihood_field_[static_cast<size_t> (x)][static_cast<size_t> (y)] = 0;
             } else if (msg->data[index] > 50) {
+                double sigma  = laser_likelihood_max_dist_ / 3.0;
+                double sigma2 = 2.0 * sigma * sigma;
+
                 for (int i = -cell_num; i <= cell_num; i++) {
                     for (int j = -cell_num; j <= cell_num; j++) {
-                        if (i + x >= 0 && j + y >= 0 && i + x < width_ && j + y < height_) {
-                            likelihood_field_[static_cast<size_t> (i + x)][static_cast<size_t> (j + y)] =
-                                std::max (likelihood_field_[static_cast<size_t> (i + x)][static_cast<size_t> (j + y)], std::min (weights[static_cast<size_t> (abs (i))], weights[static_cast<size_t> (abs (j))]));
-                        }
+                        int nx = x + i;
+                        int ny = y + j;
+                        if (nx < 0 || ny < 0 || nx >= width_ || ny >= height_) continue;
+
+                        double d = std::hypot (i, j) * resolution_;
+                        if (d > laser_likelihood_max_dist_) continue;
+
+                        double  prob = std::exp (-(d * d) / sigma2);
+                        uint8_t w    = static_cast<uint8_t> (255.0 * prob);
+
+                        auto &cell = likelihood_field_[static_cast<size_t> (nx)][static_cast<size_t> (ny)];
+                        cell       = std::max (cell, w);
                     }
                 }
             }
@@ -164,7 +175,7 @@ void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
 
 void mcl::timer_callback () {
     if (likelihood_field_.empty ()) {
-        RCLCPP_WARN (this->get_logger (), "Likelihood field is not ready yet.");
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Likelihood field is not ready yet.");
         return;
     }
 
@@ -176,7 +187,7 @@ void mcl::timer_callback () {
         try {
             odom_to_base_link = tf_buffer_->lookupTransform (odom_frame_id_, base_frame_id_, tf2::TimePointZero);
         } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN (this->get_logger (), "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
+            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
             return;
         }
         double delta_x_in_odom = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;

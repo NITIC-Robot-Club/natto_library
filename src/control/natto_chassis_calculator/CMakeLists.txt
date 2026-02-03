@@ -9,13 +9,8 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "omni_calculator::omni_calculator"
-    EXECUTABLE omni_calculator
-)
-
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN "swerve_calculator::swerve_calculator"
-    EXECUTABLE swerve_calculator
+    PLUGIN "chassis_calculator::chassis_calculator"
+    EXECUTABLE chassis_calculator
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}

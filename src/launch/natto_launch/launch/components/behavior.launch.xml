@@ -1,6 +1,7 @@
 <launch>
     <arg name="state_graph_path" default=""/>
-    <arg name="state_timeout_sec" default="5.0"/>
+    <arg name="state_timeout_sec" default="1.0"/>
+    <arg name="initial_allow_auto_drive" default="false"/>
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/behavior">
         <composable_node pkg="natto_state_machine" plugin="mermaid_loader::mermaid_loader" name="mermaid_loader" namespace="/behavior">
             <param name="mermaid_path" value="$(var state_graph_path)"/>
@@ -14,6 +15,9 @@
             <remap from="goal_pose" to="/goal_pose"/>
             <remap from="goal_reached" to="/control/goal_reached"/>
             <remap from="current_pose" to="/localization/current_pose"/>
+            <remap from="joint_states" to="/joint_states"/>
+            <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
+            <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
         </composable_node>
     </node_container>
 </launch>

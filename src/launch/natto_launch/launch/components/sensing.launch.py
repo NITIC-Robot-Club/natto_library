@@ -43,7 +43,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{
                 "frame_id": "base_link",
                 "lidar_topics": [f"/sensing/lidar/pointcloud2/{n}" for n in name],
-                "publish_frequency": float(LaunchConfiguration("merged_lidar_publish_frequency").perform(context)),
+                "frequency": float(LaunchConfiguration("merged_lidar_publish_frequency").perform(context)),
             }],
             remappings=[
                 ("merged_pointcloud2", "/sensing/lidar/pointcloud2/merged"),
