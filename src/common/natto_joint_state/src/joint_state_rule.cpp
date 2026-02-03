@@ -90,13 +90,14 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
     
     for (const auto &kv : rules_) {
         const Rule &rule       = kv.second;
-        bool        need_clamp = false;
+        bool        need_clamp = true;
         for (const auto &if_condition : rule.if_conditions) {
+            bool need_clamp_inner = false;
             auto it_command = std::find (msg->name.begin (), msg->name.end (), if_condition.joint_name);
             if (it_command != msg->name.end ()) {
                 size_t index = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
                 if (if_condition.min <= msg->position[index] && msg->position[index] <= if_condition.max) {
-                    need_clamp = true;
+                    need_clamp_inner = true;
                     break;
                 }
             }
@@ -106,10 +107,14 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
                 if (it_current != current_joint_states_->name.end ()) {
                     size_t index = static_cast<size_t> (std::distance (current_joint_states_->name.begin (), it_current));
                     if (if_condition.min <= current_joint_states_->position[index] && current_joint_states_->position[index] <= if_condition.max) {
-                        need_clamp = true;
+                        need_clamp_inner = true;
                         break;
                     }
                 }
+            }
+            if (!need_clamp_inner) {
+                need_clamp = false;
+                break;
             }
         }
         if (need_clamp) {
