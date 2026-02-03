@@ -45,9 +45,9 @@ class two_wheel_simulator : public rclcpp::Node {
     void two_wheel_command_callback (const natto_msgs::msg::TwoWheel::SharedPtr msg);
     void timer_callback ();
 
-    rclcpp::Publisher<natto_msgs::msg::TwoWheel>::SharedPtr           two_wheel_result_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::TwoWheel>::SharedPtr       two_wheel_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
-    rclcpp::Subscription<natto_msgs::msg::TwoWheel>::SharedPtr        two_wheel_command_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::TwoWheel>::SharedPtr    two_wheel_command_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
 };

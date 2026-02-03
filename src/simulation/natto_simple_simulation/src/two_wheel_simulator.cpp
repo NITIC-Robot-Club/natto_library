@@ -17,10 +17,10 @@
 namespace two_wheel_simulator {
 
 two_wheel_simulator::two_wheel_simulator (const rclcpp::NodeOptions &node_options) : Node ("two_wheel_simulator", node_options) {
-    two_wheel_result_publisher_     = this->create_publisher<natto_msgs::msg::TwoWheel> ("two_wheel_result", 10);
-    simulation_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
-    two_wheel_command_subscriber_   = this->create_subscription<natto_msgs::msg::TwoWheel> ("two_wheel_command", 10, std::bind (&two_wheel_simulator::two_wheel_command_callback, this, std::placeholders::_1));
-    tf_broadcaster_            = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    two_wheel_result_publisher_   = this->create_publisher<natto_msgs::msg::TwoWheel> ("two_wheel_result", 10);
+    simulation_pose_publisher_    = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
+    two_wheel_command_subscriber_ = this->create_subscription<natto_msgs::msg::TwoWheel> ("two_wheel_command", 10, std::bind (&two_wheel_simulator::two_wheel_command_callback, this, std::placeholders::_1));
+    tf_broadcaster_               = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_                 = this->declare_parameter<double> ("wheel_radius", 0.05);
     wheel_base_                   = this->declare_parameter<double> ("wheel_base", 0.5);
@@ -85,11 +85,11 @@ void two_wheel_simulator::timer_callback () {
     received_commands_.clear ();
 
     // Calculate linear and angular velocities from wheel speeds
-    double v_left = result_.wheel_speed[0] * 2.0 * M_PI * wheel_radius_;
+    double v_left  = result_.wheel_speed[0] * 2.0 * M_PI * wheel_radius_;
     double v_right = result_.wheel_speed[1] * 2.0 * M_PI * wheel_radius_;
 
     // Differential drive kinematics
-    double linear_velocity = (v_left + v_right) / 2.0;
+    double linear_velocity  = (v_left + v_right) / 2.0;
     double angular_velocity = (v_right - v_left) / wheel_base_;
 
     double yaw      = tf2::getYaw (current_pose_.pose.orientation);

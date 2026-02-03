@@ -31,7 +31,7 @@ class two_wheel_calculator : public rclcpp::Node {
 
     void command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
-    rclcpp::Publisher<natto_msgs::msg::TwoWheel>::SharedPtr               two_wheel_command_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::TwoWheel>::SharedPtr           two_wheel_command_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_subscriber_;
 };
 }  // namespace two_wheel_calculator

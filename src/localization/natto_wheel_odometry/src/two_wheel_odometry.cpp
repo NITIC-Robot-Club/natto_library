@@ -22,13 +22,13 @@ two_wheel_odometry::two_wheel_odometry (const rclcpp::NodeOptions &node_options)
     odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS ());
 
     two_wheel_subscriber_ = this->create_subscription<natto_msgs::msg::TwoWheel> ("two_wheel_result", 10, std::bind (&two_wheel_odometry::two_wheel_callback, this, std::placeholders::_1));
-    tf_broadcaster_  = std::make_shared<tf2_ros::TransformBroadcaster> (this);
+    tf_broadcaster_       = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    wheel_radius_     = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_base_       = this->declare_parameter<double> ("wheel_base", 0.5);
-    odom_frame_id_    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
-    base_frame_id_    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
-    publish_tf_       = this->declare_parameter<bool> ("publish_tf", true);
+    wheel_radius_  = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_base_    = this->declare_parameter<double> ("wheel_base", 0.5);
+    odom_frame_id_ = this->declare_parameter<std::string> ("odom_frame_id", "odom");
+    base_frame_id_ = this->declare_parameter<std::string> ("base_frame_id", "base_link");
+    publish_tf_    = this->declare_parameter<bool> ("publish_tf", true);
 
     RCLCPP_INFO (this->get_logger (), "two_wheel_odometry node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
@@ -49,7 +49,7 @@ void two_wheel_odometry::two_wheel_callback (const natto_msgs::msg::TwoWheel::Sh
     }
 
     // Calculate linear and angular velocities from wheel speeds
-    double v_left = msg->wheel_speed[0] * 2.0 * M_PI * wheel_radius_;
+    double v_left  = msg->wheel_speed[0] * 2.0 * M_PI * wheel_radius_;
     double v_right = msg->wheel_speed[1] * 2.0 * M_PI * wheel_radius_;
 
     // Differential drive kinematics
