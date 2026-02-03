@@ -10,7 +10,6 @@ Panels:
         - /Localization1/WheelOdometry1
         - /Localization1/MCL1
         - /Control1
-        - /Chassis1
         - /Planning1
         - /Sensing1
         - /Sensing1/Raw1/LaserScan1
@@ -112,7 +111,7 @@ Visualization Manager:
               Value: true
             swerve_wheel_base_3_link:
               Value: true
-          Marker Scale: 1
+          Marker Scale: 0.75
           Name: TF
           Show Arrows: false
           Show Axes: true
@@ -272,10 +271,36 @@ Visualization Manager:
           Mass Properties:
             Inertia: false
             Mass: false
-          Name: RobotModel
+          Name: JointState
           TF Prefix: ""
           Update Interval: 0
           Value: true
+          Visual Enabled: true
+        - Alpha: 0.5
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_description
+          Enabled: false
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: CommandJointState
+          TF Prefix: command
+          Update Interval: 0
+          Value: false
           Visual Enabled: true
       Enabled: true
       Name: Common
@@ -308,7 +333,7 @@ Visualization Manager:
               Angular Color: 204; 204; 51
               Arrow Width: 0.5
               Class: rviz_default_plugins/TwistStamped
-              Enabled: true
+              Enabled: false
               Hide Small Values: true
               History Length: 1
               Linear Arrow Scale: 2
@@ -321,13 +346,13 @@ Visualization Manager:
                 History Policy: Keep Last
                 Reliability Policy: Reliable
                 Value: /localization/wheel_odometry/twist
-              Value: true
+              Value: false
             - Alpha: 1
               Axes Length: 1
               Axes Radius: 0.10000000149011612
               Class: rviz_default_plugins/Pose
               Color: 255; 25; 0
-              Enabled: true
+              Enabled: false
               Head Length: 0.30000001192092896
               Head Radius: 0.10000000149011612
               Name: Pose
@@ -341,7 +366,7 @@ Visualization Manager:
                 History Policy: Keep Last
                 Reliability Policy: Reliable
                 Value: /localization/wheel_odometry/pose
-              Value: true
+              Value: false
             - Angle Tolerance: 0.10000000149011612
               Class: rviz_default_plugins/Odometry
               Covariance:
@@ -359,7 +384,7 @@ Visualization Manager:
                   Scale: 1
                   Value: true
                 Value: true
-              Enabled: true
+              Enabled: false
               Keep: 100
               Name: Odometry
               Position Tolerance: 0.10000000149011612
@@ -380,8 +405,8 @@ Visualization Manager:
                 History Policy: Keep Last
                 Reliability Policy: Best Effort
                 Value: /localization/wheel_odometry/odometry
-              Value: true
-          Enabled: false
+              Value: false
+          Enabled: true
           Name: WheelOdometry
         - Class: rviz_common/Group
           Displays:
@@ -473,7 +498,7 @@ Visualization Manager:
           Angular Color: 204; 204; 51
           Arrow Width: 1
           Class: rviz_default_plugins/TwistStamped
-          Enabled: false
+          Enabled: true
           Hide Small Values: false
           History Length: 1
           Linear Arrow Scale: 1
@@ -486,7 +511,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /control/command_velocity
-          Value: false
+          Value: true
         - Alpha: 1
           Axes Length: 1
           Axes Radius: 0.10000000149011612
@@ -511,39 +536,11 @@ Visualization Manager:
       Name: Control
     - Class: rviz_common/Group
       Displays:
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: false
-          Name: Command
-          Namespaces:
-            {}
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /visualization/chassis/command
-          Value: false
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
-          Name: Result
-          Namespaces:
-            {}
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /visualization/chassis/result
-          Value: true
-      Enabled: true
-      Name: Chassis
-    - Class: rviz_common/Group
-      Displays:
         - Alpha: 0.699999988079071
           Class: rviz_default_plugins/Map
           Color Scheme: costmap
           Draw Behind: false
-          Enabled: true
+          Enabled: false
           Name: CostMap
           Topic:
             Depth: 5
@@ -559,7 +556,7 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /planning/costmap_updates
           Use Timestamp: false
-          Value: true
+          Value: false
         - Alpha: 1
           Buffer Length: 1
           Class: rviz_default_plugins/Path
@@ -828,7 +825,7 @@ Visualization Manager:
           Axes Radius: 0.10000000149011612
           Class: rviz_default_plugins/Pose
           Color: 255; 25; 0
-          Enabled: true
+          Enabled: false
           Head Length: 0.30000001192092896
           Head Radius: 0.10000000149011612
           Name: Pose
@@ -842,8 +839,8 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /simulation/pose
-          Value: true
-      Enabled: false
+          Value: false
+      Enabled: true
       Name: Simulation
   Enabled: true
   Global Options:
@@ -906,10 +903,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8999999761581421
+      Pitch: 1
       Target Frame: base_link
       Value: Orbit (rviz_default_plugins)
-      Yaw: 3.141592025756836
+      Yaw: 3.1415927410125732
     Saved: ~
 Window Geometry:
   Displays:

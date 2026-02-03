@@ -47,6 +47,8 @@
         <!-- joy ボタン選択 -->
         <composable_node pkg="natto_joy" plugin="button_manager::button_manager" name="button_manager" namespace="/controller">
             <param from="$(var controller_param_path)"/>
+            <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
+            <remap from="get_origin_joint_name" to="/get_origin_joint_name"/>
         </composable_node>
 
         <!-- コマンド選択 -->

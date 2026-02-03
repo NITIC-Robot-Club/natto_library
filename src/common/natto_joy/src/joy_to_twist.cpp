@@ -16,7 +16,8 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("jo
 
 void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
     geometry_msgs::msg::TwistStamped twist_msg;
-    twist_msg.header          = msg->header;
+    twist_msg.header.stamp    = this->now ();
+    twist_msg.header.frame_id = "command/base_link";
     twist_msg.twist.linear.x  = msg->axes[1] * max_xy_speed_m_s_;
     twist_msg.twist.linear.y  = msg->axes[0] * max_xy_speed_m_s_;
     twist_msg.twist.angular.z = msg->axes[2] * max_yaw_speed_rad_s_;
