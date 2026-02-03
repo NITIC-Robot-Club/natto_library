@@ -40,12 +40,12 @@ void joint_state_rule::parse_rules () {
     std::map<std::string, rclcpp::Parameter> params;
     this->get_parameters ("joint_state_rule", params);
     rules_.clear ();
-    
+
     if (params.empty ()) {
         RCLCPP_INFO (this->get_logger (), "No joint_state_rule parameters found");
         return;
     }
-    
+
     std::set<std::string> rule_names;
     for (const auto &kv : params) {
         auto pos = kv.first.find ('.');
@@ -82,12 +82,12 @@ void joint_state_rule::joint_states_callback (const sensor_msgs::msg::JointState
 
 void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     sensor_msgs::msg::JointState fixed_command = *msg;
-    
+
     if (rules_.empty ()) {
         fixed_command_joint_states_publisher_->publish (fixed_command);
         return;
     }
-    
+
     for (const auto &kv : rules_) {
         const Rule &rule       = kv.second;
         bool        need_clamp = false;
