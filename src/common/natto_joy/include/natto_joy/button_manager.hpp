@@ -39,6 +39,8 @@ class button_manager : public rclcpp::Node {
     std::vector<bool>        publish_always_;
     std::vector<int>         last_button_state_;
 
+    std::vector<std::vector<std::string>> joint_names_;
+
     std::string zr_mode_, zl_mode_;
     std::string zr_function_, zl_function_;
     std::string zr_joint_name_, zl_joint_name_;

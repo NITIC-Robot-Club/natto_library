@@ -1,9 +1,4 @@
 <launch>
-    <arg name="localization_param_path" default=""/>
-    <arg name="chassis_type" default=""/>
-    <arg name="chassis_param_path" default=""/>
-    <arg name="use_odom_tf" default="false"/>
-
     <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
         <!-- オドメトリ -->
         <composable_node pkg="natto_wheel_odometry" plugin="wheel_odometry::wheel_odometry" name="wheel_odometry" namespace="localization/wheel_odometry">

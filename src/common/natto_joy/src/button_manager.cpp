@@ -20,7 +20,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     power_publisher_            = this->create_publisher<std_msgs::msg::Bool> ("power", 10);
     joint_state_publisher_      = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     allow_auto_drive_publisher_ = this->create_publisher<std_msgs::msg::Bool> ("allow_auto_drive", 10);
-    origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
+    origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 100);
     joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 10, std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
 
     RCLCPP_INFO (this->get_logger (), "button_manager node has been initialized.");
@@ -35,6 +35,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
         joint_name_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", ""));
+        joint_names_.push_back (this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".joint_names", {""}));
         position_on_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_on", 1.0));
         position_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_off", 0.0));
         speed_on_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_on", 1.0));
@@ -69,6 +70,14 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
                 command_joint_state_always_msg_.velocity.push_back (speed_off_[i]);
             }
         } else if (button_function_[i] == "get_origin") {
+            if (joint_names_[i].empty ()) {
+                RCLCPP_ERROR (this->get_logger (), "button_%zu.joint_names is empty. please set joint_names.", i);
+                throw std::runtime_error ("invalid parameter");
+            }
+            RCLCPP_INFO (this->get_logger (), "button_%zu.joint_names:", i);
+            for (const auto &jn : joint_names_[i]) {
+                RCLCPP_INFO (this->get_logger (), "  - %s", jn.c_str ());
+            }
         } else {
             button_function_[i] = "none";
             RCLCPP_ERROR (this->get_logger (), "button_%zu.function: %s is invalid. selected 'none'.", i, button_function_[i].c_str ());
@@ -225,9 +234,11 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         } else if (button_function_[i] == "get_origin") {
             if (button_mode_[i] == "click") {
                 if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    std_msgs::msg::String origin_get_msg;
-                    origin_get_msg.data = joint_name_[i];
-                    origin_get_publisher_->publish (origin_get_msg);
+                    for (const auto &joint_name : joint_names_[i]) {
+                        std_msgs::msg::String origin_get_msg;
+                        origin_get_msg.data = joint_name;
+                        origin_get_publisher_->publish (origin_get_msg);
+                    }
                 }
             }
         }
