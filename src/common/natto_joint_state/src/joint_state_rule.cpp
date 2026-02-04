@@ -26,8 +26,14 @@ joint_state_rule::joint_state_rule (const rclcpp::NodeOptions &node_options) : N
 
 JointRange joint_state_rule::parse_joint_range (const std::string &base_key) const {
     JointRange jr;
+    if (!this->has_parameter (base_key + ".joint_name")) {
+        throw std::runtime_error ("Parameter not found: " + base_key + ".joint_name");
+    }
     jr.joint_name = this->get_parameter (base_key + ".joint_name").as_string ();
-    auto range    = this->get_parameter (base_key + ".range").as_double_array ();
+    if (!this->has_parameter (base_key + ".range")) {
+        throw std::runtime_error ("Parameter not found: " + base_key + ".range");
+    }
+    auto range = this->get_parameter (base_key + ".range").as_double_array ();
     if (range.size () != 2) {
         throw std::runtime_error ("range must have exactly 2 elements: " + base_key);
     }
@@ -38,11 +44,16 @@ JointRange joint_state_rule::parse_joint_range (const std::string &base_key) con
 
 void joint_state_rule::parse_rules () {
     std::map<std::string, rclcpp::Parameter> params;
-    this->get_parameters ("joint_state_rule", params);
+    try {
+        this->get_parameters ("rules", params);
+    } catch (const std::exception &e) {
+        RCLCPP_INFO (this->get_logger (), "No rules parameters found");
+        return;
+    }
     rules_.clear ();
 
     if (params.empty ()) {
-        RCLCPP_INFO (this->get_logger (), "No joint_state_rule parameters found");
+        RCLCPP_INFO (this->get_logger (), "No rules parameters found");
         return;
     }
 
@@ -68,12 +79,12 @@ void joint_state_rule::parse_rules () {
             }
         }
         for (const auto &if_name : if_names) {
-            rule.if_conditions.push_back (parse_joint_range ("joint_state_rule." + rule_name + ".if_" + if_name));
+            rule.if_conditions.push_back (parse_joint_range ("rules." + rule_name + ".if_" + if_name));
         }
-        rule.then_condition = parse_joint_range ("joint_state_rule." + rule_name + ".then");
+        rule.then_condition = parse_joint_range ("rules." + rule_name + ".then");
         rules_.emplace (rule_name, rule);
     }
-    RCLCPP_INFO (this->get_logger (), "Loaded %zu joint_state_rule rules", rules_.size ());
+    RCLCPP_INFO (this->get_logger (), "Loaded %zu rules", rules_.size ());
 }
 
 void joint_state_rule::joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
@@ -92,11 +103,14 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
         const Rule &rule       = kv.second;
         bool        need_clamp = true;
         for (const auto &if_condition : rule.if_conditions) {
-            bool need_clamp_inner = false;
-            auto it_command       = std::find (msg->name.begin (), msg->name.end (), if_condition.joint_name);
-            if (it_command != msg->name.end ()) {
-                size_t index = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
-                if (if_condition.min <= msg->position[index] && msg->position[index] <= if_condition.max) {
+            bool   need_clamp_inner = false;
+            auto   it_command       = std::find (msg->name.begin (), msg->name.end (), if_condition.joint_name);
+            double command_position = 0.0;
+            bool   has_command      = it_command != msg->name.end ();
+            if (has_command) {
+                size_t index            = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
+                command_position = msg->position[index];
+                if (if_condition.min <= command_position && command_position <= if_condition.max) {
                     need_clamp_inner = true;
                     break;
                 }
@@ -105,10 +119,19 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
             if (current_joint_states_) {
                 auto it_current = std::find (current_joint_states_->name.begin (), current_joint_states_->name.end (), if_condition.joint_name);
                 if (it_current != current_joint_states_->name.end ()) {
-                    size_t index = static_cast<size_t> (std::distance (current_joint_states_->name.begin (), it_current));
-                    if (if_condition.min <= current_joint_states_->position[index] && current_joint_states_->position[index] <= if_condition.max) {
+                    size_t index            = static_cast<size_t> (std::distance (current_joint_states_->name.begin (), it_current));
+                    double current_position = current_joint_states_->position[index];
+                    if (if_condition.min <= current_position && current_position <= if_condition.max) {
                         need_clamp_inner = true;
                         break;
+                    }
+                    if (has_command) {
+                        bool crosses_range = (current_position < if_condition.min && command_position > if_condition.max) ||  //
+                                             (current_position > if_condition.max && command_position < if_condition.min);
+
+                        if (crosses_range) {
+                            need_clamp_inner = true;
+                        }
                     }
                 }
             }
