@@ -13,4 +13,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE joint_state_merger
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "joint_state_rule::joint_state_rule"
+    EXECUTABLE joint_state_rule
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

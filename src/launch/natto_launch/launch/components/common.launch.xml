@@ -1,13 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="publish_map" default="true"/>
-    <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
-    <arg name="circles_path" default="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
-    <arg name="occupancy_grid_resolution" default="0.05"/>
-    <arg name="footprint_param_path" default="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
-    <arg name="urdf_path" default=""/>
-    <arg name="joint_state_topics" default=""/>
-
     <node_container pkg="rclcpp_components" exec="component_container" name="common_container" namespace="/common">
         <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader" namespace="/common" if="$(var publish_map)">
             <param name="line_segments_path" value="$(var line_segments_path)"/>
@@ -40,7 +32,12 @@
 
         <composable_node pkg="natto_joint_state" plugin="joint_state_merger::joint_state_merger" name="joint_state_merger" namespace="/">
             <param name="joint_state_topics" value="$(var joint_state_topics)"/>
-            <remap from="/merged_joint_states" to="/command_joint_states"/>
+        </composable_node>
+
+        <composable_node pkg="natto_joint_state" plugin="joint_state_rule::joint_state_rule" name="joint_state_rule" namespace="/">
+            <remap from="/command_joint_states" to="/merged_joint_states"/>
+            <remap from="/fixed_command_joint_states" to="/command_joint_states"/>
+            <param from="$(var joint_rule_path)"/>
         </composable_node>
 
         <composable_node pkg="tf2_ros" plugin="tf2_ros::StaticTransformBroadcasterNode" name="base_to_command_base" namespace="/">
