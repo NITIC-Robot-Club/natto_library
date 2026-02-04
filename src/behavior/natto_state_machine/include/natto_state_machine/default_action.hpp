@@ -31,8 +31,8 @@ class default_action : public rclcpp::Node {
     default_action (const rclcpp::NodeOptions &node_options);
 
    private:
-    double frequency_;
-    bool   allow_auto_drive_;
+    double                        frequency_;
+    bool                          allow_auto_drive_;
     std::map<std::string, double> joint_tolerances_;
 
     uint64_t                 set_pose_state_id_;

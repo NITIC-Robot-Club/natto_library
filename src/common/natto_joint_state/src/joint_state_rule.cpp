@@ -108,7 +108,7 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
             double command_position = 0.0;
             bool   has_command      = it_command != msg->name.end ();
             if (has_command) {
-                size_t index            = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
+                size_t index     = static_cast<size_t> (std::distance (msg->name.begin (), it_command));
                 command_position = msg->position[index];
                 if (if_condition.min <= command_position && command_position <= if_condition.max) {
                     need_clamp_inner = true;
