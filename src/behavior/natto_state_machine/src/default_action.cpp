@@ -36,18 +36,23 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
 
     frequency_ = this->declare_parameter<double> ("frequency", 10.0);
     timer_     = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency_)), std::bind (&default_action::timer_callback, this));
-
+    
     std::map<std::string, rclcpp::Parameter> params;
-    this->get_parameters ("joint_tolerances", params);
+    this->get_parameters ("tolerances", params);
     joint_tolerances_.clear ();
     for (const auto &kv : params) {
         joint_tolerances_[kv.first] = kv.second.as_double ();
     }
-
+    
     RCLCPP_INFO (this->get_logger (), "default_action node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "xy_tolerance_m: %.3f", xy_tolerance_m_);
     RCLCPP_INFO (this->get_logger (), "yaw_tolerance_deg: %.3f", yaw_tolerance_deg_);
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
+    RCLCPP_INFO (this->get_logger (), "initial_allow_auto_drive: %s", allow_auto_drive_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "tolerances:");
+    for (const auto &kv : joint_tolerances_) {
+        RCLCPP_INFO (this->get_logger (), "  %s: %.4f", kv.first.c_str (), kv.second);
+    }
 
     set_pose_goal_sent_ = false;
     joint_state_sent_   = false;
@@ -176,7 +181,7 @@ void default_action::joint_state_callback (const sensor_msgs::msg::JointState::S
                 }
                 if (fabs (msg->position[i] - command_joint_state_.position[j]) > tol) {
                     reached = false;
-                    RCLCPP_DEBUG (this->get_logger (), "Joint %s not reached: current=%.4f, command=%.4f, tol=%.4f", msg->name[i].c_str (), msg->position[i], command_joint_state_.position[j], tol);
+                    RCLCPP_INFO (this->get_logger (), "Joint %s not reached: current=%.4f, command=%.4f, tol=%.4f", msg->name[i].c_str (), msg->position[i], command_joint_state_.position[j], tol);
                 }
             }
         }

@@ -15,6 +15,7 @@
             <remap from="joint_states" to="/joint_states"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
             <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
+            <param from="$(var joint_rule_path)"/>
         </composable_node>
     </node_container>
 </launch>
