@@ -30,7 +30,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     last_button_state_.resize (num_button_, 0);
 
     for (size_t i = 0; i < num_button_; i++) {
-        button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "toggle"));
+        button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "none"));
         button_function_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none"));
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
@@ -42,10 +42,10 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         speed_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0));
         publish_always_.push_back (this->declare_parameter<bool> ("button_" + std::to_string (i) + ".publish_always", false));
 
-        if (button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none" && button_mode_[i] != "click") {
+        if (button_mode_[i] != "toggle" && button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none" && button_mode_[i] != "positive_edge") {
+            RCLCPP_WARN (this->get_logger (), "button_%zu.mode: '%s' is invalid. selected 'none'.", i, button_mode_[i].c_str ());
+            RCLCPP_INFO (this->get_logger (), "Please set 'toggle' or 'toggle_on' or 'toggle_off' or 'hold' or 'none' or 'positive_edge'.");
             button_mode_[i] = "none";
-            RCLCPP_ERROR (this->get_logger (), "button_%zu.mode: %s is invalid. selected 'none'.", i, button_mode_[i].c_str ());
-            RCLCPP_INFO (this->get_logger (), "Please set 'toggle_on' or 'toggle_off' or 'hold' or 'none' or 'click'.");
         }
 
         if (button_function_[i] == "none") {
@@ -53,7 +53,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         } else if (button_function_[i] == "allow_auto_drive") {
         } else if (button_function_[i] == "joint_position" || button_function_[i] == "joint_speed") {
             if (joint_name_[i] == "") {
-                RCLCPP_ERROR (this->get_logger (), "button_%zu.joint_name is empty. please set joint_name.", i);
+                RCLCPP_WARN (this->get_logger (), "button_%zu.joint_name is empty. please set joint_name.", i);
                 throw std::runtime_error ("invalid parameter");
             }
             RCLCPP_INFO (this->get_logger (), "button_%zu.joint_name: %s", i, joint_name_[i].c_str ());
@@ -71,7 +71,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             }
         } else if (button_function_[i] == "get_origin") {
             if (joint_names_[i].empty ()) {
-                RCLCPP_ERROR (this->get_logger (), "button_%zu.joint_names is empty. please set joint_names.", i);
+                RCLCPP_WARN (this->get_logger (), "button_%zu.joint_names is empty. please set joint_names.", i);
                 throw std::runtime_error ("invalid parameter");
             }
             RCLCPP_INFO (this->get_logger (), "button_%zu.joint_names:", i);
@@ -80,9 +80,10 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             }
         } else {
             button_function_[i] = "none";
-            RCLCPP_ERROR (this->get_logger (), "button_%zu.function: %s is invalid. selected 'none'.", i, button_function_[i].c_str ());
+            RCLCPP_WARN (this->get_logger (), "button_%zu.function: %s is invalid. selected 'none'.", i, button_function_[i].c_str ());
             RCLCPP_INFO (this->get_logger (), "Please set 'none', 'power', 'allow_auto_drive', 'joint_position' or 'joint_speed'.");
         }
+        last_toggle_state_.push_back (false);
     }
 
     zr_mode_           = this->declare_parameter<std::string> ("zr.mode", "none");
@@ -106,7 +107,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "zr.function: %s", zr_function_.c_str ());
     if (zr_function_ == "joint_position" || zr_function_ == "joint_speed") {
         if (zr_joint_name_ == "") {
-            RCLCPP_ERROR (this->get_logger (), "zr.joint_name is empty. please set joint_name.");
+            RCLCPP_WARN (this->get_logger (), "zr.joint_name is empty. please set joint_name.");
             throw std::runtime_error ("invalid parameter");
         }
         RCLCPP_INFO (this->get_logger (), "zr.joint_name: %s", zr_joint_name_.c_str ());
@@ -127,7 +128,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "zl.function: %s", zl_function_.c_str ());
     if (zl_function_ == "joint_position" || zl_function_ == "joint_speed") {
         if (zl_joint_name_ == "") {
-            RCLCPP_ERROR (this->get_logger (), "zl.joint_name is empty. please set joint_name.");
+            RCLCPP_WARN (this->get_logger (), "zl.joint_name is empty. please set joint_name.");
             throw std::runtime_error ("invalid parameter");
         }
         RCLCPP_INFO (this->get_logger (), "zl.joint_name: %s", zl_joint_name_.c_str ());
@@ -160,7 +161,12 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         }
 
         if (button_function_[i] == "power") {
-            if (button_mode_[i] == "toggle_on") {
+            if (button_mode_[i] == "toggle") {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    last_toggle_state_[i] = !last_toggle_state_[i];
+                }
+                power_msg_.data = last_toggle_state_[i];
+            } else if (button_mode_[i] == "toggle_on") {
                 if (msg->buttons[i] == 1) {
                     power_msg_.data = true;
                 }
@@ -172,7 +178,12 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 power_msg_.data = msg->buttons[i];
             }
         } else if (button_function_[i] == "allow_auto_drive") {
-            if (button_mode_[i] == "toggle_on") {
+            if (button_mode_[i] == "toggle") {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    last_toggle_state_[i] = !last_toggle_state_[i];
+                }
+                allow_auto_drive_msg_.data = last_toggle_state_[i];
+            } else if (button_mode_[i] == "toggle_on") {
                 if (msg->buttons[i] == 1) {
                     allow_auto_drive_msg_.data = true;
                 }
@@ -192,7 +203,16 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     break;
                 }
             }
-            if (button_mode_[i] == "toggle_on") {
+            if (button_mode_[i] == "toggle") {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    last_toggle_state_[i] = !last_toggle_state_[i];
+                }
+                if (last_toggle_state_[i]) {
+                    command_joint_state_msg_.position[index] = position_on_[i];
+                } else {
+                    command_joint_state_msg_.position[index] = position_off_[i];
+                }
+            } else if (button_mode_[i] == "toggle_on") {
                 if (msg->buttons[i] == 1) {
                     command_joint_state_msg_.position[index] = position_on_[i];
                 }
@@ -216,7 +236,16 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     break;
                 }
             }
-            if (button_mode_[i] == "toggle_on") {
+            if (button_mode_[i] == "toggle") {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    last_toggle_state_[i] = !last_toggle_state_[i];
+                }
+                if (last_toggle_state_[i]) {
+                    command_joint_state_msg_.velocity[index] = speed_on_[i];
+                } else {
+                    command_joint_state_msg_.velocity[index] = speed_off_[i];
+                }
+            } else if (button_mode_[i] == "toggle_on") {
                 if (msg->buttons[i] == 1) {
                     command_joint_state_msg_.velocity[index] = speed_on_[i];
                 }
@@ -232,7 +261,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 }
             }
         } else if (button_function_[i] == "get_origin") {
-            if (button_mode_[i] == "click") {
+            if (button_mode_[i] == "positive_edge") {
                 if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
                     for (const auto &joint_name : joint_names_[i]) {
                         std_msgs::msg::String origin_get_msg;

@@ -38,6 +38,7 @@ class button_manager : public rclcpp::Node {
     std::vector<double>      speed_off_;
     std::vector<bool>        publish_always_;
     std::vector<int>         last_button_state_;
+    std::vector<bool>        last_toggle_state_;
 
     std::vector<std::vector<std::string>> joint_names_;
 
