@@ -36,14 +36,14 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
 
     frequency_ = this->declare_parameter<double> ("frequency", 10.0);
     timer_     = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency_)), std::bind (&default_action::timer_callback, this));
-    
+
     std::map<std::string, rclcpp::Parameter> params;
     this->get_parameters ("tolerances", params);
     joint_tolerances_.clear ();
     for (const auto &kv : params) {
         joint_tolerances_[kv.first] = kv.second.as_double ();
     }
-    
+
     RCLCPP_INFO (this->get_logger (), "default_action node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "xy_tolerance_m: %.3f", xy_tolerance_m_);
     RCLCPP_INFO (this->get_logger (), "yaw_tolerance_deg: %.3f", yaw_tolerance_deg_);
