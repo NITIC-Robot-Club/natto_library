@@ -119,9 +119,9 @@ class InteriorPointOptimizer {
     bool converged (const Residuals &) const;
 };
 
-class SpeedPathTimeOptimalPlanner : public rclcpp::Node {
+class nlp_planner : public rclcpp::Node {
    public:
-    explicit SpeedPathTimeOptimalPlanner (const rclcpp::NodeOptions &);
+    explicit nlp_planner (const rclcpp::NodeOptions &);
 
    private:
     std::size_t N;
