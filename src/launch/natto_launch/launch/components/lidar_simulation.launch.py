@@ -12,6 +12,7 @@ def launch_setup(context, *args, **kwargs):
     name = cfg["name"]
     x    = cfg["x"]
     y    = cfg["y"]
+    z    = cfg["z"]
     yaw  = cfg["yaw_deg"]
     freq = cfg["frequency"]
     rate = cfg["point_rate"]
@@ -27,6 +28,7 @@ def launch_setup(context, *args, **kwargs):
                 parameters=[{
                     "position_x": float(x[i]),
                     "position_y": float(y[i]),
+                    "position_z": float(z[i]),
                     "angle_deg": float(yaw[i]),
                     "scan_frequency": float(freq[i]),
                     "frame_id": f"lidar_{name[i]}",

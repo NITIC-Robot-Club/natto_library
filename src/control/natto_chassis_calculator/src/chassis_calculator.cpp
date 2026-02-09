@@ -36,8 +36,8 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
     }
 
     if (chassis_type_ == "swerve") {
-        infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-
+        infinite_swerve_mode_                = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+        command_joint_state_.header.stamp    = this->now ();
         command_joint_state_.header.frame_id = "base_link";
         command_joint_state_.name.resize (num_wheels_ * 2);
         command_joint_state_.position.resize (num_wheels_ * 2);
@@ -47,6 +47,7 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
             command_joint_state_.name[i + num_wheels_] = wheel_base_names_[i];
         }
     } else if (chassis_type_ == "omni") {
+        command_joint_state_.header.stamp    = this->now ();
         command_joint_state_.header.frame_id = "base_link";
         command_joint_state_.name.resize (num_wheels_);
         command_joint_state_.position.resize (num_wheels_);
@@ -81,11 +82,12 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
             double wheel_position_y;
 
             try {
-                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("base_link", wheel_base_names_[i] + "_link", tf2::TimePointZero);
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + wheel_base_names_[i] + "_link", tf2::TimePointZero);
                 wheel_position_x                                = tf_stamped.transform.translation.x;
                 wheel_position_y                                = tf_stamped.transform.translation.y;
             } catch (tf2::TransformException &ex) {
                 RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                command_joint_state_publisher_->publish (command_joint_state_);
                 return;
             }
 
@@ -133,13 +135,14 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
             double wheel_angle;
 
             try {
-                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("base_link", wheel_base_names_[i] + "_link", tf2::TimePointZero);
+                geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform ("command/base_link", "command/" + wheel_base_names_[i] + "_link", tf2::TimePointZero);
 
                 wheel_position_x = tf_stamped.transform.translation.x;
                 wheel_position_y = tf_stamped.transform.translation.y;
                 wheel_angle      = tf2::getYaw (tf_stamped.transform.rotation);
             } catch (tf2::TransformException &ex) {
                 RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Could not get transform from %s to base_link: %s", wheel_base_names_[i].c_str (), ex.what ());
+                command_joint_state_publisher_->publish (command_joint_state_);
                 return;
             }
             double wheel_vx        = x - z * wheel_position_y;
