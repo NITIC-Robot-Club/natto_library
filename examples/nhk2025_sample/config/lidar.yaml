@@ -1,6 +1,7 @@
 name: ["front", "rear"]
 x: [0.4, -0.4]
 y: [0.0, 0.0]
+z: [0.0, 0.0]
 yaw_deg: [0.0, 180.0]
 frequency: [40.0, 40.0]
 point_rate: [57600, 57600]
