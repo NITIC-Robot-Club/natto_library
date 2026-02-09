@@ -16,7 +16,7 @@
 
 namespace default_action {
 
-default_action::default_action (const rclcpp::NodeOptions &node_options) : Node ("default_action", node_options) {
+default_action::default_action (const rclcpp::NodeOptions &node_options) : Node ("default_action", rclcpp::NodeOptions (node_options).allow_undeclared_parameters (true).automatically_declare_parameters_from_overrides (true)) {
     state_result_publisher_      = this->create_publisher<natto_msgs::msg::StateResult> ("state_result", 10);
     goal_publisher_              = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_       = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
@@ -28,15 +28,31 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
 
     xy_tolerance_m_    = this->declare_parameter<double> ("xy_tolerance_m", 0.2);
     yaw_tolerance_deg_ = this->declare_parameter<double> ("yaw_tolerance_deg", 10.0);
-    allow_auto_drive_  = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
+    if (this->has_parameter ("initial_allow_auto_drive")) {
+        allow_auto_drive_ = this->get_parameter ("initial_allow_auto_drive").as_bool ();
+    } else {
+        allow_auto_drive_ = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
+    }
 
     frequency_ = this->declare_parameter<double> ("frequency", 10.0);
     timer_     = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency_)), std::bind (&default_action::timer_callback, this));
+
+    std::map<std::string, rclcpp::Parameter> params;
+    this->get_parameters ("tolerances", params);
+    joint_tolerances_.clear ();
+    for (const auto &kv : params) {
+        joint_tolerances_[kv.first] = kv.second.as_double ();
+    }
 
     RCLCPP_INFO (this->get_logger (), "default_action node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "xy_tolerance_m: %.3f", xy_tolerance_m_);
     RCLCPP_INFO (this->get_logger (), "yaw_tolerance_deg: %.3f", yaw_tolerance_deg_);
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
+    RCLCPP_INFO (this->get_logger (), "initial_allow_auto_drive: %s", allow_auto_drive_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "tolerances:");
+    for (const auto &kv : joint_tolerances_) {
+        RCLCPP_INFO (this->get_logger (), "  %s: %.4f", kv.first.c_str (), kv.second);
+    }
 
     set_pose_goal_sent_ = false;
     joint_state_sent_   = false;
@@ -158,8 +174,14 @@ void default_action::joint_state_callback (const sensor_msgs::msg::JointState::S
     for (size_t i = 0; i < msg->name.size (); i++) {
         for (size_t j = 0; j < command_joint_state_.name.size (); j++) {
             if (msg->name[i] == command_joint_state_.name[j]) {
-                if (abs (msg->position[i] - command_joint_state_.position[j]) > 0.01) {
+                auto   it_tol = joint_tolerances_.find (msg->name[i]);
+                double tol    = 0.01;
+                if (it_tol != joint_tolerances_.end ()) {
+                    tol = it_tol->second;
+                }
+                if (fabs (msg->position[i] - command_joint_state_.position[j]) > tol) {
                     reached = false;
+                    RCLCPP_INFO (this->get_logger (), "Joint %s not reached: current=%.4f, command=%.4f, tol=%.4f", msg->name[i].c_str (), msg->position[i], command_joint_state_.position[j], tol);
                 }
             }
         }

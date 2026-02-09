@@ -52,7 +52,7 @@ ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
 ## License
 
 ```
-// Copyright 2025 Kazusa Hashimoto
+// Copyright 2026 Kazusa Hashimoto
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
