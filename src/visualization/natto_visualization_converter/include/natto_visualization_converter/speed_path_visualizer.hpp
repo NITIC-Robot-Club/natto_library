@@ -28,7 +28,7 @@ class speed_path_visualizer : public rclcpp::Node {
 
    private:
     std::string frame_id_;
-    double path_width_;
+    double      path_width_;
 
     visualization_msgs::msg::MarkerArray marker_array_;
 
