@@ -128,6 +128,12 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
                 command_joint_state_.velocity.push_back (std::stod (msg->arguments_values[i]));
             }
         }
+
+        natto_msgs::msg::StateResult result;
+        result.state_id    = joint_state_id_;
+        result.success     = true;
+        result.action_name = "set_joint_velocity";
+        state_result_publisher_->publish (result);
     }
 }
 
