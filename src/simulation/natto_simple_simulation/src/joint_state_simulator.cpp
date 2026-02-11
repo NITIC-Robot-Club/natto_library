@@ -239,7 +239,7 @@ void joint_state_simulator::timer_callback () {
         vx   = A[0][3];
         vy   = A[1][3];
         vyaw = A[2][3];
-    } else if (chassis_type_ == "omni") {
+    } else if (chassis_type_ == "omni" || chassis_type_ == "mecanum") {
         double ATA[3][3] = {};  // A^T * A
         double ATb[3]    = {};  // A^T * b
 
