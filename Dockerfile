@@ -25,6 +25,7 @@ SHELL ["/bin/bash", "-c"]
 RUN sudo apt update && \
     source /opt/ros/jazzy/setup.bash && \
     rosdep install -y --from-paths src --ignore-src && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN source /opt/ros/jazzy/setup.bash && \
     ./colcon_build.sh
