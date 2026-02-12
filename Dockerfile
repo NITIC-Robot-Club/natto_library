@@ -1,4 +1,4 @@
-FROM ros:humble-ros-base
+FROM ros:jazzy-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,5 +26,5 @@ WORKDIR /home/nitic-robot-club/natto_library
 SHELL ["/bin/bash", "-c"]
 
 RUN rosdep install -y --from-paths src --ignore-src && \
-    source /opt/ros/humble/setup.bash && \
+    source /opt/ros/jazzy/setup.bash && \
     ./colcon_build.sh

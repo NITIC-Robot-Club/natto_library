@@ -9,7 +9,7 @@ jobs:
       contents: write
       packages: read
     
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: ghcr.io/nitic-robot-club/natto_library:latest
 
@@ -52,7 +52,7 @@ jobs:
         id: build_test
         working-directory: /home/nitic-robot-club/natto_library
         run: |
-          . /opt/ros/humble/setup.sh && 
+          . /opt/ros/jazzy/setup.sh && 
           ./colcon_build.sh
         continue-on-error: true
     
