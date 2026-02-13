@@ -27,6 +27,7 @@ class twist_selector : public rclcpp::Node {
 
    private:
     bool allow_auto_drive_;
+    bool received_;
 
     void allow_auto_drive_callback (const std_msgs::msg::Bool::SharedPtr msg);
     void manual_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg);
@@ -36,6 +37,7 @@ class twist_selector : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr              allow_auto_drive_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr manual_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr auto_subscriber_;
+    rclcpp::TimerBase::SharedPtr                                      timer_;
 };
 }  // namespace twist_selector
 

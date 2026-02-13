@@ -24,6 +24,8 @@
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include <mutex>
+
 namespace holonomic_pure_pursuit {
 
 class holonomic_pure_pursuit : public rclcpp::Node {
@@ -54,9 +56,11 @@ class holonomic_pure_pursuit : public rclcpp::Node {
     double lookahead_distance_;
     double delta_t_s_;
 
-    geometry_msgs::msg::PoseStamped  current_pose_;
-    geometry_msgs::msg::TwistStamped last_cmd_vel_;
-    nav_msgs::msg::Path              path_;
+    std::mutex data_mutex_;
+
+    geometry_msgs::msg::PoseStamped::SharedPtr  current_pose_;
+    geometry_msgs::msg::TwistStamped::SharedPtr last_cmd_vel_;
+    nav_msgs::msg::Path::SharedPtr              path_;
 
     void timer_callback ();
     void pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg);

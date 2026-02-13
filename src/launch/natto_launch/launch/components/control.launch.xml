@@ -26,7 +26,7 @@
             <remap from="path" to="/planning/path"/>
             <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
-
+        
         <!-- joy twist変換 -->
         <composable_node pkg="natto_joy" plugin="joy_to_twist::joy_to_twist" name="joy_to_twist" namespace="/controller">
             <param name="max_xy_speed_m_s" value="$(var controller_max_xy_speed_m_s)"/>

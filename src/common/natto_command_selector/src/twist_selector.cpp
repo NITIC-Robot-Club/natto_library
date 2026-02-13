@@ -23,8 +23,25 @@ twist_selector::twist_selector (const rclcpp::NodeOptions &node_options) : Node 
     selected_twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
     allow_auto_drive_            = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
 
+    double frequency = this->declare_parameter<double> ("frequency", 5.0);
     RCLCPP_INFO (this->get_logger (), "twist_selector node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "initial_allow_auto_drive: %s", allow_auto_drive_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "frequency: %f", frequency);
+    received_ = false;
+
+    timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000.0 / frequency)), [this] () {
+        if (!received_) {
+            geometry_msgs::msg::TwistStamped stop_msg;
+            stop_msg.header.stamp    = this->now ();
+            stop_msg.header.frame_id = "base_link";
+            stop_msg.twist.linear.x  = 0.0;
+            stop_msg.twist.linear.y  = 0.0;
+            stop_msg.twist.angular.z = 0.0;
+            selected_twist_publisher_->publish (stop_msg);
+            RCLCPP_WARN (this->get_logger (), "No twist command received yet. Publishing stop command.");
+        }
+        received_ = false;
+    });
 }
 
 void twist_selector::allow_auto_drive_callback (const std_msgs::msg::Bool::SharedPtr msg) {
@@ -34,12 +51,14 @@ void twist_selector::allow_auto_drive_callback (const std_msgs::msg::Bool::Share
 void twist_selector::manual_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     if (!allow_auto_drive_) {
         selected_twist_publisher_->publish (*msg);
+        received_ = true;
     }
 }
 
 void twist_selector::auto_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     if (allow_auto_drive_) {
         selected_twist_publisher_->publish (*msg);
+        received_ = true;
     }
 }
 

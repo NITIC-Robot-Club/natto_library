@@ -70,15 +70,38 @@ holonomic_pure_pursuit::holonomic_pure_pursuit (const rclcpp::NodeOptions &optio
 }
 
 void holonomic_pure_pursuit::pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    current_pose_ = *msg;
+    std::lock_guard<std::mutex> lock (data_mutex_);
+    current_pose_ = msg;
 }
 
 void holonomic_pure_pursuit::path_callback (const nav_msgs::msg::Path::SharedPtr msg) {
-    path_ = *msg;
+    std::lock_guard<std::mutex> lock (data_mutex_);
+    path_ = msg;
 }
 
 void holonomic_pure_pursuit::timer_callback () {
-    if (path_.poses.empty () || path_.poses.size () < 2) {
+    std::lock_guard<std::mutex> lock (data_mutex_);
+
+    if (!current_pose_) {
+        RCLCPP_DEBUG (this->get_logger (), "Current pose not received yet.");
+        return;
+    }
+
+    if (!path_) {
+        RCLCPP_DEBUG (this->get_logger (), "Path not received yet.");
+        return;
+    }
+
+    if (!last_cmd_vel_) {
+        last_cmd_vel_                  = std::make_shared<geometry_msgs::msg::TwistStamped> ();
+        last_cmd_vel_->header.stamp    = this->now ();
+        last_cmd_vel_->header.frame_id = "base_link";
+        last_cmd_vel_->twist.linear.x  = 0.0;
+        last_cmd_vel_->twist.linear.y  = 0.0;
+        last_cmd_vel_->twist.angular.z = 0.0;
+    }
+
+    if (path_->poses.empty () || path_->poses.size () < 2) {
         geometry_msgs::msg::TwistStamped cmd_vel;
         cmd_vel.header.stamp    = this->now ();
         cmd_vel.header.frame_id = "base_link";
@@ -88,44 +111,44 @@ void holonomic_pure_pursuit::timer_callback () {
         cmd_vel_publisher_->publish (cmd_vel);
         return;
     }
-    double position_error        = std::hypot (path_.poses.back ().pose.position.x - current_pose_.pose.position.x, path_.poses.back ().pose.position.y - current_pose_.pose.position.y);
+    double position_error        = std::hypot (path_->poses.back ().pose.position.x - current_pose_->pose.position.x, path_->poses.back ().pose.position.y - current_pose_->pose.position.y);
     bool   goal_position_reached = (position_error < goal_position_tolerance_);
 
-    double yaw_error = tf2::getYaw (path_.poses.back ().pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    double yaw_error = tf2::getYaw (path_->poses.back ().pose.orientation) - tf2::getYaw (current_pose_->pose.orientation);
     while (yaw_error > +M_PI) yaw_error -= 2.0 * M_PI;
     while (yaw_error < -M_PI) yaw_error += 2.0 * M_PI;
     yaw_error             = std::abs (yaw_error);
     bool goal_yaw_reached = (yaw_error < goal_yaw_tolerance_deg_ * M_PI / 180.0);
 
-    double current_speed_xy       = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
+    double current_speed_xy       = std::hypot (last_cmd_vel_->twist.linear.x, last_cmd_vel_->twist.linear.y);
     bool   goal_speed_xy_reached  = (current_speed_xy < goal_speed_tolerance_xy_m_s_);
-    double current_speed_yaw      = std::abs (last_cmd_vel_.twist.angular.z);
+    double current_speed_yaw      = std::abs (last_cmd_vel_->twist.angular.z);
     bool   goal_speed_yaw_reached = (current_speed_yaw < goal_speed_tolerance_yaw_deg_s_ * M_PI / 180.0);
 
     size_t closest_index = 0;
     double min_distance  = std::numeric_limits<double>::max ();
-    for (size_t i = 0; i < path_.poses.size (); i++) {
-        double dist = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
+    for (size_t i = 0; i < path_->poses.size (); i++) {
+        double dist = std::hypot (path_->poses[i].pose.position.x - current_pose_->pose.position.x, path_->poses[i].pose.position.y - current_pose_->pose.position.y);
         if (dist < min_distance) {
             min_distance  = dist;
             closest_index = i;
         }
     }
 
-    if (closest_index + 1 >= path_.poses.size ()) closest_index = path_.poses.size () - 2;
+    if (closest_index + 1 >= path_->poses.size ()) closest_index = path_->poses.size () - 2;
 
-    geometry_msgs::msg::Pose goal_pose     = path_.poses.back ().pose;
-    double                   goal_distance = std::hypot (goal_pose.position.x - current_pose_.pose.position.x, goal_pose.position.y - current_pose_.pose.position.y);
+    geometry_msgs::msg::Pose goal_pose     = path_->poses.back ().pose;
+    double                   goal_distance = std::hypot (goal_pose.position.x - current_pose_->pose.position.x, goal_pose.position.y - current_pose_->pose.position.y);
 
-    double last_speed      = std::hypot (last_cmd_vel_.twist.linear.x, last_cmd_vel_.twist.linear.y);
+    double last_speed      = std::hypot (last_cmd_vel_->twist.linear.x, last_cmd_vel_->twist.linear.y);
     double predicted_speed = last_speed + max_acceleration_xy_m_s2_ * delta_t_s_;
     predicted_speed        = std::clamp (predicted_speed, 0.0, max_speed_xy_m_s_);
     lookahead_distance_    = std::clamp (lookahead_time_ * predicted_speed, min_lookahead_distance_, max_lookahead_distance_);
 
     size_t lookahead_index  = closest_index;
     double nearest_distance = std::numeric_limits<double>::max ();
-    for (size_t i = closest_index; i < path_.poses.size (); i++) {
-        double distance = std::hypot (path_.poses[i].pose.position.x - current_pose_.pose.position.x, path_.poses[i].pose.position.y - current_pose_.pose.position.y);
+    for (size_t i = closest_index; i < path_->poses.size (); i++) {
+        double distance = std::hypot (path_->poses[i].pose.position.x - current_pose_->pose.position.x, path_->poses[i].pose.position.y - current_pose_->pose.position.y);
         double diff     = std::abs (distance - lookahead_distance_);
         if (diff < nearest_distance) {
             nearest_distance = diff;
@@ -134,15 +157,15 @@ void holonomic_pure_pursuit::timer_callback () {
     }
 
     if (lookahead_distance_ > goal_distance) {
-        lookahead_index = path_.poses.size () - 1;
+        lookahead_index = path_->poses.size () - 1;
     }
-    size_t next_index = std::min (lookahead_index + 1, path_.poses.size () - 1);
+    size_t next_index = std::min (lookahead_index + 1, path_->poses.size () - 1);
 
-    double current_yaw = tf2::getYaw (current_pose_.pose.orientation);
-    double dxy1        = std::hypot (path_.poses[lookahead_index].pose.position.x - current_pose_.pose.position.x, path_.poses[lookahead_index].pose.position.y - current_pose_.pose.position.y);
-    double dxy2        = std::hypot (path_.poses[next_index].pose.position.x - current_pose_.pose.position.x, path_.poses[next_index].pose.position.y - current_pose_.pose.position.y);
-    double dyaw1       = tf2::getYaw (path_.poses[lookahead_index].pose.orientation) - current_yaw;
-    double dyaw2       = tf2::getYaw (path_.poses[next_index].pose.orientation) - current_yaw;
+    double current_yaw = tf2::getYaw (current_pose_->pose.orientation);
+    double dxy1        = std::hypot (path_->poses[lookahead_index].pose.position.x - current_pose_->pose.position.x, path_->poses[lookahead_index].pose.position.y - current_pose_->pose.position.y);
+    double dxy2        = std::hypot (path_->poses[next_index].pose.position.x - current_pose_->pose.position.x, path_->poses[next_index].pose.position.y - current_pose_->pose.position.y);
+    double dyaw1       = tf2::getYaw (path_->poses[lookahead_index].pose.orientation) - current_yaw;
+    double dyaw2       = tf2::getYaw (path_->poses[next_index].pose.orientation) - current_yaw;
     while (dyaw1 > +M_PI) dyaw1 -= 2.0 * M_PI;
     while (dyaw1 < -M_PI) dyaw1 += 2.0 * M_PI;
     while (dyaw2 > +M_PI) dyaw2 -= 2.0 * M_PI;
@@ -159,14 +182,14 @@ void holonomic_pure_pursuit::timer_callback () {
     }
 
     double xy_ratio  = std::clamp ((lookahead_distance_ - dxy1) / delta_dxy, 0.0, 1.0);
-    double yaw_ratio = std::clamp ((lookahead_distance_ - dxy1) / delta_dyaw, 0.0, 1.0);
+    double yaw_ratio = xy_ratio;
 
-    double lookahead_x   = path_.poses[lookahead_index].pose.position.x + (path_.poses[next_index].pose.position.x - path_.poses[lookahead_index].pose.position.x) * xy_ratio;
-    double lookahead_y   = path_.poses[lookahead_index].pose.position.y + (path_.poses[next_index].pose.position.y - path_.poses[lookahead_index].pose.position.y) * xy_ratio;
-    double lookahead_yaw = tf2::getYaw (path_.poses[lookahead_index].pose.orientation) + (tf2::getYaw (path_.poses[next_index].pose.orientation) - tf2::getYaw (path_.poses[lookahead_index].pose.orientation)) * yaw_ratio;
+    double lookahead_x   = path_->poses[lookahead_index].pose.position.x + (path_->poses[next_index].pose.position.x - path_->poses[lookahead_index].pose.position.x) * xy_ratio;
+    double lookahead_y   = path_->poses[lookahead_index].pose.position.y + (path_->poses[next_index].pose.position.y - path_->poses[lookahead_index].pose.position.y) * xy_ratio;
+    double lookahead_yaw = tf2::getYaw (path_->poses[lookahead_index].pose.orientation) + (tf2::getYaw (path_->poses[next_index].pose.orientation) - tf2::getYaw (path_->poses[lookahead_index].pose.orientation)) * yaw_ratio;
 
-    double dx = lookahead_x - current_pose_.pose.position.x;
-    double dy = lookahead_y - current_pose_.pose.position.y;
+    double dx = lookahead_x - current_pose_->pose.position.x;
+    double dy = lookahead_y - current_pose_->pose.position.y;
 
     double angle_diff   = std::atan2 (dy, dx) - current_yaw;
     double target_speed = std::hypot (dx, dy) / lookahead_time_;
@@ -181,9 +204,9 @@ void holonomic_pure_pursuit::timer_callback () {
     size_t p2 = (lookahead_index + closest_index) / 2;
     size_t p3 = lookahead_index;
 
-    double a = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p2].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p2].pose.position.y);
-    double b = std::hypot (path_.poses[p2].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p2].pose.position.y - path_.poses[p3].pose.position.y);
-    double c = std::hypot (path_.poses[p1].pose.position.x - path_.poses[p3].pose.position.x, path_.poses[p1].pose.position.y - path_.poses[p3].pose.position.y);
+    double a = std::hypot (path_->poses[p1].pose.position.x - path_->poses[p2].pose.position.x, path_->poses[p1].pose.position.y - path_->poses[p2].pose.position.y);
+    double b = std::hypot (path_->poses[p2].pose.position.x - path_->poses[p3].pose.position.x, path_->poses[p2].pose.position.y - path_->poses[p3].pose.position.y);
+    double c = std::hypot (path_->poses[p1].pose.position.x - path_->poses[p3].pose.position.x, path_->poses[p1].pose.position.y - path_->poses[p3].pose.position.y);
     double s = (a + b + c) / 2.0;
     double t = s * (s - a) * (s - b) * (s - c);
     if (t < 0.0) {
@@ -205,7 +228,7 @@ void holonomic_pure_pursuit::timer_callback () {
     double yaw_speed = yaw_diff / lookahead_time_ * yaw_speed_p_;
 
     double required_yaw         = std::abs (yaw_diff);
-    double max_yaw_change       = std::abs (last_cmd_vel_.twist.angular.z) * lookahead_time_ + 0.5 * (max_acceleration_yaw_deg_s2_ * M_PI / 180.0) * lookahead_time_ * lookahead_time_;
+    double max_yaw_change       = std::abs (last_cmd_vel_->twist.angular.z) * lookahead_time_ + 0.5 * (max_acceleration_yaw_deg_s2_ * M_PI / 180.0) * lookahead_time_ * lookahead_time_;
     double max_yaw_change_limit = (max_speed_yaw_deg_s_ * M_PI / 180.0) * lookahead_time_;
     max_yaw_change              = std::min (max_yaw_change, max_yaw_change_limit);
 
@@ -221,9 +244,9 @@ void holonomic_pure_pursuit::timer_callback () {
     acceleration        = std::clamp (acceleration, -max_acceleration_xy_m_s2_, max_acceleration_xy_m_s2_);
     double speed        = last_speed + acceleration * delta_t_s_;
 
-    double yaw_acceleration = (yaw_speed - last_cmd_vel_.twist.angular.z) / delta_t_s_;
+    double yaw_acceleration = (yaw_speed - last_cmd_vel_->twist.angular.z) / delta_t_s_;
     yaw_acceleration        = std::clamp (yaw_acceleration, -max_acceleration_yaw_deg_s2_ * M_PI / 180.0, max_acceleration_yaw_deg_s2_ * M_PI / 180.0);
-    yaw_speed               = last_cmd_vel_.twist.angular.z + yaw_acceleration * delta_t_s_;
+    yaw_speed               = last_cmd_vel_->twist.angular.z + yaw_acceleration * delta_t_s_;
     yaw_speed               = std::clamp (yaw_speed, -max_speed_yaw_deg_s_ * M_PI / 180.0, max_speed_yaw_deg_s_ * M_PI / 180.0);
 
     if (goal_position_reached && goal_speed_xy_reached) {
@@ -255,7 +278,7 @@ void holonomic_pure_pursuit::timer_callback () {
     q.setRPY (0.0, 0.0, lookahead_yaw);
     lookahead_msg.pose.orientation = tf2::toMsg (q);
     lookahead_publisher_->publish (lookahead_msg);
-    last_cmd_vel_ = cmd_vel;
+    last_cmd_vel_ = std::make_shared<geometry_msgs::msg::TwistStamped> (cmd_vel);
 }
 }  // namespace holonomic_pure_pursuit
 
