@@ -1,14 +1,7 @@
 <launch>
-    <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
-        <!-- 目標計算 -->
-        <composable_node pkg="natto_chassis_calculator" plugin="chassis_calculator::chassis_calculator" name="chassis_calculator" namespace="/control/$(var chassis_type)">
-            <param from="$(var chassis_param_path)"/>
-            <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
-            <remap from="joint_states" to="/joint_states"/>
-            <remap from="command_velocity" to="/command_velocity"/>
-        </composable_node>
-
-        <!-- 経路計算 -->
+   <!--
+    <node_container pkg="rclcpp_components" exec="component_container" name="auto_control_container" namespace="control">
+         経路計算 
         <composable_node pkg="natto_astar_planner" plugin="astar_planner::astar_planner" name="astar_planner" namespace="/planning">
             <param from="$(var planning_param_path)"/>
             <remap from="occupancy_grid" to="/common/occupancy_grid"/>
@@ -19,12 +12,23 @@
             <remap from="goal_reached" to="/control/goal_reached"/>
         </composable_node>
 
-        <!-- 経路追従 -->
+         経路追従
         <composable_node pkg="natto_holonomic_pure_pursuit" plugin="holonomic_pure_pursuit::holonomic_pure_pursuit" name="holonomic_pure_pursuit" namespace="/control">
             <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="command_velocity" to="/control/command_velocity"/>
+        </composable_node>
+    </node_container>
+    -->
+
+    <node_container pkg="rclcpp_components" exec="component_container" name="control_container" namespace="control">
+        <!-- 目標計算 -->
+        <composable_node pkg="natto_chassis_calculator" plugin="chassis_calculator::chassis_calculator" name="chassis_calculator" namespace="/control/$(var chassis_type)">
+            <param from="$(var chassis_param_path)"/>
+            <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
+            <remap from="joint_states" to="/joint_states"/>
+            <remap from="command_velocity" to="/command_velocity"/>
         </composable_node>
         
         <!-- joy twist変換 -->
