@@ -51,17 +51,14 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
 }
 
 void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-    RCLCPP_INFO (this->get_logger (), "map callback start");
     raw_map_ = *msg;
     create_costmap ();
     create_obstacle_costmap ();
     create_path ();
     costmap_publisher_->publish (costmap_);
-    RCLCPP_INFO (this->get_logger (), "map callback end");
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    RCLCPP_INFO (this->get_logger (), "goal callback start");
     if (is_same_goal (*msg, previous_goal_pose_)) {
         double min_dist = calculate_min_distance_to_path ();
         if (min_dist <= replan_distance_threshold_) {
@@ -72,29 +69,21 @@ void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::S
     goal_pose_          = *msg;
     previous_goal_pose_ = *msg;
     create_path ();
-    RCLCPP_INFO (this->get_logger (), "goal callback end");
 }
 
 void astar_planner::current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    RCLCPP_INFO (this->get_logger (), "pose callback start");
     current_pose_ = *msg;
-    RCLCPP_INFO (this->get_logger (), "pose callback end");
 }
 
 void astar_planner::footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
-    RCLCPP_INFO (this->get_logger (), "footprint callback start");
     if (footprint_.polygon.points == msg->polygon.points) return;
     footprint_ = *msg;
-    RCLCPP_INFO (this->get_logger (), "build footprint mask");
     build_footprint_mask ();
-    RCLCPP_INFO (this->get_logger (), "build footprint mask end");
     if (!raw_map_.data.empty ()) {
-        RCLCPP_INFO (this->get_logger (), "create costmap ...");
         create_costmap ();
         create_obstacle_costmap ();
         create_path ();
     }
-    RCLCPP_INFO (this->get_logger (), "footprint callback end");
 }
 
 void astar_planner::create_path () {
@@ -214,7 +203,6 @@ void astar_planner::create_costmap () {
 void astar_planner::build_footprint_mask () {
     if (footprint_.polygon.points.empty ()) return;
 
-    // 1. フットプリントの境界を計算
     float minx = 1e9f, maxx = -1e9f, miny = 1e9f, maxy = -1e9f;
     for (const auto &p : footprint_.polygon.points) {
         minx = std::min (minx, (float)p.x);
@@ -223,8 +211,7 @@ void astar_planner::build_footprint_mask () {
         maxy = std::max (maxy, (float)p.y);
     }
 
-    // 2. マスクサイズを計算、最大サイズを制限
-    const size_t max_mask_size = 1000;  // 安全な上限
+    const size_t max_mask_size = 1000;
     footprint_mask_w_          = static_cast<size_t> ((maxx - minx) / raw_map_.info.resolution + 3);
     footprint_mask_h_          = static_cast<size_t> ((maxy - miny) / raw_map_.info.resolution + 3);
     footprint_mask_w_          = std::min (footprint_mask_w_, max_mask_size);
@@ -234,7 +221,6 @@ void astar_planner::build_footprint_mask () {
 
     footprint_mask_.assign (footprint_mask_w_ * footprint_mask_h_, 0);
 
-    // 3. フットプリント座標を px, py に格納
     const size_t       N = footprint_.polygon.points.size ();
     std::vector<float> px (N), py (N);
     for (size_t i = 0; i < N; ++i) {
@@ -242,7 +228,6 @@ void astar_planner::build_footprint_mask () {
         py[i] = footprint_.polygon.points[i].y;
     }
 
-    // 4. スキャンラインでマスクを作成
     std::vector<float> interx;
     interx.reserve (N);
 
@@ -250,7 +235,6 @@ void astar_planner::build_footprint_mask () {
         float wy = miny + (static_cast<float> (y) + 0.5f) * raw_map_.info.resolution;
         interx.clear ();
 
-        // 辺との交点を計算
         for (size_t i = 0; i < N; ++i) {
             size_t j = (i + 1) % N;
             if ((py[i] <= wy && py[j] > wy) || (py[j] <= wy && py[i] > wy)) {
@@ -259,7 +243,6 @@ void astar_planner::build_footprint_mask () {
             }
         }
 
-        // 交点を昇順にソート（挿入ソート）
         for (size_t i = 1; i < interx.size (); ++i) {
             float  key = interx[i];
             size_t j   = i;
@@ -270,7 +253,6 @@ void astar_planner::build_footprint_mask () {
             interx[j] = key;
         }
 
-        // 5. ペアで塗りつぶし
         for (size_t k = 0; k + 1 < interx.size (); k += 2) {
             size_t x_start = static_cast<size_t> ((interx[k] - minx) / raw_map_.info.resolution);
             size_t x_end   = static_cast<size_t> ((interx[k + 1] - minx) / raw_map_.info.resolution);
@@ -284,8 +266,6 @@ void astar_planner::build_footprint_mask () {
             }
         }
     }
-
-    RCLCPP_INFO (this->get_logger (), "build_footprint_mask finished successfully");
 }
 
 bool astar_planner::rectangle_is_collision_free (const size_t cx, const size_t cy, const double yaw) {
