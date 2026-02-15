@@ -56,6 +56,7 @@ void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr m
             ranges[i] = std::numeric_limits<float>::quiet_NaN ();
         }
     }
+    out.header.stamp = this->now ();
     publisher_->publish (out);
 }
 

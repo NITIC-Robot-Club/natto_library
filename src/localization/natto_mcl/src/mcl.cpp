@@ -190,26 +190,26 @@ void mcl::timer_callback () {
             RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
             return;
         }
-        double delta_x_in_odom = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
-        double delta_y_in_odom = odom_to_base_link.transform.translation.y - last_odom_to_base_transform_.translation.y;
+        double delta_x_in_map = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
+        double delta_y_in_map = odom_to_base_link.transform.translation.y - last_odom_to_base_transform_.translation.y;
 
         double odom_to_base_link_yaw = tf2::getYaw (odom_to_base_link.transform.rotation);
         double last_odom_yaw         = tf2::getYaw (last_odom_to_base_transform_.rotation);
 
+        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
+        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
         delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
-        delta_x   = cos (last_map_to_odom_yaw_ - odom_to_base_link_yaw) * delta_x_in_odom - sin (last_map_to_odom_yaw_ - odom_to_base_link_yaw) * delta_y_in_odom;
-        delta_y   = sin (last_map_to_odom_yaw_ - odom_to_base_link_yaw) * delta_x_in_odom + cos (last_map_to_odom_yaw_ - odom_to_base_link_yaw) * delta_y_in_odom;
 
         last_odom_to_base_transform_ = odom_to_base_link.transform;
     } else {
-        double delta_x_in_odom = latest_odometry_.pose.pose.position.x - last_odometry_.pose.pose.position.x;
-        double delta_y_in_odom = latest_odometry_.pose.pose.position.y - last_odometry_.pose.pose.position.y;
+        double delta_x_in_map = latest_odometry_.pose.pose.position.x - last_odometry_.pose.pose.position.x;
+        double delta_y_in_map = latest_odometry_.pose.pose.position.y - last_odometry_.pose.pose.position.y;
 
         double odom_to_base_link_yaw = tf2::getYaw (latest_odometry_.pose.pose.orientation);
         double last_odom_yaw         = tf2::getYaw (last_odometry_.pose.pose.orientation);
 
-        delta_x   = cos (last_map_to_odom_yaw_) * delta_x_in_odom - sin (last_map_to_odom_yaw_) * delta_y_in_odom;
-        delta_y   = sin (last_map_to_odom_yaw_) * delta_x_in_odom + cos (last_map_to_odom_yaw_) * delta_y_in_odom;
+        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
+        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
         delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
 
         last_odometry_ = latest_odometry_;
@@ -238,9 +238,9 @@ void mcl::timer_callback () {
     }
     geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
 
-    if (use_odom_tf_) {
-        last_map_to_odom_yaw_ = tf2::getYaw (mean_pose.pose.orientation);
+    last_map_to_odom_yaw_ = tf2::getYaw (mean_pose.pose.orientation);
 
+    if (use_odom_tf_) {
         tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
         tf2::fromMsg (mean_pose.pose, tf_map_to_base);
         tf2::fromMsg (odom_to_base_link.transform, tf_odom_to_base);
@@ -372,12 +372,16 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
     double yaw_dev = sqrt (abs (delta_yaw) * motion_noise_yaw_deg_ * motion_noise_yaw_deg_);
 
     for (auto &p : particles_) {
-        double nx   = noise_position (rng_) + normal_noise (rng_) * x_dev;
-        double ny   = noise_position (rng_) + normal_noise (rng_) * y_dev;
-        double nyaw = noise_yaw (rng_) + normal_noise (rng_) * yaw_dev;
+        double   nx          = noise_position (rng_) + normal_noise (rng_) * x_dev;
+        double   ny          = noise_position (rng_) + normal_noise (rng_) * y_dev;
+        double   nyaw        = noise_yaw (rng_) + normal_noise (rng_) * yaw_dev;
+        uint16_t theta_16bit = get_16bit_theta (p.yaw);
 
-        p.x += delta_x + nx;
-        p.y += delta_y + ny;
+        double cos_yaw = cos_[theta_16bit];
+        double sin_yaw = sin_[theta_16bit];
+
+        p.x += delta_x * cos_yaw - delta_y * sin_yaw + nx;
+        p.y += delta_x * sin_yaw + delta_y * cos_yaw + ny;
         p.yaw += delta_yaw + nyaw;
     }
 }
