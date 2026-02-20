@@ -50,7 +50,10 @@
             <remap from="manual_twist" to="/controller/command_velocity"/>
             <remap from="auto_twist" to="/control/command_velocity"/>
             <remap from="selected_twist" to="/command_velocity"/>
+            <remap from="controller_angle" to="/controller/controller_angle"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
+            <param name="enable_heading_control" value="true"/>
         </composable_node>
     </node_container>
 
