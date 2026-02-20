@@ -17,10 +17,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float32.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 
 namespace twist_selector {
 class twist_selector : public rclcpp::Node {
