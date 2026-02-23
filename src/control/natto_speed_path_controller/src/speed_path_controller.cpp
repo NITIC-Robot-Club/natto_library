@@ -83,10 +83,10 @@ void speed_path_controller::timer_callback () {
     double error_y   = speed_path_.path[closest_index].pose.position.y - current_pose_.pose.position.y;
     double error_yaw = tf2::getYaw (speed_path_.path[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
 
-    double goal_error_x = speed_path_.path.back ().pose.position.x - current_pose_.pose.position.x;
-    double goal_error_y = speed_path_.path.back ().pose.position.y - current_pose_.pose.position.y;
+    double goal_error_x        = speed_path_.path.back ().pose.position.x - current_pose_.pose.position.x;
+    double goal_error_y        = speed_path_.path.back ().pose.position.y - current_pose_.pose.position.y;
     double goal_error_position = std::hypot (goal_error_x, goal_error_y);
-    double goal_error_yaw = tf2::getYaw (speed_path_.path.back ().pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    double goal_error_yaw      = tf2::getYaw (speed_path_.path.back ().pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
 
     if (goal_error_position < goal_position_tolerance_ && std::abs (goal_error_yaw) < goal_yaw_tolerance_deg_ / 180.0 * M_PI) {
         std_msgs::msg::Bool goal_reached_msg;
@@ -101,7 +101,6 @@ void speed_path_controller::timer_callback () {
         std_msgs::msg::Bool goal_reached_msg;
         goal_reached_msg.data = false;
         goal_reached_publisher_->publish (goal_reached_msg);
-
     }
 
     if (std::abs (error_x) > position_error_allowance_m_) {
