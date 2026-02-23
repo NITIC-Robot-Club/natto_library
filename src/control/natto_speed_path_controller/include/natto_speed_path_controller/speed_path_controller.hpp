@@ -17,11 +17,12 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/utils.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "natto_msgs/msg/speed_path.hpp"
+#include "std_msgs/msg/bool.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace speed_path_controller {
 class speed_path_controller : public rclcpp::Node {
@@ -31,6 +32,11 @@ class speed_path_controller : public rclcpp::Node {
    private:
     double position_error_p_, angle_error_p_;
     double position_error_allowance_m_, angle_error_allowance_rad_;
+
+    double goal_position_tolerance_;       
+    double goal_yaw_tolerance_deg_;        
+    double goal_speed_tolerance_xy_m_s_;   
+    double goal_speed_tolerance_yaw_deg_s_;
 
     natto_msgs::msg::SpeedPath      speed_path_;
     geometry_msgs::msg::PoseStamped current_pose_;
@@ -42,6 +48,7 @@ class speed_path_controller : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr   twist_publisher_;
     rclcpp::Subscription<natto_msgs::msg::SpeedPath>::SharedPtr      speed_path_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_subscriber_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                goal_reached_publisher_;
     rclcpp::TimerBase::SharedPtr                                     timer_;
 };
 }  // namespace speed_path_controller

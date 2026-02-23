@@ -16,16 +16,24 @@
             <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
-            <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
     </node_container>
 
     <node_container pkg="rclcpp_components" exec="component_container" name="static_auto_control_container" namespace="control">
+        <composable_node pkg="natto_speed_path" plugin="speed_path_loader::speed_path_loader" name="speed_path_loader" namespace="/planning">
+            <param name="file_directory" value="$(var speed_path_directory)"/>
+            <remap from="goal_pose" to="/goal_pose"/>
+            <remap from="speed_path" to="/planning/speed_path"/>
+            <remap from="goal_reached" to="/control/goal_reached"/>
+            <remap from="state_action" to="/behavior/state_action"/>
+            <remap from="state_result" to="/behavior/state_result"/>
+        </composable_node>
+
         <!-- speed path追従 -->
         <composable_node pkg="natto_speed_path_controller" plugin="speed_path_controller::speed_path_controller" name="speed_path_controller" namespace="/control">
+            <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="speed_path" to="/planning/speed_path"/>
-            <remap from="command_velocity" to="/control/command_velocity"/>
         </composable_node>
     </node_container>
    
