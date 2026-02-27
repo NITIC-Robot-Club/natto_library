@@ -33,9 +33,9 @@ class speed_path_controller : public rclcpp::Node {
     double position_error_p_, angle_error_p_;
     double position_error_allowance_m_, angle_error_allowance_rad_;
 
-    double goal_position_tolerance_;       
-    double goal_yaw_tolerance_deg_;        
-    double goal_speed_tolerance_xy_m_s_;   
+    double goal_position_tolerance_;
+    double goal_yaw_tolerance_deg_;
+    double goal_speed_tolerance_xy_m_s_;
     double goal_speed_tolerance_yaw_deg_s_;
 
     natto_msgs::msg::SpeedPath      speed_path_;
