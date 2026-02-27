@@ -40,6 +40,7 @@ void speed_path_visualizer::speed_path_callback (const natto_msgs::msg::SpeedPat
     visualization_msgs::msg::Marker path_marker;
     path_marker.header.frame_id = frame_id_;
     path_marker.header.stamp    = this->now ();
+    path_marker.lifetime        = rclcpp::Duration (std::chrono::seconds (1));
     path_marker.ns              = "path";
     path_marker.id              = id++;
     path_marker.type            = visualization_msgs::msg::Marker::LINE_STRIP;
@@ -86,6 +87,7 @@ void speed_path_visualizer::speed_path_callback (const natto_msgs::msg::SpeedPat
     pose_marker.ns              = "pose";
     pose_marker.type            = visualization_msgs::msg::Marker::ARROW;
     pose_marker.action          = visualization_msgs::msg::Marker::ADD;
+    pose_marker.lifetime        = rclcpp::Duration (std::chrono::seconds (1));
     pose_marker.scale.x         = path_width_ * 3.0;
     pose_marker.scale.y         = path_width_ * 0.2;
     pose_marker.scale.z         = path_width_ * 0.2;
@@ -107,6 +109,7 @@ void speed_path_visualizer::speed_path_callback (const natto_msgs::msg::SpeedPat
     twist_marker.ns              = "twist";
     twist_marker.type            = visualization_msgs::msg::Marker::ARROW;
     twist_marker.action          = visualization_msgs::msg::Marker::ADD;
+    twist_marker.lifetime        = rclcpp::Duration (std::chrono::seconds (1));
     twist_marker.scale.x         = path_width_ * 0.2f;
     twist_marker.scale.y         = path_width_ * 0.25;
     twist_marker.scale.z         = path_width_ * 0.25;
@@ -120,13 +123,20 @@ void speed_path_visualizer::speed_path_callback (const natto_msgs::msg::SpeedPat
         geometry_msgs::msg::Point start_point;
         start_point.x = pose.pose.position.x;
         start_point.y = pose.pose.position.y;
-        start_point.z = pose.pose.position.z;
+
+
+        double yaw = tf2::getYaw(pose.pose.orientation);
+
+        double vx = twist.twist.linear.x;
+        double vy = twist.twist.linear.y;
+
+        double vx_global = std::cos(yaw) * vx - std::sin(yaw) * vy;
+        double vy_global = std::sin(yaw) * vx + std::cos(yaw) * vy;
 
         double                    scale = 0.5;
         geometry_msgs::msg::Point end_point;
-        end_point.x = start_point.x + twist.twist.linear.x * scale;
-        end_point.y = start_point.y + twist.twist.linear.y * scale;
-        end_point.z = start_point.z + twist.twist.linear.z * scale;
+        end_point.x = start_point.x + vx_global * scale;
+        end_point.y = start_point.y + vy_global * scale;
 
         arrow_marker.points.push_back (start_point);
         arrow_marker.points.push_back (end_point);

@@ -55,9 +55,6 @@ void speed_path_controller::current_pose_callback (const geometry_msgs::msg::Pos
 
 void speed_path_controller::timer_callback () {
     if (speed_path_.path.empty ()) {
-        geometry_msgs::msg::TwistStamped twist;
-        twist.header.stamp = this->get_clock ()->now ();
-        twist_publisher_->publish (twist);
         return;
     }
 
@@ -66,7 +63,8 @@ void speed_path_controller::timer_callback () {
     for (size_t i = 0; i < speed_path_.path.size (); ++i) {
         double dx       = speed_path_.path[i].pose.position.x - current_pose_.pose.position.x;
         double dy       = speed_path_.path[i].pose.position.y - current_pose_.pose.position.y;
-        double distance = std::hypot (dx, dy);
+        double dz       = tf2::getYaw (speed_path_.path[i].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+        double distance = std::hypot (dx, dy) + std::abs (dz);
         if (distance < closest_distance) {
             closest_distance = distance;
             closest_index    = i;
