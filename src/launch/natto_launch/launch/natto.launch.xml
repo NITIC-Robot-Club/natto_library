@@ -26,6 +26,7 @@
     <arg name="simulation_param_path" default=""/>
     <arg name="state_graph_path" default=""/>
     <arg name="joint_rule_path" default=""/>
+    <arg name="speed_path_directory" default=""/>
     <arg name="rviz_path" default="$(find-pkg-share natto_launch)/rviz/sample.rviz"/>
 
     <arg name="launch_behavior" default="true"/>

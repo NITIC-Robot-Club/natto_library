@@ -16,8 +16,10 @@
 #define __SPEED_PATH_VISUALIZER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+#include "tf2/utils.hpp"
 
 #include "natto_msgs/msg/speed_path.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
 namespace speed_path_visualizer {
