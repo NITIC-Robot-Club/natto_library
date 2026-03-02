@@ -26,7 +26,7 @@ speed_path_controller::speed_path_controller (const rclcpp::NodeOptions &node_op
     angle_error_p_                  = this->declare_parameter<double> ("angle_error_p", 3.0);
     position_error_allowance_m_     = this->declare_parameter<double> ("position_error_allowance_m", 0.2);
     angle_error_allowance_rad_      = this->declare_parameter<double> ("angle_error_allowance_rad", 0.2);
-    goal_position_tolerance_        = this->declare_parameter<double> ("goal_position_tolerance", 0.02);
+    goal_position_tolerance_        = this->declare_parameter<double> ("goal_position_tolerance_m", 0.02);
     goal_yaw_tolerance_deg_         = this->declare_parameter<double> ("goal_yaw_tolerance_deg", 5.0);
     goal_speed_tolerance_xy_m_s_    = this->declare_parameter<double> ("goal_speed_tolerance_xy_m_s", 0.1);
     goal_speed_tolerance_yaw_deg_s_ = this->declare_parameter<double> ("goal_speed_tolerance_yaw_deg_s", 10.0);
@@ -38,7 +38,7 @@ speed_path_controller::speed_path_controller (const rclcpp::NodeOptions &node_op
     RCLCPP_INFO (this->get_logger (), "angle_error_p: %f", angle_error_p_);
     RCLCPP_INFO (this->get_logger (), "position_error_allowance_m: %f", position_error_allowance_m_);
     RCLCPP_INFO (this->get_logger (), "angle_error_allowance_rad: %f", angle_error_allowance_rad_);
-    RCLCPP_INFO (this->get_logger (), "goal_position_tolerance: %f", goal_position_tolerance_);
+    RCLCPP_INFO (this->get_logger (), "goal_position_tolerance_m: %f", goal_position_tolerance_);
     RCLCPP_INFO (this->get_logger (), "goal_yaw_tolerance_deg: %f", goal_yaw_tolerance_deg_);
     RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_xy_m_s: %f", goal_speed_tolerance_xy_m_s_);
     RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_yaw_deg_s: %f", goal_speed_tolerance_yaw_deg_s_);
