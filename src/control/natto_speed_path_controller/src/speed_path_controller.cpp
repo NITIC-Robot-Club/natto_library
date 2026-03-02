@@ -127,6 +127,7 @@ void speed_path_controller::timer_callback () {
 
     geometry_msgs::msg::TwistStamped twist;
     twist.header.stamp    = this->get_clock ()->now ();
+    twist.header.frame_id = "command/base_link";
     twist.twist.linear.x  = speed_path_.twist[closest_index].twist.linear.x + position_error_p_ * error_x;
     twist.twist.linear.y  = speed_path_.twist[closest_index].twist.linear.y + position_error_p_ * error_y;
     twist.twist.angular.z = speed_path_.twist[closest_index].twist.angular.z + angle_error_p_ * error_yaw;

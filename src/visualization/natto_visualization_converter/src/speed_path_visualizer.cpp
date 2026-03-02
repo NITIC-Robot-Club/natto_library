@@ -124,14 +124,13 @@ void speed_path_visualizer::speed_path_callback (const natto_msgs::msg::SpeedPat
         start_point.x = pose.pose.position.x;
         start_point.y = pose.pose.position.y;
 
-
-        double yaw = tf2::getYaw(pose.pose.orientation);
+        double yaw = tf2::getYaw (pose.pose.orientation);
 
         double vx = twist.twist.linear.x;
         double vy = twist.twist.linear.y;
 
-        double vx_global = std::cos(yaw) * vx - std::sin(yaw) * vy;
-        double vy_global = std::sin(yaw) * vx + std::cos(yaw) * vy;
+        double vx_global = std::cos (yaw) * vx - std::sin (yaw) * vy;
+        double vy_global = std::sin (yaw) * vx + std::cos (yaw) * vy;
 
         double                    scale = 0.5;
         geometry_msgs::msg::Point end_point;
