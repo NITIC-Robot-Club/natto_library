@@ -26,17 +26,17 @@ x,y,yawの計画を行います
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| path | nav_msgs::msg::Path | 計画された経路 |
-| costmap | nav_msgs::msg::OccupancyGrid | 使用されたコストマップ |
+| path | nav_msgs/msg/Path | 計画された経路 |
+| costmap | nav_msgs/msg/OccupancyGrid | 使用されたコストマップ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| occupancy_grid | nav_msgs::msg::OccupancyGrid | グリッドマップ |
-| goal_pose | geometry_msgs::msg::PoseStamped | 目標位置 |
-| current_pose | geometry_msgs::msg::PoseStamped | 現在位置 |
-| footprint | geometry_msgs::msg::PolygonStamped | ロボットのフットプリント |
-| goal_reached | std_msgs::msg::Bool | ゴール到達フラグ（trueを受信すると経路をクリア） |
+| occupancy_grid | nav_msgs/msg/OccupancyGrid | グリッドマップ |
+| goal_pose | geometry_msgs/msg/PoseStamped | 目標位置 |
+| current_pose | geometry_msgs/msg/PoseStamped | 現在位置 |
+| footprint | geometry_msgs/msg/PolygonStamped | ロボットのフットプリント |
+| goal_reached | std_msgs/msg/Bool | ゴール到達フラグ（trueを受信すると経路をクリア） |
 
 ## 動作詳細
 

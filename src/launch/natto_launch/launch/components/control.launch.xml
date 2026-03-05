@@ -8,7 +8,7 @@
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
             <remap from="footprint" to="/common/footprint"/>
-            <remap from="goal_reached" to="/control/goal_reached"/>
+            <remap from="goal_reached" to="/control/dynamic/goal_reached"/>
         </composable_node>
 
          <!-- 経路追従 -->
@@ -16,6 +16,7 @@
             <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="path" to="/planning/path"/>
+            <remap from="goal_reached" to="/control/dynamic/goal_reached"/>
         </composable_node>
     </node_container>
 
@@ -24,7 +25,7 @@
             <param name="file_directory" value="$(var speed_path_directory)"/>
             <remap from="goal_pose" to="/goal_pose"/>
             <remap from="speed_path" to="/planning/speed_path"/>
-            <remap from="goal_reached" to="/control/goal_reached"/>
+            <remap from="goal_reached" to="/control/static/goal_reached"/>
             <remap from="state_action" to="/behavior/state_action"/>
             <remap from="state_result" to="/behavior/state_result"/>
         </composable_node>
@@ -34,6 +35,7 @@
             <param from="$(var control_param_path)"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="speed_path" to="/planning/speed_path"/>
+            <remap from="goal_reached" to="/control/static/goal_reached"/>
         </composable_node>
     </node_container>
    

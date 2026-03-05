@@ -11,9 +11,9 @@
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| frame_id | std::string | "merged_pointcloud2_frame" | 統合後のPointCloud2メッセージのフレームID |
+| frame_id | string | "merged_pointcloud2_frame" | 統合後のPointCloud2メッセージのフレームID |
 | publish_frequency | double | 10.0 | PointCloud2メッセージのパブリッシュ頻度（Hz） |
-| lidar_topics | std::vector<std::string> | ["/lidar1/pointcloud2", "/lidar2/pointcloud2"] | 統合するLiDARのPointCloud2トピック名のリスト |
+| lidar_topics | string[] | ["/lidar1/pointcloud2", "/lidar2/pointcloud2"] | 統合するLiDARのPointCloud2トピック名のリスト |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
