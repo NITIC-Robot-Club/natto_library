@@ -30,13 +30,26 @@ class speed_path_controller : public rclcpp::Node {
     speed_path_controller (const rclcpp::NodeOptions &node_options);
 
    private:
-    double position_error_p_, angle_error_p_;
+    double ex_integral_   = 0.0;
+    double ey_integral_   = 0.0;
+    double eyaw_integral_ = 0.0;
+
+    double prev_ex_   = 0.0;
+    double prev_ey_   = 0.0;
+    double prev_eyaw_ = 0.0;
+
+    double kp_pos_, ki_pos_, kd_pos_;
+    double kp_yaw_, ki_yaw_, kd_yaw_;
+
+    double dt_;
     double position_error_allowance_m_, angle_error_allowance_rad_;
 
     double goal_position_tolerance_;
     double goal_yaw_tolerance_deg_;
     double goal_speed_tolerance_xy_m_s_;
     double goal_speed_tolerance_yaw_deg_s_;
+
+    size_t closest_index_;
 
     natto_msgs::msg::SpeedPath      speed_path_;
     geometry_msgs::msg::PoseStamped current_pose_;

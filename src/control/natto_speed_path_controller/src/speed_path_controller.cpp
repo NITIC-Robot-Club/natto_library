@@ -22,8 +22,12 @@ speed_path_controller::speed_path_controller (const rclcpp::NodeOptions &node_op
     speed_path_subscriber_   = this->create_subscription<natto_msgs::msg::SpeedPath> ("speed_path", 10, std::bind (&speed_path_controller::speed_path_callback, this, std::placeholders::_1));
     current_pose_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, std::bind (&speed_path_controller::current_pose_callback, this, std::placeholders::_1));
 
-    position_error_p_               = this->declare_parameter<double> ("position_error_p", 3.0);
-    angle_error_p_                  = this->declare_parameter<double> ("angle_error_p", 3.0);
+    kp_pos_                         = declare_parameter ("kp_pos", 3.0);
+    ki_pos_                         = declare_parameter ("ki_pos", 0.0);
+    kd_pos_                         = declare_parameter ("kd_pos", 0.0);
+    kp_yaw_                         = declare_parameter ("kp_yaw", 3.0);
+    ki_yaw_                         = declare_parameter ("ki_yaw", 0.0);
+    kd_yaw_                         = declare_parameter ("kd_yaw", 0.0);
     position_error_allowance_m_     = this->declare_parameter<double> ("position_error_allowance_m", 0.2);
     angle_error_allowance_rad_      = this->declare_parameter<double> ("angle_error_allowance_rad", 0.2);
     goal_position_tolerance_        = this->declare_parameter<double> ("goal_position_tolerance_m", 0.02);
@@ -34,8 +38,12 @@ speed_path_controller::speed_path_controller (const rclcpp::NodeOptions &node_op
     timer_                          = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&speed_path_controller::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "speed_path_controller has been initialized.");
-    RCLCPP_INFO (this->get_logger (), "position_error_p: %f", position_error_p_);
-    RCLCPP_INFO (this->get_logger (), "angle_error_p: %f", angle_error_p_);
+    RCLCPP_INFO (this->get_logger (), "kp_pos: %f", kp_pos_);
+    RCLCPP_INFO (this->get_logger (), "ki_pos: %f", ki_pos_);
+    RCLCPP_INFO (this->get_logger (), "kd_pos: %f", kd_pos_);
+    RCLCPP_INFO (this->get_logger (), "kp_yaw: %f", kp_yaw_);
+    RCLCPP_INFO (this->get_logger (), "ki_yaw: %f", ki_yaw_);
+    RCLCPP_INFO (this->get_logger (), "kd_yaw: %f", kd_yaw_);
     RCLCPP_INFO (this->get_logger (), "position_error_allowance_m: %f", position_error_allowance_m_);
     RCLCPP_INFO (this->get_logger (), "angle_error_allowance_rad: %f", angle_error_allowance_rad_);
     RCLCPP_INFO (this->get_logger (), "goal_position_tolerance_m: %f", goal_position_tolerance_);
@@ -43,10 +51,12 @@ speed_path_controller::speed_path_controller (const rclcpp::NodeOptions &node_op
     RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_xy_m_s: %f", goal_speed_tolerance_xy_m_s_);
     RCLCPP_INFO (this->get_logger (), "goal_speed_tolerance_yaw_deg_s: %f", goal_speed_tolerance_yaw_deg_s_);
     RCLCPP_INFO (this->get_logger (), "frequency: %f Hz", frequency);
+    dt_ = 1.0 / frequency;
 }
 
 void speed_path_controller::speed_path_callback (const natto_msgs::msg::SpeedPath::SharedPtr msg) {
-    speed_path_ = *msg;
+    speed_path_    = *msg;
+    closest_index_ = 0;
 }
 
 void speed_path_controller::current_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -58,33 +68,52 @@ void speed_path_controller::timer_callback () {
         return;
     }
 
-    size_t closest_index    = 0;
     double closest_distance = std::numeric_limits<double>::max ();
     for (size_t i = 0; i < speed_path_.path.size (); ++i) {
-        double dx       = speed_path_.path[i].pose.position.x - current_pose_.pose.position.x;
-        double dy       = speed_path_.path[i].pose.position.y - current_pose_.pose.position.y;
-        double dz       = tf2::getYaw (speed_path_.path[i].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+        double dx = speed_path_.path[i].pose.position.x - current_pose_.pose.position.x;
+        double dy = speed_path_.path[i].pose.position.y - current_pose_.pose.position.y;
+        double dz = tf2::getYaw (speed_path_.path[i].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+        while (dz > M_PI) {
+            dz -= 2.0 * M_PI;
+        }
+        while (dz < -M_PI) {
+            dz += 2.0 * M_PI;
+        }
         double distance = std::hypot (dx, dy) + std::abs (dz);
         if (distance < closest_distance) {
             closest_distance = distance;
-            closest_index    = i;
+            closest_index_   = i;
         }
     }
 
-    closest_index++;
-
-    if (closest_index >= speed_path_.path.size ()) {
-        closest_index = speed_path_.path.size () - 1;
+    if (closest_index_ >= speed_path_.path.size ()) {
+        closest_index_ = speed_path_.path.size () - 1;
     }
 
-    double error_x   = speed_path_.path[closest_index].pose.position.x - current_pose_.pose.position.x;
-    double error_y   = speed_path_.path[closest_index].pose.position.y - current_pose_.pose.position.y;
-    double error_yaw = tf2::getYaw (speed_path_.path[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    double current_yaw = tf2::getYaw (current_pose_.pose.orientation);
+
+    double error_x   = speed_path_.path[closest_index_].pose.position.x - current_pose_.pose.position.x;
+    double error_y   = speed_path_.path[closest_index_].pose.position.y - current_pose_.pose.position.y;
+    double error_yaw = tf2::getYaw (speed_path_.path[closest_index_].pose.orientation) - current_yaw;
 
     double goal_error_x        = speed_path_.path.back ().pose.position.x - current_pose_.pose.position.x;
     double goal_error_y        = speed_path_.path.back ().pose.position.y - current_pose_.pose.position.y;
     double goal_error_position = std::hypot (goal_error_x, goal_error_y);
-    double goal_error_yaw      = tf2::getYaw (speed_path_.path.back ().pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    double goal_error_yaw      = tf2::getYaw (speed_path_.path.back ().pose.orientation) - current_yaw;
+
+    while (error_yaw > M_PI) {
+        error_yaw -= 2.0 * M_PI;
+    }
+    while (error_yaw < -M_PI) {
+        error_yaw += 2.0 * M_PI;
+    }
+
+    while (goal_error_yaw > M_PI) {
+        goal_error_yaw -= 2.0 * M_PI;
+    }
+    while (goal_error_yaw < -M_PI) {
+        goal_error_yaw += 2.0 * M_PI;
+    }
 
     if (goal_error_position < goal_position_tolerance_ && std::abs (goal_error_yaw) < goal_yaw_tolerance_deg_ / 180.0 * M_PI) {
         std_msgs::msg::Bool goal_reached_msg;
@@ -102,7 +131,7 @@ void speed_path_controller::timer_callback () {
     }
 
     if (std::abs (error_x) > position_error_allowance_m_) {
-        RCLCPP_WARN (this->get_logger (), "Position error is within the allowance. No correction will be applied. error x: %f", error_x);
+        RCLCPP_WARN (this->get_logger (), "Position error is not within the allowance. No correction will be applied. error x: %f", error_x);
         geometry_msgs::msg::TwistStamped twist;
         twist.header.stamp = this->get_clock ()->now ();
         twist_publisher_->publish (twist);
@@ -110,7 +139,7 @@ void speed_path_controller::timer_callback () {
     }
 
     if (std::abs (error_y) > position_error_allowance_m_) {
-        RCLCPP_WARN (this->get_logger (), "Position error is within the allowance. No correction will be applied. error y: %f", error_y);
+        RCLCPP_WARN (this->get_logger (), "Position error is not within the allowance. No correction will be applied. error y: %f", error_y);
         geometry_msgs::msg::TwistStamped twist;
         twist.header.stamp = this->get_clock ()->now ();
         twist_publisher_->publish (twist);
@@ -118,7 +147,7 @@ void speed_path_controller::timer_callback () {
     }
 
     if (std::abs (error_yaw) > angle_error_allowance_rad_) {
-        RCLCPP_WARN (this->get_logger (), "Angle error is within the allowance. No correction will be applied. error yaw: %f", error_yaw);
+        RCLCPP_WARN (this->get_logger (), "Angle error is not within the allowance. No correction will be applied. error yaw: %f", error_yaw);
         geometry_msgs::msg::TwistStamped twist;
         twist.header.stamp = this->get_clock ()->now ();
         twist_publisher_->publish (twist);
@@ -128,9 +157,33 @@ void speed_path_controller::timer_callback () {
     geometry_msgs::msg::TwistStamped twist;
     twist.header.stamp    = this->get_clock ()->now ();
     twist.header.frame_id = "command/base_link";
-    twist.twist.linear.x  = speed_path_.twist[closest_index].twist.linear.x + position_error_p_ * error_x;
-    twist.twist.linear.y  = speed_path_.twist[closest_index].twist.linear.y + position_error_p_ * error_y;
-    twist.twist.angular.z = speed_path_.twist[closest_index].twist.angular.z + angle_error_p_ * error_yaw;
+    double cos_yaw        = std::cos (current_yaw);
+    double sin_yaw        = std::sin (current_yaw);
+
+    double error_x_body = cos_yaw * error_x + sin_yaw * error_y;
+    double error_y_body = -sin_yaw * error_x + cos_yaw * error_y;
+
+    ex_integral_ += error_x_body * dt_;
+    ey_integral_ += error_y_body * dt_;
+    eyaw_integral_ += error_yaw * dt_;
+
+    double dex   = (error_x_body - prev_ex_) / dt_;
+    double dey   = (error_y_body - prev_ey_) / dt_;
+    double deyaw = (error_yaw - prev_eyaw_) / dt_;
+
+    double vx_ref = speed_path_.twist[closest_index_].twist.linear.x;
+    double vy_ref = speed_path_.twist[closest_index_].twist.linear.y;
+
+    double vx_cmd = vx_ref + kp_pos_ * error_x_body + ki_pos_ * ex_integral_ + kd_pos_ * dex;
+    double vy_cmd = vy_ref + kp_pos_ * error_y_body + ki_pos_ * ey_integral_ + kd_pos_ * dey;
+    double wz_cmd = speed_path_.twist[closest_index_].twist.angular.z + kp_yaw_ * error_yaw + ki_yaw_ * eyaw_integral_ + kd_yaw_ * deyaw;
+
+    twist.twist.linear.x  = vx_cmd;
+    twist.twist.linear.y  = vy_cmd;
+    twist.twist.angular.z = wz_cmd;
+    prev_ex_              = error_x_body;
+    prev_ey_              = error_y_body;
+    prev_eyaw_            = error_yaw;
     twist_publisher_->publish (twist);
 }
 
