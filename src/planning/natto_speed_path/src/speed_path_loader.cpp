@@ -60,7 +60,7 @@ void speed_path_loader::load_speed_path (std::string file_path) {
         std::getline (ss, val, ',');
         double t = std::stod (val);
         (void)t;
-        
+
         std::getline (ss, val, ',');
         pose.pose.position.x = std::stod (val);
         std::getline (ss, val, ',');
