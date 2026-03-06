@@ -16,6 +16,10 @@ def launch_setup(context, *args, **kwargs):
     yaw  = cfg["yaw_deg"]
     freq = cfg["frequency"]
     rate = cfg["point_rate"]
+    try:
+        resolution = cfg["simulation_resolution"]
+    except KeyError:
+        resolution = [0.01]*len(name)
 
     composable_nodes = []
     for i in range(len(name)):
@@ -33,6 +37,7 @@ def launch_setup(context, *args, **kwargs):
                     "scan_frequency": float(freq[i]),
                     "frame_id": f"lidar_{name[i]}",
                     "point_rate": int(rate[i]),
+                    "simulation_resolution": float(resolution[i]),
                 }],
                 remappings=[
                     ("simulation_pose", "/simulation/pose"),

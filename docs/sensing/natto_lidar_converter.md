@@ -7,17 +7,17 @@
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| frame_id | std::string | "pointcloud2_frame" | 変換後のPointCloud2メッセージのフレームID |
+| frame_id | string | "pointcloud2_frame" | 変換後のPointCloud2メッセージのフレームID |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /pointcloud2 | sensor_msgs::msg::PointCloud2 | 変換されたPointCloud2データ |
+| /pointcloud2 | sensor_msgs/msg/PointCloud2 | 変換されたPointCloud2データ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /laserscan | sensor_msgs::msg::LaserScan | 入力となるLaserScanデータ |
+| /laserscan | sensor_msgs/msg/LaserScan | 入力となるLaserScanデータ |
 
 
 # pointcloud2_to_laserscan
@@ -26,17 +26,17 @@
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| frame_id | std::string | "pointcloud2_frame" | 入力となる
+| frame_id | string | "pointcloud2_frame" | 変換に使用するフレームID |
 | angle_increment | double | 0.0174533 (約1度) | 生成されるLaserScanの角度分解能（rad） |
 | range_min | double | 0.0 | 生成されるLaserScanの最小測定距離（m） |
-| range_max | double | 30.0 |  生成されるLaserScanの最大測定距離（m） |
+| range_max | double | 30.0 | 生成されるLaserScanの最大測定距離（m） |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /laserscan | sensor_msgs::msg::LaserScan | 変換されたLaserScanデータ |
+| /laserscan | sensor_msgs/msg/LaserScan | 変換されたLaserScanデータ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /pointcloud2 | sensor_msgs::msg::PointCloud2 | 入力となるPointCloud2データ |
+| /pointcloud2 | sensor_msgs/msg/PointCloud2 | 入力となるPointCloud2データ |

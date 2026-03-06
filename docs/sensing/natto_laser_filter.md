@@ -12,9 +12,9 @@
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| output | sensor_msgs::msg::LaserScan | フィルタリングされたLaserScanデータ |
+| output | sensor_msgs/msg/LaserScan | フィルタリングされたLaserScanデータ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| input | sensor_msgs::msg::LaserScan | 入力となるLaserScanデータ |
+| input | sensor_msgs/msg/LaserScan | 入力となるLaserScanデータ |

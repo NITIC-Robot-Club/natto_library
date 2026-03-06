@@ -8,7 +8,7 @@
 | - | - | - |
 | header | std_msgs/Header | メッセージヘッダ（タイムスタンプ等） |
 | id | uint32 | CAN ID（11ビットまたは29ビット） |
-| dlc | uint8 | データ長コード |
+| len | uint8 | データ長コード |
 | data | uint8[<=64] | ペイロード（0–64バイト） |
 | is_error | bool | エラーフラグ |
 | is_extended | bool | 拡張フレームフラグ |
@@ -57,8 +57,45 @@ ax+by+c=0 の形で表される直線のメッセージです。
 | line_segments | natto_msgs/LineSegmentArray | 複数の線分 |
 | circles | natto_msgs/CircleArray | 複数の円 |
 
-### Swerve.msg
+### SpeedPath.msg
 | フィールド名 | 型 | 説明 |
 | - | - | - |
-| wheel_angle | float64[] | ホイール角度 |
-| wheel_speed | float64[] | ホイール速度(rps) |
+| header | std_msgs/Header | メッセージヘッダ |
+| path | geometry_msgs/PoseStamped[] | 経路の各点（位置・姿勢） |
+| twist | geometry_msgs/TwistStamped[] | 各点における速度指令 |
+
+### State.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| state_id | uint64 | 状態ID |
+| state_name | string | 状態名 |
+| is_selectable | bool | 選択可能かどうか |
+
+### StateAction.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| state_id | uint64 | 状態ID |
+| action_name | string | アクション名 |
+| arguments_names | string[] | 引数名リスト |
+| arguments_values | string[] | 引数値リスト |
+
+### StateGraph.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| graph_name | string | グラフ名 |
+| states | natto_msgs/State[] | 状態リスト |
+| transitions | natto_msgs/StateTransition[] | 遷移リスト |
+
+### StateResult.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| state_id | uint64 | 状態ID |
+| action_name | string | アクション名 |
+| success | bool | 成功フラグ |
+
+### StateTransition.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| from_state_id | uint64 | 遷移元の状態ID |
+| to_state_id | uint64 | 遷移先の状態ID |
+| condition | string | 遷移条件 |

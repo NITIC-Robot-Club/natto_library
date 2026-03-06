@@ -34,3 +34,24 @@ map_loader ノードは、CSVファイルから地図情報を読み込み、nat
 
 ## map creator
 [Google SpreadSheetのマップクリエイター](https://docs.google.com/spreadsheets/d/1a26aJcPwLCuzxXE9vYS8q0xv4El7dLMvVLak4jPUAQg/edit?usp=sharing)を使うとかんたんにcsvファイルを作成できます。
+# map_converter
+map_converter ノードは、natto_msgs/msg/Map メッセージを受信し、nav_msgs/msg/OccupancyGrid メッセージに変換してパブリッシュします。
+
+## 機能
+- natto_msgs/msg/Map の直線セグメントと円弧情報からOccupancyGridを生成
+- 線分・円弧をBresenhamアルゴリズムでグリッドに描画
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| resolution | double | 0.05 | OccupancyGridの解像度（メートル/セル） |
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| occupancy_grid | nav_msgs/msg/OccupancyGrid | 変換されたOccupancyGrid（transient_local） |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| map | natto_msgs/msg/Map | 地図情報（transient_local） |

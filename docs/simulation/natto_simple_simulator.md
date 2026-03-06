@@ -13,17 +13,17 @@
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| chassis_type | std::string | "" | シャーシタイプ（"swerve"または"omni"） |
-| wheel_names | std::vector<std::string> | {""} | ホイールジョイント名のリスト |
+| chassis_type | string | "" | シャーシタイプ（"swerve"または"omni"） |
+| wheel_names | string[] | {""} | ホイールジョイント名のリスト |
 | wheel_radius | double | 0.05 | ホイールの半径（m） |
 | frequency | double | 1000.0 | シミュレーションの周期（Hz） |
 | initial_pose_x | double | 0.0 | 初期位置のx座標（m） |
 | initial_pose_y | double | 0.0 | 初期位置のy座標（m） |
 | initial_pose_yaw_deg | double | 0.0 | 初期位置のヨー角（度） |
-| wheel_base_names | std::vector<std::string> | {""} | ホイールベースジョイント名のリスト |
+| wheel_base_names | string[] | {""} | ホイールベースジョイント名のリスト |
 | infinite_swerve_mode | bool | false | 無限ステアリングモード（swerveのみ） |
-| joint_names | std::vector<std::string> | {""} | ジョイント名のリスト |
-| control_modes | std::vector<std::string> | {""} | 各ジョイントの制御モード（"position"または"speed"） |
+| joint_names | string[] | {""} | ジョイント名のリスト |
+| control_modes | string[] | {""} | 各ジョイントの制御モード（"position"または"speed"） |
 | initial_positions | std::vector<double> | {0.0} | 各ジョイントの初期位置 |
 | joint_position_tau | std::vector<double> | {0.5} | 位置制御の時定数 |
 | joint_velocity_tau | std::vector<double> | {0.1} | 速度制御の時定数 |
@@ -32,13 +32,13 @@
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /joint_states | sensor_msgs::msg::JointState | シミュレートされたジョイント状態 |
-| /simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
+| /joint_states | sensor_msgs/msg/JointState | シミュレートされたジョイント状態 |
+| /simulation_pose | geometry_msgs/msg/PoseStamped | ロボットの現在の位置と姿勢 |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /command_joint_states | sensor_msgs::msg::JointState | コマンドジョイント状態 |
+| /command_joint_states | sensor_msgs/msg/JointState | コマンドジョイント状態 |
 
 # lidar_simulator
 2D LiDARセンサーの動作を模擬します。
@@ -61,15 +61,15 @@
 | simulation_resolution | double | 0.01 | シミュレーションの解像度（m） |
 | point_rate | int | 43200 | 1秒あたりのポイント数 |
 | frequency | double | 30 | スキャン周波数（Hz） |
-| frame_id | std::string | "laser_frame" | LiDARフレームのID |
+| frame_id | string | "laser_frame" | LiDARフレームのID |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /laserscan | sensor_msgs::msg::LaserScan | シミュレートされたレーザースキャンデータ |
+| /laserscan | sensor_msgs/msg/LaserScan | シミュレートされたレーザースキャンデータ |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
-| /simulation_pose | geometry_msgs::msg::PoseStamped | ロボットの現在の位置と姿勢 |
-| /map | natto_msgs::msg::Map | 環境マップデータ |
+| /simulation_pose | geometry_msgs/msg/PoseStamped | ロボットの現在の位置と姿勢 |
+| /map | natto_msgs/msg/Map | 環境マップデータ |

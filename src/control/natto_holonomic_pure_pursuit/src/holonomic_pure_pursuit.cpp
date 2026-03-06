@@ -102,13 +102,7 @@ void holonomic_pure_pursuit::timer_callback () {
     }
 
     if (path_->poses.empty () || path_->poses.size () < 2) {
-        geometry_msgs::msg::TwistStamped cmd_vel;
-        cmd_vel.header.stamp    = this->now ();
-        cmd_vel.header.frame_id = "base_link";
-        cmd_vel.twist.linear.x  = 0.0;
-        cmd_vel.twist.linear.y  = 0.0;
-        cmd_vel.twist.angular.z = 0.0;
-        cmd_vel_publisher_->publish (cmd_vel);
+        RCLCPP_DEBUG (this->get_logger (), "Path is empty or has less than 2 poses.");
         return;
     }
     double position_error        = std::hypot (path_->poses.back ().pose.position.x - current_pose_->pose.position.x, path_->poses.back ().pose.position.y - current_pose_->pose.position.y);

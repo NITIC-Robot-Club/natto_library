@@ -59,6 +59,7 @@ void speed_path_loader::load_speed_path (std::string file_path) {
 
         std::getline (ss, val, ',');
         double t = std::stod (val);
+        (void)t;
 
         std::getline (ss, val, ',');
         pose.pose.position.x = std::stod (val);
@@ -87,8 +88,6 @@ void speed_path_loader::state_action_callback (const natto_msgs::msg::StateActio
         RCLCPP_INFO (this->get_logger (), "Received load_speed_path action. Loading speed path from file: %s", msg->arguments_values[0].c_str ());
         load_speed_path (file_directory_ + "/" + msg->arguments_values[0]);
         set_speed_path_state_id_ = msg->state_id;
-    } else {
-        RCLCPP_WARN (this->get_logger (), "Received unknown action: %s", msg->action_name.c_str ());
     }
 }
 
