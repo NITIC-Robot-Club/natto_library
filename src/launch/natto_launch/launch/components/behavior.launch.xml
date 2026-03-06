@@ -10,7 +10,7 @@
 
         <composable_node pkg="natto_state_machine" plugin="default_action::default_action" name="default_action" namespace="/behavior">
             <remap from="goal_pose" to="/goal_pose"/>
-            <remap from="goal_reached" to="/control/goal_reached"/>
+            <remap from="goal_reached" to="/control/dynamic/goal_reached"/>
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="joint_states" to="/joint_states"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
