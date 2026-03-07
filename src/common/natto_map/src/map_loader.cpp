@@ -113,11 +113,11 @@ void map_loader::load_circles (const std::string &path) {
         c.end_angle = std::stod (val);
 
         if (reverse_y_) {
-            c.center.y = -c.center.y + reverse_y_offset_;
+            c.center.y    = -c.center.y + reverse_y_offset_;
             c.start_angle = -c.start_angle;
             c.end_angle   = -c.end_angle;
         }
-        
+
         map_.circles.circles.push_back (c);
     }
     RCLCPP_INFO (this->get_logger (), "Loaded %zu circles from %s", map_.circles.circles.size (), path.c_str ());

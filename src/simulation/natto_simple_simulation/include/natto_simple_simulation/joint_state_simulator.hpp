@@ -47,7 +47,7 @@ class joint_state_simulator : public rclcpp::Node {
     double initial_pose_y_   = 0.0;
     double initial_pose_yaw_ = 0.0;
 
-    bool reverse_y_;
+    bool   reverse_y_;
     double reverse_y_offset_;
 
     std::vector<std::string> joint_names_;

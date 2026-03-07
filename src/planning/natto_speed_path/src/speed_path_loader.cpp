@@ -28,7 +28,7 @@ speed_path_loader::speed_path_loader (const rclcpp::NodeOptions &node_options) :
         throw std::runtime_error ("File directory parameter is empty.");
     }
 
-    double frequency = this->declare_parameter<double> ("frequency", 1.0);
+    double frequency  = this->declare_parameter<double> ("frequency", 1.0);
     reverse_y_        = this->declare_parameter<bool> ("reverse_y", false);
     reverse_y_offset_ = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
@@ -87,7 +87,7 @@ void speed_path_loader::load_speed_path (std::string file_path) {
 
         if (reverse_y_) {
             pose.pose.position.y = -pose.pose.position.y + reverse_y_offset_;
-            
+
             const double cos_yaw = std::cos (yaw);
             const double sin_yaw = std::sin (yaw);
 
@@ -102,7 +102,6 @@ void speed_path_loader::load_speed_path (std::string file_path) {
 
             twist.twist.linear.x = cos_yaw * reversed_global_vx + sin_yaw * reversed_global_vy;
             twist.twist.linear.y = -sin_yaw * reversed_global_vx + cos_yaw * reversed_global_vy;
-            
         }
 
         speed_path_.path.push_back (pose);

@@ -35,7 +35,7 @@ class map_loader : public rclcpp::Node {
 
     natto_msgs::msg::Map map_;
 
-    bool reverse_y_;
+    bool   reverse_y_;
     double reverse_y_offset_;
 
     rclcpp::Publisher<natto_msgs::msg::Map>::SharedPtr map_publisher_;

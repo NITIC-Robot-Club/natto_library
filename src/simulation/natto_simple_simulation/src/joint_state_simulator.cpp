@@ -30,8 +30,8 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
     initial_pose_yaw_ = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0) * M_PI / 180.0;
-    reverse_y_         = this->declare_parameter<bool> ("reverse_y", false);
-    reverse_y_offset_  = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+    reverse_y_        = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_ = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
     current_pose_.header.frame_id = "map";
     current_pose_.pose.position.x = initial_pose_x_;
