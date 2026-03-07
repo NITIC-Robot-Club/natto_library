@@ -58,6 +58,8 @@ class mcl : public rclcpp::Node {
     double      resolution_, delta_t_;
     int         width_, height_;
     double      origin_x_, origin_y_;
+    bool        reverse_y_;
+    double      reverse_y_offset_;
 
     double last_map_to_odom_yaw_;
 

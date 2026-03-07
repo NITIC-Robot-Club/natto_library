@@ -30,10 +30,16 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
     initial_pose_yaw_ = this->declare_parameter<double> ("initial_pose_yaw_deg", 0.0) * M_PI / 180.0;
+    reverse_y_         = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_  = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
     current_pose_.header.frame_id = "map";
     current_pose_.pose.position.x = initial_pose_x_;
     current_pose_.pose.position.y = initial_pose_y_;
+
+    if (reverse_y_) {
+        current_pose_.pose.position.y = -current_pose_.pose.position.y + reverse_y_offset_;
+    }
 
     tf2::Quaternion q;
     q.setRPY (0.0, 0.0, initial_pose_yaw_);
@@ -121,6 +127,8 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     for (size_t i = 0; i < num_joints_; i++) {
         RCLCPP_INFO (this->get_logger (), "joint_name[%zu]: %s control_mode[%zu]: %s", i, joint_names_[i].c_str (), i, control_modes_[i].c_str ());
     }
+    RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %f", reverse_y_offset_);
 }
 
 void joint_state_simulator::command_joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {

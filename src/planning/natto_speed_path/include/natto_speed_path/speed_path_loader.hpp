@@ -35,6 +35,8 @@ class speed_path_loader : public rclcpp::Node {
    private:
     std::string                file_directory_;
     natto_msgs::msg::SpeedPath speed_path_;
+    bool reverse_y_;
+    double reverse_y_offset_;
 
     uint64_t set_speed_path_state_id_;
     bool     goal_reached_;

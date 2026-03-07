@@ -12,6 +12,8 @@
     <arg name="use_dark_rviz" default="true"/>
     <arg name="controller_max_xy_speed_m_s" default="2.0"/>
     <arg name="controller_max_yaw_speed_rad_s" default="6.0"/>
+    <arg name="reverse_y" default="false"/>
+    <arg name="reverse_y_offset" default="0.0"/>
 
     <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>

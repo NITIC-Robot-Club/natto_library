@@ -44,6 +44,18 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
         joint_tolerances_[kv.first] = kv.second.as_double ();
     }
 
+    if (this->has_parameter ("reverse_y")) {
+        reverse_y_ = this->get_parameter ("reverse_y").as_bool ();
+    } else {
+        reverse_y_ = this->declare_parameter<bool> ("reverse_y", false);
+    }
+
+    if (this->has_parameter ("reverse_y_offset")) {
+        reverse_y_offset_ = this->get_parameter ("reverse_y_offset").as_double ();
+    } else {
+        reverse_y_offset_ = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+    }
+
     RCLCPP_INFO (this->get_logger (), "default_action node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "xy_tolerance_m: %.3f", xy_tolerance_m_);
     RCLCPP_INFO (this->get_logger (), "yaw_tolerance_deg: %.3f", yaw_tolerance_deg_);
@@ -53,6 +65,8 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     for (const auto &kv : joint_tolerances_) {
         RCLCPP_INFO (this->get_logger (), "  %s: %.4f", kv.first.c_str (), kv.second);
     }
+    RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %.3f", reverse_y_offset_);
 
     set_pose_goal_sent_ = false;
     joint_state_sent_   = false;
@@ -66,6 +80,9 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
                 goal_pose_.position.x = std::stod (msg->arguments_values[i]);
             } else if (msg->arguments_names[i] == "y") {
                 goal_pose_.position.y = std::stod (msg->arguments_values[i]);
+                if (reverse_y_) {
+                    goal_pose_.position.y = -goal_pose_.position.y + reverse_y_offset_;
+                }
             } else if (msg->arguments_names[i] == "yaw") {
                 tf2::Quaternion q;
                 q.setRPY (0.0, 0.0, std::stod (msg->arguments_values[i]) * M_PI / 180.0);
