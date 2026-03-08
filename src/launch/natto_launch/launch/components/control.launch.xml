@@ -28,6 +28,8 @@
             <remap from="goal_reached" to="/control/static/goal_reached"/>
             <remap from="state_action" to="/behavior/state_action"/>
             <remap from="state_result" to="/behavior/state_result"/>
+            <param name="reverse_y" value="$(var reverse_y)"/>
+            <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
         </composable_node>
 
         <!-- speed path追従 -->

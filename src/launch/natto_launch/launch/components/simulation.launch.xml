@@ -7,6 +7,8 @@
             <remap from="joint_states" to="/joint_states"/>
             <remap from="command_joint_states" to="/command_joint_states"/>
             <remap from="simulation_pose" to="/simulation/pose"/>
+            <param name="reverse_y" value="$(var reverse_y)"/>
+            <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
         </composable_node>
     </node_container>
 

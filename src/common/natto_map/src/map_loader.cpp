@@ -19,11 +19,16 @@ map_loader::map_loader (const rclcpp::NodeOptions &node_options) : Node ("map_lo
     std::string line_segments_path = this->declare_parameter<std::string> ("line_segments_path", "");
     std::string circles_path       = this->declare_parameter<std::string> ("circles_path", "");
 
+    reverse_y_        = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_ = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+
     map_publisher_ = this->create_publisher<natto_msgs::msg::Map> ("map", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
 
     RCLCPP_INFO (this->get_logger (), "map_loader node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "line_segments_path: %s", line_segments_path.c_str ());
     RCLCPP_INFO (this->get_logger (), "circles_path: %s", circles_path.c_str ());
+    RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %f", reverse_y_offset_);
 
     if (line_segments_path != "") {
         load_line_segments (line_segments_path);
@@ -69,6 +74,11 @@ void map_loader::load_line_segments (const std::string &path) {
         std::getline (ss, val, ',');
         seg.end.z = std::stod (val);
 
+        if (reverse_y_) {
+            seg.start.y = -seg.start.y + reverse_y_offset_;
+            seg.end.y   = -seg.end.y + reverse_y_offset_;
+        }
+
         map_.line_segments.line_segments.push_back (seg);
     }
     RCLCPP_INFO (this->get_logger (), "Loaded %zu line segments from %s", map_.line_segments.line_segments.size (), path.c_str ());
@@ -101,6 +111,13 @@ void map_loader::load_circles (const std::string &path) {
         c.start_angle = std::stod (val);
         std::getline (ss, val, ',');
         c.end_angle = std::stod (val);
+
+        if (reverse_y_) {
+            c.center.y    = -c.center.y + reverse_y_offset_;
+            c.start_angle = -c.start_angle;
+            c.end_angle   = -c.end_angle;
+        }
+
         map_.circles.circles.push_back (c);
     }
     RCLCPP_INFO (this->get_logger (), "Loaded %zu circles from %s", map_.circles.circles.size (), path.c_str ());

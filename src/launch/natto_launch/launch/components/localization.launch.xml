@@ -16,6 +16,8 @@
             <remap from="pose" to="/localization/current_pose"/>
             <remap from="odometry" to="/localization/wheel_odometry/odometry"/>
             <param name="use_odom_tf" value="$(var use_odom_tf)"/>
+            <param name="reverse_y" value="$(var reverse_y)"/>
+            <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
         </composable_node>
     </node_container>
 </launch>

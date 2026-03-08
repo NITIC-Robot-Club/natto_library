@@ -20,6 +20,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     pose_publisher_                 = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
     particles_publisher_            = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
     pose_with_covariance_publisher_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped> ("pose_with_covariance", 10);
+    trajectory_publisher_           = this->create_publisher<geometry_msgs::msg::PoseArray> ("trajectory", 10);
 
     occupancy_grid_subscriber_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::occupancy_grid_callback, this, std::placeholders::_1));
     pointcloud2_subscriber_    = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
@@ -57,7 +58,8 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
 
     max_trajectory_length_ = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
-    trajectory_publisher_  = this->create_publisher<geometry_msgs::msg::PoseArray> ("trajectory", 10);
+    reverse_y_             = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_      = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
     trajectory_msg_.header.frame_id = map_frame_id_;
 
@@ -83,6 +85,13 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation_deg: %f", expansion_radius_orientation_deg_);
     RCLCPP_INFO (this->get_logger (), "laser_likelihood_max_dist: %f", laser_likelihood_max_dist_);
     RCLCPP_INFO (this->get_logger (), "transform_tolerance: %f", transform_tolerance_);
+    RCLCPP_INFO (this->get_logger (), "max_trajectory_length: %zu", max_trajectory_length_);
+    RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %f", reverse_y_offset_);
+
+    if (reverse_y_) {
+        initial_pose_y_ = -initial_pose_y_ + reverse_y_offset_;
+    }
 
     if (use_odom_tf_) {
         geometry_msgs::msg::TransformStamped map_to_odom;

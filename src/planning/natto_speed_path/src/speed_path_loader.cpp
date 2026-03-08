@@ -28,13 +28,21 @@ speed_path_loader::speed_path_loader (const rclcpp::NodeOptions &node_options) :
         throw std::runtime_error ("File directory parameter is empty.");
     }
 
-    double frequency = this->declare_parameter<double> ("frequency", 1.0);
+    double frequency  = this->declare_parameter<double> ("frequency", 1.0);
+    reverse_y_        = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_ = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
     speed_path_.header.frame_id = "map";
     speed_path_.path.clear ();
     speed_path_.twist.clear ();
 
     timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&speed_path_loader::timer_callback, this));
+
+    RCLCPP_INFO (this->get_logger (), "speed_path_loader node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "file_directory: %s", file_directory_.c_str ());
+    RCLCPP_INFO (this->get_logger (), "frequency: %.2f", frequency);
+    RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %.2f", reverse_y_offset_);
 }
 
 void speed_path_loader::load_speed_path (std::string file_path) {
@@ -76,6 +84,25 @@ void speed_path_loader::load_speed_path (std::string file_path) {
         twist.twist.linear.y = std::stod (val);
         std::getline (ss, val, ',');
         twist.twist.angular.z = std::stod (val);
+
+        if (reverse_y_) {
+            pose.pose.position.y = -pose.pose.position.y + reverse_y_offset_;
+
+            const double cos_yaw = std::cos (yaw);
+            const double sin_yaw = std::sin (yaw);
+
+            const double local_vx = twist.twist.linear.x;
+            const double local_vy = twist.twist.linear.y;
+
+            const double global_vx = cos_yaw * local_vx - sin_yaw * local_vy;
+            const double global_vy = sin_yaw * local_vx + cos_yaw * local_vy;
+
+            const double reversed_global_vx = global_vx;
+            const double reversed_global_vy = -global_vy;
+
+            twist.twist.linear.x = cos_yaw * reversed_global_vx + sin_yaw * reversed_global_vy;
+            twist.twist.linear.y = -sin_yaw * reversed_global_vx + cos_yaw * reversed_global_vy;
+        }
 
         speed_path_.path.push_back (pose);
         speed_path_.twist.push_back (twist);

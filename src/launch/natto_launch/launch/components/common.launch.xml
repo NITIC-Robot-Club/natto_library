@@ -5,6 +5,8 @@
         <composable_node pkg="natto_map" plugin="map_loader::map_loader" name="map_loader" namespace="/common" if="$(var publish_map)">
             <param name="line_segments_path" value="$(var line_segments_path)"/>
             <param name="circles_path" value="$(var circles_path)"/>
+            <param name="reverse_y" value="$(var reverse_y)"/>
+            <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
         </composable_node>
 
         <!-- OccupancyGrid変換 -->
