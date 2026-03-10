@@ -22,6 +22,9 @@
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
 
+#include <algorithm>
+#include <limits>
+
 namespace button_manager {
 class button_manager : public rclcpp::Node {
    public:
@@ -39,6 +42,9 @@ class button_manager : public rclcpp::Node {
     std::vector<bool>        publish_always_;
     std::vector<int>         last_button_state_;
     std::vector<bool>        last_toggle_state_;
+    std::vector<int>         priority_;
+    std::vector<int>         button_joint_state_index_;
+    std::vector<bool>        button_joint_enabled_;
 
     std::vector<std::vector<std::string>> joint_names_;
 
@@ -50,6 +56,8 @@ class button_manager : public rclcpp::Node {
     double      zr_speed_on_, zr_speed_off_;
     double      zl_speed_on_, zl_speed_off_;
     bool        zr_publish_always_, zl_publish_always_;
+    int         zr_joint_state_index_ = -1;
+    int         zl_joint_state_index_ = -1;
 
     std_msgs::msg::Bool          power_msg_, allow_auto_drive_msg_;
     sensor_msgs::msg::JointState command_joint_state_msg_, command_joint_state_always_msg_;

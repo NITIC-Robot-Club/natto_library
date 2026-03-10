@@ -28,6 +28,12 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "num_button: %zu", num_button_);
 
     last_button_state_.resize (num_button_, 0);
+    button_joint_state_index_.resize (num_button_, -1);
+    button_joint_enabled_.resize (num_button_, true);
+
+    std::vector<int>  joint_priority_by_index;
+    std::vector<int>  joint_owner_by_index;
+    std::vector<bool> joint_publish_always_by_index;
 
     for (size_t i = 0; i < num_button_; i++) {
         button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "none"));
@@ -41,6 +47,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         speed_on_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_on", 1.0));
         speed_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0));
         publish_always_.push_back (this->declare_parameter<bool> ("button_" + std::to_string (i) + ".publish_always", false));
+        priority_.push_back (this->declare_parameter<int> ("button_" + std::to_string (i) + ".priority", 0));
 
         if (button_mode_[i] != "toggle" && button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none" && button_mode_[i] != "positive_edge") {
             RCLCPP_WARN (this->get_logger (), "button_%zu.mode: '%s' is invalid. selected 'none'.", i, button_mode_[i].c_str ());
@@ -61,13 +68,29 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             RCLCPP_INFO (this->get_logger (), "button_%zu.position_off: %f", i, position_off_[i]);
             RCLCPP_INFO (this->get_logger (), "button_%zu.speed_on: %f", i, speed_on_[i]);
             RCLCPP_INFO (this->get_logger (), "button_%zu.speed_off: %f", i, speed_off_[i]);
-            command_joint_state_msg_.name.push_back (joint_name_[i]);
-            command_joint_state_msg_.position.push_back (position_off_[i]);
-            command_joint_state_msg_.velocity.push_back (speed_off_[i]);
-            if (publish_always_[i]) {
-                command_joint_state_always_msg_.name.push_back (joint_name_[i]);
-                command_joint_state_always_msg_.position.push_back (position_off_[i]);
-                command_joint_state_always_msg_.velocity.push_back (speed_off_[i]);
+
+            auto   it_existing  = std::find (command_joint_state_msg_.name.begin (), command_joint_state_msg_.name.end (), joint_name_[i]);
+            bool   has_existing = (it_existing != command_joint_state_msg_.name.end ());
+            size_t joint_index  = 0;
+
+            if (!has_existing) {
+                joint_index = command_joint_state_msg_.name.size ();
+                command_joint_state_msg_.name.push_back (joint_name_[i]);
+                command_joint_state_msg_.position.push_back (position_off_[i]);
+                command_joint_state_msg_.velocity.push_back (speed_off_[i]);
+                joint_priority_by_index.push_back (priority_[i]);
+                joint_owner_by_index.push_back (static_cast<int> (i));
+                joint_publish_always_by_index.push_back (publish_always_[i]);
+                button_joint_state_index_[i] = static_cast<int> (joint_index);
+                button_joint_enabled_[i]     = true;
+            } else {
+                joint_index                                = std::distance (command_joint_state_msg_.name.begin (), it_existing);
+                joint_priority_by_index[joint_index]       = std::max (joint_priority_by_index[joint_index], priority_[i]);
+                joint_publish_always_by_index[joint_index] = joint_publish_always_by_index[joint_index] || publish_always_[i];
+                button_joint_state_index_[i]               = static_cast<int> (joint_index);
+                button_joint_enabled_[i]                   = true;
+
+                RCLCPP_INFO (this->get_logger (), "joint_name '%s' is duplicated. button_%zu shares same command slot and runtime priority arbitration is applied.", joint_name_[i].c_str (), i);
             }
         } else if (button_function_[i] == "get_origin") {
             if (joint_names_[i].empty ()) {
@@ -115,13 +138,20 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         RCLCPP_INFO (this->get_logger (), "zr.position_off: %f", zr_position_off_);
         RCLCPP_INFO (this->get_logger (), "zr.speed_on: %f", zr_speed_on_);
         RCLCPP_INFO (this->get_logger (), "zr.speed_off: %f", zr_speed_off_);
-        command_joint_state_msg_.name.push_back (zr_joint_name_);
-        command_joint_state_msg_.position.push_back (zr_position_off_);
-        command_joint_state_msg_.velocity.push_back (zr_speed_off_);
-        if (zr_publish_always_) {
-            command_joint_state_always_msg_.name.push_back (zr_joint_name_);
-            command_joint_state_always_msg_.position.push_back (zr_position_off_);
-            command_joint_state_always_msg_.velocity.push_back (zr_speed_off_);
+        auto it_existing = std::find (command_joint_state_msg_.name.begin (), command_joint_state_msg_.name.end (), zr_joint_name_);
+        if (it_existing == command_joint_state_msg_.name.end ()) {
+            zr_joint_state_index_ = static_cast<int> (command_joint_state_msg_.name.size ());
+            command_joint_state_msg_.name.push_back (zr_joint_name_);
+            command_joint_state_msg_.position.push_back (zr_position_off_);
+            command_joint_state_msg_.velocity.push_back (zr_speed_off_);
+            joint_priority_by_index.push_back (std::numeric_limits<int>::min ());
+            joint_owner_by_index.push_back (-1);
+            joint_publish_always_by_index.push_back (zr_publish_always_);
+        } else {
+            zr_joint_state_index_ = static_cast<int> (std::distance (command_joint_state_msg_.name.begin (), it_existing));
+            if (zr_publish_always_) {
+                joint_publish_always_by_index[zr_joint_state_index_] = true;
+            }
         }
     }
     RCLCPP_INFO (this->get_logger (), "zl.mode: %s", zl_mode_.c_str ());
@@ -136,18 +166,78 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         RCLCPP_INFO (this->get_logger (), "zl.position_off: %f", zl_position_off_);
         RCLCPP_INFO (this->get_logger (), "zl.speed_on: %f", zl_speed_on_);
         RCLCPP_INFO (this->get_logger (), "zl.speed_off: %f", zl_speed_off_);
-        command_joint_state_msg_.name.push_back (zl_joint_name_);
-        command_joint_state_msg_.position.push_back (zl_position_off_);
-        command_joint_state_msg_.velocity.push_back (zl_speed_off_);
-        if (zl_publish_always_) {
-            command_joint_state_always_msg_.name.push_back (zl_joint_name_);
-            command_joint_state_always_msg_.position.push_back (zl_position_off_);
-            command_joint_state_always_msg_.velocity.push_back (zl_speed_off_);
+        auto it_existing = std::find (command_joint_state_msg_.name.begin (), command_joint_state_msg_.name.end (), zl_joint_name_);
+        if (it_existing == command_joint_state_msg_.name.end ()) {
+            zl_joint_state_index_ = static_cast<int> (command_joint_state_msg_.name.size ());
+            command_joint_state_msg_.name.push_back (zl_joint_name_);
+            command_joint_state_msg_.position.push_back (zl_position_off_);
+            command_joint_state_msg_.velocity.push_back (zl_speed_off_);
+            joint_priority_by_index.push_back (std::numeric_limits<int>::min ());
+            joint_owner_by_index.push_back (-1);
+            joint_publish_always_by_index.push_back (zl_publish_always_);
+        } else {
+            zl_joint_state_index_ = static_cast<int> (std::distance (command_joint_state_msg_.name.begin (), it_existing));
+            if (zl_publish_always_) {
+                joint_publish_always_by_index[zl_joint_state_index_] = true;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < command_joint_state_msg_.name.size (); i++) {
+        if (joint_publish_always_by_index[i]) {
+            command_joint_state_always_msg_.name.push_back (command_joint_state_msg_.name[i]);
+            command_joint_state_always_msg_.position.push_back (command_joint_state_msg_.position[i]);
+            command_joint_state_always_msg_.velocity.push_back (command_joint_state_msg_.velocity[i]);
         }
     }
 }
 
 void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
+    const auto has_higher_priority_pressed = [this, &msg] (size_t button_index) {
+        for (size_t k = 0; k < num_button_; k++) {
+            if (k == button_index) {
+                continue;
+            }
+            if (button_function_[k] != button_function_[button_index]) {
+                continue;
+            }
+            if (button_mode_[k] != "hold") {
+                continue;
+            }
+            if (joint_name_[k] != joint_name_[button_index]) {
+                continue;
+            }
+            if (priority_[k] <= priority_[button_index]) {
+                continue;
+            }
+            if (k < msg->buttons.size () && msg->buttons[k] == 1) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto has_any_other_pressed_same_joint = [this, &msg] (size_t button_index) {
+        for (size_t k = 0; k < num_button_; k++) {
+            if (k == button_index) {
+                continue;
+            }
+            if (button_function_[k] != button_function_[button_index]) {
+                continue;
+            }
+            if (button_mode_[k] != "hold") {
+                continue;
+            }
+            if (joint_name_[k] != joint_name_[button_index]) {
+                continue;
+            }
+            if (k < msg->buttons.size () && msg->buttons[k] == 1) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (size_t i = 0; i < num_button_; i++) {
         if (i >= msg->buttons.size ()) {
             RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 5000, "Received joy message has no button_%zu", i);
@@ -195,14 +285,11 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 allow_auto_drive_msg_.data = (msg->buttons[i] == 1);
             }
         } else if (button_function_[i] == "joint_position") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < i; j++) {
-                if (command_joint_state_msg_.name[j] == joint_name_[i]) {
-                    index = j;
-                    break;
-                }
+            if (!button_joint_enabled_[i] || button_joint_state_index_[i] < 0) {
+                continue;
             }
+            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+            size_t index                          = static_cast<size_t> (button_joint_state_index_[i]);
             if (button_mode_[i] == "toggle") {
                 if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
                     last_toggle_state_[i] = !last_toggle_state_[i];
@@ -222,20 +309,25 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 }
             } else if (button_mode_[i] == "hold") {
                 if (msg->buttons[i] == 1) {
+                    if (has_higher_priority_pressed (i)) {
+                        last_button_state_[i] = msg->buttons[i];
+                        continue;
+                    }
                     command_joint_state_msg_.position[index] = position_on_[i];
                 } else {
+                    if (has_any_other_pressed_same_joint (i)) {
+                        last_button_state_[i] = msg->buttons[i];
+                        continue;
+                    }
                     command_joint_state_msg_.position[index] = position_off_[i];
                 }
             }
         } else if (button_function_[i] == "joint_speed") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < i; j++) {
-                if (command_joint_state_msg_.name[j] == joint_name_[i]) {
-                    index = j;
-                    break;
-                }
+            if (!button_joint_enabled_[i] || button_joint_state_index_[i] < 0) {
+                continue;
             }
+            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+            size_t index                          = static_cast<size_t> (button_joint_state_index_[i]);
             if (button_mode_[i] == "toggle") {
                 if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
                     last_toggle_state_[i] = !last_toggle_state_[i];
@@ -255,8 +347,16 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 }
             } else if (button_mode_[i] == "hold") {
                 if (msg->buttons[i] == 1) {
+                    if (has_higher_priority_pressed (i)) {
+                        last_button_state_[i] = msg->buttons[i];
+                        continue;
+                    }
                     command_joint_state_msg_.velocity[index] = speed_on_[i];
                 } else {
+                    if (has_any_other_pressed_same_joint (i)) {
+                        last_button_state_[i] = msg->buttons[i];
+                        continue;
+                    }
                     command_joint_state_msg_.velocity[index] = speed_off_[i];
                 }
             }
@@ -274,88 +374,68 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         last_button_state_[i] = msg->buttons[i];
     }
     if (zl_function_ != "none" && zl_mode_ != "none") {
-        if (zl_function_ == "joint_position") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < command_joint_state_msg_.name.size (); j++) {
-                if (command_joint_state_msg_.name[j] == zl_joint_name_) {
-                    index = j;
-                    break;
+        if (msg->axes.size () > 4 && zl_joint_state_index_ >= 0) {
+            if (zl_function_ == "joint_position") {
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (zl_joint_state_index_);
+                if (zl_mode_ == "toggle_on") {
+                    if (msg->axes[4] < 0.0) {
+                        command_joint_state_msg_.position[index] = zl_position_on_;
+                    }
+                } else if (zl_mode_ == "toggle_off") {
+                    if (msg->axes[4] < 0.0) {
+                        command_joint_state_msg_.position[index] = zl_position_off_;
+                    }
+                } else if (zl_mode_ == "hold") {
+                    command_joint_state_msg_.position[index] = -msg->axes[4] * (zl_position_on_ - zl_position_off_) + zl_position_off_;
                 }
-            }
-            if (zl_mode_ == "toggle_on") {
-                if (msg->axes[4] < 0.0) {
-                    command_joint_state_msg_.position[index] = zl_position_on_;
+            } else if (zl_function_ == "joint_speed") {
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (zl_joint_state_index_);
+                if (zl_mode_ == "toggle_on") {
+                    if (msg->axes[4] < 0.0) {
+                        command_joint_state_msg_.velocity[index] = zl_speed_on_;
+                    }
+                } else if (zl_mode_ == "toggle_off") {
+                    if (msg->axes[4] < 0.0) {
+                        command_joint_state_msg_.velocity[index] = zl_speed_off_;
+                    }
+                } else if (zl_mode_ == "hold") {
+                    command_joint_state_msg_.velocity[index] = -msg->axes[4] * (zl_speed_on_ - zl_speed_off_) + zl_speed_off_;
                 }
-            } else if (zl_mode_ == "toggle_off") {
-                if (msg->axes[4] < 0.0) {
-                    command_joint_state_msg_.position[index] = zl_position_off_;
-                }
-            } else if (zl_mode_ == "hold") {
-                command_joint_state_msg_.position[index] = -msg->axes[4] * (zl_position_on_ - zl_position_off_) + zl_position_off_;
-            }
-        } else if (zl_function_ == "joint_speed") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < command_joint_state_msg_.name.size (); j++) {
-                if (command_joint_state_msg_.name[j] == zl_joint_name_) {
-                    index = j;
-                    break;
-                }
-            }
-            if (zl_mode_ == "toggle_on") {
-                if (msg->axes[4] < 0.0) {
-                    command_joint_state_msg_.velocity[index] = zl_speed_on_;
-                }
-            } else if (zl_mode_ == "toggle_off") {
-                if (msg->axes[4] < 0.0) {
-                    command_joint_state_msg_.velocity[index] = zl_speed_off_;
-                }
-            } else if (zl_mode_ == "hold") {
-                command_joint_state_msg_.velocity[index] = -msg->axes[4] * (zl_speed_on_ - zl_speed_off_) + zl_speed_off_;
             }
         }
     }
     if (zr_function_ != "none" && zr_mode_ != "none") {
-        if (zr_function_ == "joint_position") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < command_joint_state_msg_.name.size (); j++) {
-                if (command_joint_state_msg_.name[j] == zr_joint_name_) {
-                    index = j;
-                    break;
+        if (msg->axes.size () > 5 && zr_joint_state_index_ >= 0) {
+            if (zr_function_ == "joint_position") {
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (zr_joint_state_index_);
+                if (zr_mode_ == "toggle_on") {
+                    if (msg->axes[5] < 0.0) {
+                        command_joint_state_msg_.position[index] = zr_position_on_;
+                    }
+                } else if (zr_mode_ == "toggle_off") {
+                    if (msg->axes[5] < 0.0) {
+                        command_joint_state_msg_.position[index] = zr_position_off_;
+                    }
+                } else if (zr_mode_ == "hold") {
+                    command_joint_state_msg_.position[index] = -msg->axes[5] * (zr_position_on_ - zr_position_off_) + zr_position_off_;
                 }
-            }
-            if (zr_mode_ == "toggle_on") {
-                if (msg->axes[5] < 0.0) {
-                    command_joint_state_msg_.position[index] = zr_position_on_;
+            } else if (zr_function_ == "joint_speed") {
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (zr_joint_state_index_);
+                if (zr_mode_ == "toggle_on") {
+                    if (msg->axes[5] < 0.0) {
+                        command_joint_state_msg_.velocity[index] = zr_speed_on_;
+                    }
+                } else if (zr_mode_ == "toggle_off") {
+                    if (msg->axes[5] < 0.0) {
+                        command_joint_state_msg_.velocity[index] = zr_speed_off_;
+                    }
+                } else if (zr_mode_ == "hold") {
+                    command_joint_state_msg_.velocity[index] = -msg->axes[5] * (zr_speed_on_ - zr_speed_off_) + zr_speed_off_;
                 }
-            } else if (zr_mode_ == "toggle_off") {
-                if (msg->axes[5] < 0.0) {
-                    command_joint_state_msg_.position[index] = zr_position_off_;
-                }
-            } else if (zr_mode_ == "hold") {
-                command_joint_state_msg_.position[index] = -msg->axes[5] * (zr_position_on_ - zr_position_off_) + zr_position_off_;
-            }
-        } else if (zr_function_ == "joint_speed") {
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = 0;
-            for (size_t j = 0; j < command_joint_state_msg_.name.size (); j++) {
-                if (command_joint_state_msg_.name[j] == zr_joint_name_) {
-                    index = j;
-                    break;
-                }
-            }
-            if (zr_mode_ == "toggle_on") {
-                if (msg->axes[5] < 0.0) {
-                    command_joint_state_msg_.velocity[index] = zr_speed_on_;
-                }
-            } else if (zr_mode_ == "toggle_off") {
-                if (msg->axes[5] < 0.0) {
-                    command_joint_state_msg_.velocity[index] = zr_speed_off_;
-                }
-            } else if (zr_mode_ == "hold") {
-                command_joint_state_msg_.velocity[index] = -msg->axes[5] * (zr_speed_on_ - zr_speed_off_) + zr_speed_off_;
             }
         }
     }
