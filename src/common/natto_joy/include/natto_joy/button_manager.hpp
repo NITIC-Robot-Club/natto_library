@@ -33,20 +33,18 @@ class button_manager : public rclcpp::Node {
    private:
     size_t                   num_button_;
     std::vector<std::string> button_mode_;
-    std::vector<std::string> button_function_;
-    std::vector<std::string> joint_name_;
-    std::vector<double>      position_on_;
-    std::vector<double>      position_off_;
-    std::vector<double>      speed_on_;
-    std::vector<double>      speed_off_;
-    std::vector<bool>        publish_always_;
+    std::vector<std::vector<std::string>> button_function_;
+    std::vector<std::vector<std::string>> joint_name_;
+    std::vector<std::vector<double>>      position_on_;
+    std::vector<std::vector<double>>      position_off_;
+    std::vector<std::vector<double>>      speed_on_;
+    std::vector<std::vector<double>>      speed_off_;
+    std::vector<std::vector<bool>>        publish_always_;
     std::vector<int>         last_button_state_;
-    std::vector<bool>        last_toggle_state_;
+    std::vector<std::vector<bool>>        last_toggle_state_;
     std::vector<int>         priority_;
-    std::vector<int>         button_joint_state_index_;
-    std::vector<bool>        button_joint_enabled_;
-
-    std::vector<std::vector<std::string>> joint_names_;
+    std::vector<std::vector<int>>         button_joint_state_index_;
+    std::vector<std::vector<bool>>        button_joint_enabled_;
 
     std::string zr_mode_, zl_mode_;
     std::string zr_function_, zl_function_;

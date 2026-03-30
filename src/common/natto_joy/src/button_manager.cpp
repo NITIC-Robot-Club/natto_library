@@ -14,6 +14,8 @@
 
 #include "natto_joy/button_manager.hpp"
 
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
+
 namespace button_manager {
 
 button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node ("button_manager", node_options) {
@@ -28,26 +30,108 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "num_button: %zu", num_button_);
 
     last_button_state_.resize (num_button_, 0);
-    button_joint_state_index_.resize (num_button_, -1);
-    button_joint_enabled_.resize (num_button_, true);
+    button_joint_state_index_.resize (num_button_);
+    button_joint_enabled_.resize (num_button_);
 
     std::vector<int>  joint_priority_by_index;
     std::vector<int>  joint_owner_by_index;
     std::vector<bool> joint_publish_always_by_index;
 
+    const auto get_string_at = [] (const std::vector<std::string> &values, size_t index, const std::string &fallback) {
+        if (values.empty ()) {
+            return fallback;
+        }
+        if (index < values.size ()) {
+            return values[index];
+        }
+        if (values.size () == 1) {
+            return values[0];
+        }
+        return fallback;
+    };
+
+    const auto get_double_at = [] (const std::vector<double> &values, size_t index, double fallback) {
+        if (values.empty ()) {
+            return fallback;
+        }
+        if (index < values.size ()) {
+            return values[index];
+        }
+        if (values.size () == 1) {
+            return values[0];
+        }
+        return fallback;
+    };
+
+    const auto get_bool_at = [] (const std::vector<bool> &values, size_t index, bool fallback) {
+        if (values.empty ()) {
+            return fallback;
+        }
+        if (index < values.size ()) {
+            return values[index];
+        }
+        if (values.size () == 1) {
+            return values[0];
+        }
+        return fallback;
+    };
+
+    rcl_interfaces::msg::ParameterDescriptor dynamic_param_desc;
+    dynamic_param_desc.dynamic_typing = true;
+
+    const auto as_double_vector = [this] (const rclcpp::ParameterValue &param, const std::string &name, double fallback) {
+        if (param.get_type () == rclcpp::PARAMETER_DOUBLE_ARRAY) {
+            return param.get<std::vector<double>> ();
+        }
+        if (param.get_type () == rclcpp::PARAMETER_INTEGER_ARRAY) {
+            std::vector<double> result;
+            for (const auto value : param.get<std::vector<int64_t>> ()) {
+                result.push_back (static_cast<double> (value));
+            }
+            return result;
+        }
+        if (param.get_type () == rclcpp::PARAMETER_DOUBLE) {
+            return std::vector<double> {param.get<double> ()};
+        }
+        if (param.get_type () == rclcpp::PARAMETER_INTEGER) {
+            return std::vector<double> {static_cast<double> (param.get<int64_t> ())};
+        }
+        RCLCPP_WARN (this->get_logger (), "'%s' has invalid type. fallback to default.", name.c_str ());
+        return std::vector<double> {fallback};
+    };
+
+    const auto as_bool_vector = [this] (const rclcpp::ParameterValue &param, const std::string &name, bool fallback) {
+        if (param.get_type () == rclcpp::PARAMETER_BOOL_ARRAY) {
+            return param.get<std::vector<bool>> ();
+        }
+        if (param.get_type () == rclcpp::PARAMETER_BOOL) {
+            return std::vector<bool> {param.get<bool> ()};
+        }
+        RCLCPP_WARN (this->get_logger (), "'%s' has invalid type. fallback to default.", name.c_str ());
+        return std::vector<bool> {fallback};
+    };
+
     for (size_t i = 0; i < num_button_; i++) {
         button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "none"));
-        button_function_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none"));
+        std::string button_function_legacy = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none");
+        auto        button_functions       = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".functions", std::vector<std::string> {});
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
-        joint_name_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", ""));
-        joint_names_.push_back (this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".joint_names", {""}));
-        position_on_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_on", 1.0));
-        position_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_off", 0.0));
-        speed_on_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_on", 1.0));
-        speed_off_.push_back (this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0));
-        publish_always_.push_back (this->declare_parameter<bool> ("button_" + std::to_string (i) + ".publish_always", false));
-        priority_.push_back (this->declare_parameter<int> ("button_" + std::to_string (i) + ".priority", 0));
+        std::string              joint_name_legacy    = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", "");
+        std::vector<std::string> button_joint_names   = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".joint_names", std::vector<std::string> {});
+        auto                     position_on_param    = this->declare_parameter ("button_" + std::to_string (i) + ".position_on", rclcpp::ParameterValue (1.0), dynamic_param_desc);
+        auto                     position_off_param   = this->declare_parameter ("button_" + std::to_string (i) + ".position_off", rclcpp::ParameterValue (0.0), dynamic_param_desc);
+        auto                     speed_on_param       = this->declare_parameter ("button_" + std::to_string (i) + ".speed_on", rclcpp::ParameterValue (1.0), dynamic_param_desc);
+        auto                     speed_off_param      = this->declare_parameter ("button_" + std::to_string (i) + ".speed_off", rclcpp::ParameterValue (0.0), dynamic_param_desc);
+        auto                     publish_always_param = this->declare_parameter ("button_" + std::to_string (i) + ".publish_always", rclcpp::ParameterValue (false), dynamic_param_desc);
+
+        std::vector<double> position_on_values     = as_double_vector (position_on_param, "button_" + std::to_string (i) + ".position_on", 1.0);
+        std::vector<double> position_off_values    = as_double_vector (position_off_param, "button_" + std::to_string (i) + ".position_off", 0.0);
+        std::vector<double> speed_on_values        = as_double_vector (speed_on_param, "button_" + std::to_string (i) + ".speed_on", 1.0);
+        std::vector<double> speed_off_values       = as_double_vector (speed_off_param, "button_" + std::to_string (i) + ".speed_off", 0.0);
+        std::vector<bool>   publish_always_values  = as_bool_vector (publish_always_param, "button_" + std::to_string (i) + ".publish_always", false);
+
+        priority_.push_back (static_cast<int> (this->declare_parameter<int> ("button_" + std::to_string (i) + ".priority", 0)));
 
         if (button_mode_[i] != "toggle" && button_mode_[i] != "toggle_on" && button_mode_[i] != "toggle_off" && button_mode_[i] != "hold" && button_mode_[i] != "none" && button_mode_[i] != "positive_edge") {
             RCLCPP_WARN (this->get_logger (), "button_%zu.mode: '%s' is invalid. selected 'none'.", i, button_mode_[i].c_str ());
@@ -55,58 +139,97 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             button_mode_[i] = "none";
         }
 
-        if (button_function_[i] == "none") {
-        } else if (button_function_[i] == "power") {
-        } else if (button_function_[i] == "allow_auto_drive") {
-        } else if (button_function_[i] == "joint_position" || button_function_[i] == "joint_speed") {
-            if (joint_name_[i] == "") {
-                RCLCPP_WARN (this->get_logger (), "button_%zu.joint_name is empty. please set joint_name.", i);
-                throw std::runtime_error ("invalid parameter");
-            }
-            RCLCPP_INFO (this->get_logger (), "button_%zu.joint_name: %s", i, joint_name_[i].c_str ());
-            RCLCPP_INFO (this->get_logger (), "button_%zu.position_on: %f", i, position_on_[i]);
-            RCLCPP_INFO (this->get_logger (), "button_%zu.position_off: %f", i, position_off_[i]);
-            RCLCPP_INFO (this->get_logger (), "button_%zu.speed_on: %f", i, speed_on_[i]);
-            RCLCPP_INFO (this->get_logger (), "button_%zu.speed_off: %f", i, speed_off_[i]);
-
-            auto   it_existing  = std::find (command_joint_state_msg_.name.begin (), command_joint_state_msg_.name.end (), joint_name_[i]);
-            bool   has_existing = (it_existing != command_joint_state_msg_.name.end ());
-            size_t joint_index  = 0;
-
-            if (!has_existing) {
-                joint_index = command_joint_state_msg_.name.size ();
-                command_joint_state_msg_.name.push_back (joint_name_[i]);
-                command_joint_state_msg_.position.push_back (position_off_[i]);
-                command_joint_state_msg_.velocity.push_back (speed_off_[i]);
-                joint_priority_by_index.push_back (priority_[i]);
-                joint_owner_by_index.push_back (static_cast<int> (i));
-                joint_publish_always_by_index.push_back (publish_always_[i]);
-                button_joint_state_index_[i] = static_cast<int> (joint_index);
-                button_joint_enabled_[i]     = true;
+        if (button_functions.empty ()) {
+            if (button_function_legacy == "get_origin" && !button_joint_names.empty ()) {
+                for (const auto &jn : button_joint_names) {
+                    if (!jn.empty ()) {
+                        button_functions.push_back ("get_origin");
+                    }
+                }
             } else {
-                joint_index                                = std::distance (command_joint_state_msg_.name.begin (), it_existing);
-                joint_priority_by_index[joint_index]       = std::max (joint_priority_by_index[joint_index], priority_[i]);
-                joint_publish_always_by_index[joint_index] = joint_publish_always_by_index[joint_index] || publish_always_[i];
-                button_joint_state_index_[i]               = static_cast<int> (joint_index);
-                button_joint_enabled_[i]                   = true;
-
-                RCLCPP_INFO (this->get_logger (), "joint_name '%s' is duplicated. button_%zu shares same command slot and runtime priority arbitration is applied.", joint_name_[i].c_str (), i);
+                button_functions.push_back (button_function_legacy);
             }
-        } else if (button_function_[i] == "get_origin") {
-            if (joint_names_[i].empty ()) {
-                RCLCPP_WARN (this->get_logger (), "button_%zu.joint_names is empty. please set joint_names.", i);
-                throw std::runtime_error ("invalid parameter");
-            }
-            RCLCPP_INFO (this->get_logger (), "button_%zu.joint_names:", i);
-            for (const auto &jn : joint_names_[i]) {
-                RCLCPP_INFO (this->get_logger (), "  - %s", jn.c_str ());
-            }
-        } else {
-            button_function_[i] = "none";
-            RCLCPP_WARN (this->get_logger (), "button_%zu.function: %s is invalid. selected 'none'.", i, button_function_[i].c_str ());
-            RCLCPP_INFO (this->get_logger (), "Please set 'none', 'power', 'allow_auto_drive', 'joint_position' or 'joint_speed'.");
         }
-        last_toggle_state_.push_back (false);
+
+        button_function_.push_back ({});
+        joint_name_.push_back ({});
+        position_on_.push_back ({});
+        position_off_.push_back ({});
+        speed_on_.push_back ({});
+        speed_off_.push_back ({});
+        publish_always_.push_back ({});
+        button_joint_state_index_[i].clear ();
+        button_joint_enabled_[i].clear ();
+        last_toggle_state_.push_back ({});
+
+        for (size_t entry = 0; entry < button_functions.size (); entry++) {
+            auto function = button_functions[entry];
+            auto jn       = get_string_at (button_joint_names, entry, joint_name_legacy);
+            auto pos_on   = get_double_at (position_on_values, entry, 1.0);
+            auto pos_off  = get_double_at (position_off_values, entry, 0.0);
+            auto spd_on   = get_double_at (speed_on_values, entry, 1.0);
+            auto spd_off  = get_double_at (speed_off_values, entry, 0.0);
+            auto pub_alw  = get_bool_at (publish_always_values, entry, false);
+
+            if (function != "none" && function != "power" && function != "allow_auto_drive" && function != "joint_position" && function != "joint_speed" && function != "get_origin") {
+                RCLCPP_WARN (this->get_logger (), "button_%zu.functions[%zu]: '%s' is invalid. selected 'none'.", i, entry, function.c_str ());
+                function = "none";
+            }
+
+            button_function_[i].push_back (function);
+            joint_name_[i].push_back (jn);
+            position_on_[i].push_back (pos_on);
+            position_off_[i].push_back (pos_off);
+            speed_on_[i].push_back (spd_on);
+            speed_off_[i].push_back (spd_off);
+            publish_always_[i].push_back (pub_alw);
+            button_joint_state_index_[i].push_back (-1);
+            button_joint_enabled_[i].push_back (true);
+            last_toggle_state_[i].push_back (false);
+
+            if (function == "joint_position" || function == "joint_speed") {
+                if (jn.empty ()) {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.joint_names[%zu] is empty. please set joint_names.", i, entry);
+                    throw std::runtime_error ("invalid parameter");
+                }
+                RCLCPP_INFO (this->get_logger (), "button_%zu.functions[%zu]: %s", i, entry, function.c_str ());
+                RCLCPP_INFO (this->get_logger (), "button_%zu.joint_names[%zu]: %s", i, entry, jn.c_str ());
+                RCLCPP_INFO (this->get_logger (), "button_%zu.position_on[%zu]: %f", i, entry, pos_on);
+                RCLCPP_INFO (this->get_logger (), "button_%zu.position_off[%zu]: %f", i, entry, pos_off);
+                RCLCPP_INFO (this->get_logger (), "button_%zu.speed_on[%zu]: %f", i, entry, spd_on);
+                RCLCPP_INFO (this->get_logger (), "button_%zu.speed_off[%zu]: %f", i, entry, spd_off);
+
+                auto   it_existing  = std::find (command_joint_state_msg_.name.begin (), command_joint_state_msg_.name.end (), jn);
+                bool   has_existing = (it_existing != command_joint_state_msg_.name.end ());
+                size_t joint_index  = 0;
+
+                if (!has_existing) {
+                    joint_index = command_joint_state_msg_.name.size ();
+                    command_joint_state_msg_.name.push_back (jn);
+                    command_joint_state_msg_.position.push_back (pos_off);
+                    command_joint_state_msg_.velocity.push_back (spd_off);
+                    joint_priority_by_index.push_back (priority_[i]);
+                    joint_owner_by_index.push_back (static_cast<int> (i));
+                    joint_publish_always_by_index.push_back (pub_alw);
+                    button_joint_state_index_[i][entry] = static_cast<int> (joint_index);
+                    button_joint_enabled_[i][entry]     = true;
+                } else {
+                    joint_index                                = static_cast<size_t> (std::distance (command_joint_state_msg_.name.begin (), it_existing));
+                    joint_priority_by_index[joint_index]       = std::max (joint_priority_by_index[joint_index], priority_[i]);
+                    joint_publish_always_by_index[joint_index] = joint_publish_always_by_index[joint_index] || pub_alw;
+                    button_joint_state_index_[i][entry]        = static_cast<int> (joint_index);
+                    button_joint_enabled_[i][entry]            = true;
+
+                    RCLCPP_INFO (this->get_logger (), "joint_name '%s' is duplicated. button_%zu entry_%zu shares same command slot and runtime priority arbitration is applied.", jn.c_str (), i, entry);
+                }
+            } else if (function == "get_origin") {
+                if (jn.empty ()) {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.joint_names[%zu] is empty. please set joint_names.", i, entry);
+                    throw std::runtime_error ("invalid parameter");
+                }
+                RCLCPP_INFO (this->get_logger (), "button_%zu.get_origin target[%zu]: %s", i, entry, jn.c_str ());
+            }
+        }
     }
 
     zr_mode_           = this->declare_parameter<std::string> ("zr.mode", "none");
@@ -150,7 +273,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         } else {
             zr_joint_state_index_ = static_cast<int> (std::distance (command_joint_state_msg_.name.begin (), it_existing));
             if (zr_publish_always_) {
-                joint_publish_always_by_index[zr_joint_state_index_] = true;
+                joint_publish_always_by_index[static_cast<size_t> (zr_joint_state_index_)] = true;
             }
         }
     }
@@ -178,7 +301,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         } else {
             zl_joint_state_index_ = static_cast<int> (std::distance (command_joint_state_msg_.name.begin (), it_existing));
             if (zl_publish_always_) {
-                joint_publish_always_by_index[zl_joint_state_index_] = true;
+                joint_publish_always_by_index[static_cast<size_t> (zl_joint_state_index_)] = true;
             }
         }
     }
@@ -193,46 +316,54 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
 }
 
 void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
-    const auto has_higher_priority_pressed = [this, &msg] (size_t button_index) {
+    const auto has_higher_priority_pressed = [this, &msg] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
         for (size_t k = 0; k < num_button_; k++) {
-            if (k == button_index) {
-                continue;
-            }
-            if (button_function_[k] != button_function_[button_index]) {
-                continue;
-            }
             if (button_mode_[k] != "hold") {
-                continue;
-            }
-            if (joint_name_[k] != joint_name_[button_index]) {
                 continue;
             }
             if (priority_[k] <= priority_[button_index]) {
                 continue;
             }
             if (k < msg->buttons.size () && msg->buttons[k] == 1) {
-                return true;
+                for (size_t e = 0; e < button_function_[k].size (); e++) {
+                    if (k == button_index && e == entry_index) {
+                        continue;
+                    }
+                    if (button_function_[k][e] != target_function) {
+                        continue;
+                    }
+                    if (joint_name_[k][e] != target_joint) {
+                        continue;
+                    }
+                    return true;
+                }
             }
         }
         return false;
     };
 
-    const auto has_any_other_pressed_same_joint = [this, &msg] (size_t button_index) {
+    const auto has_any_other_pressed_same_joint = [this, &msg] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
         for (size_t k = 0; k < num_button_; k++) {
-            if (k == button_index) {
-                continue;
-            }
-            if (button_function_[k] != button_function_[button_index]) {
-                continue;
-            }
             if (button_mode_[k] != "hold") {
                 continue;
             }
-            if (joint_name_[k] != joint_name_[button_index]) {
-                continue;
-            }
             if (k < msg->buttons.size () && msg->buttons[k] == 1) {
-                return true;
+                for (size_t e = 0; e < button_function_[k].size (); e++) {
+                    if (k == button_index && e == entry_index) {
+                        continue;
+                    }
+                    if (button_function_[k][e] != target_function) {
+                        continue;
+                    }
+                    if (joint_name_[k][e] != target_joint) {
+                        continue;
+                    }
+                    return true;
+                }
             }
         }
         return false;
@@ -246,126 +377,126 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         if (button_mode_[i] == "none") {
             continue;
         }
-        if (button_function_[i] == "none") {
+        if (button_function_[i].empty ()) {
             continue;
         }
 
-        if (button_function_[i] == "power") {
-            if (button_mode_[i] == "toggle") {
-                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    last_toggle_state_[i] = !last_toggle_state_[i];
-                }
-                power_msg_.data = last_toggle_state_[i];
-            } else if (button_mode_[i] == "toggle_on") {
-                if (msg->buttons[i] == 1) {
-                    power_msg_.data = true;
-                }
-            } else if (button_mode_[i] == "toggle_off") {
-                if (msg->buttons[i] == 1) {
-                    power_msg_.data = false;
-                }
-            } else if (button_mode_[i] == "hold") {
-                power_msg_.data = msg->buttons[i];
-            }
-        } else if (button_function_[i] == "allow_auto_drive") {
-            if (button_mode_[i] == "toggle") {
-                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    last_toggle_state_[i] = !last_toggle_state_[i];
-                }
-                allow_auto_drive_msg_.data = last_toggle_state_[i];
-            } else if (button_mode_[i] == "toggle_on") {
-                if (msg->buttons[i] == 1) {
-                    allow_auto_drive_msg_.data = true;
-                }
-            } else if (button_mode_[i] == "toggle_off") {
-                if (msg->buttons[i] == 1) {
-                    allow_auto_drive_msg_.data = false;
-                }
-            } else if (button_mode_[i] == "hold") {
-                allow_auto_drive_msg_.data = (msg->buttons[i] == 1);
-            }
-        } else if (button_function_[i] == "joint_position") {
-            if (!button_joint_enabled_[i] || button_joint_state_index_[i] < 0) {
+        for (size_t entry = 0; entry < button_function_[i].size (); entry++) {
+            if (button_function_[i][entry] == "none") {
                 continue;
             }
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = static_cast<size_t> (button_joint_state_index_[i]);
-            if (button_mode_[i] == "toggle") {
-                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    last_toggle_state_[i] = !last_toggle_state_[i];
-                }
-                if (last_toggle_state_[i]) {
-                    command_joint_state_msg_.position[index] = position_on_[i];
-                } else {
-                    command_joint_state_msg_.position[index] = position_off_[i];
-                }
-            } else if (button_mode_[i] == "toggle_on") {
-                if (msg->buttons[i] == 1) {
-                    command_joint_state_msg_.position[index] = position_on_[i];
-                }
-            } else if (button_mode_[i] == "toggle_off") {
-                if (msg->buttons[i] == 1) {
-                    command_joint_state_msg_.position[index] = position_off_[i];
-                }
-            } else if (button_mode_[i] == "hold") {
-                if (msg->buttons[i] == 1) {
-                    if (has_higher_priority_pressed (i)) {
-                        last_button_state_[i] = msg->buttons[i];
-                        continue;
+
+            if (button_function_[i][entry] == "power") {
+                if (button_mode_[i] == "toggle") {
+                    if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                        last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
                     }
-                    command_joint_state_msg_.position[index] = position_on_[i];
-                } else {
-                    if (has_any_other_pressed_same_joint (i)) {
-                        last_button_state_[i] = msg->buttons[i];
-                        continue;
+                    power_msg_.data = last_toggle_state_[i][entry];
+                } else if (button_mode_[i] == "toggle_on") {
+                    if (msg->buttons[i] == 1) {
+                        power_msg_.data = true;
                     }
-                    command_joint_state_msg_.position[index] = position_off_[i];
-                }
-            }
-        } else if (button_function_[i] == "joint_speed") {
-            if (!button_joint_enabled_[i] || button_joint_state_index_[i] < 0) {
-                continue;
-            }
-            command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
-            size_t index                          = static_cast<size_t> (button_joint_state_index_[i]);
-            if (button_mode_[i] == "toggle") {
-                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    last_toggle_state_[i] = !last_toggle_state_[i];
-                }
-                if (last_toggle_state_[i]) {
-                    command_joint_state_msg_.velocity[index] = speed_on_[i];
-                } else {
-                    command_joint_state_msg_.velocity[index] = speed_off_[i];
-                }
-            } else if (button_mode_[i] == "toggle_on") {
-                if (msg->buttons[i] == 1) {
-                    command_joint_state_msg_.velocity[index] = speed_on_[i];
-                }
-            } else if (button_mode_[i] == "toggle_off") {
-                if (msg->buttons[i] == 1) {
-                    command_joint_state_msg_.velocity[index] = speed_off_[i];
-                }
-            } else if (button_mode_[i] == "hold") {
-                if (msg->buttons[i] == 1) {
-                    if (has_higher_priority_pressed (i)) {
-                        last_button_state_[i] = msg->buttons[i];
-                        continue;
+                } else if (button_mode_[i] == "toggle_off") {
+                    if (msg->buttons[i] == 1) {
+                        power_msg_.data = false;
                     }
-                    command_joint_state_msg_.velocity[index] = speed_on_[i];
-                } else {
-                    if (has_any_other_pressed_same_joint (i)) {
-                        last_button_state_[i] = msg->buttons[i];
-                        continue;
-                    }
-                    command_joint_state_msg_.velocity[index] = speed_off_[i];
+                } else if (button_mode_[i] == "hold") {
+                    power_msg_.data = msg->buttons[i];
                 }
-            }
-        } else if (button_function_[i] == "get_origin") {
-            if (button_mode_[i] == "positive_edge") {
-                if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    for (const auto &joint_name : joint_names_[i]) {
+            } else if (button_function_[i][entry] == "allow_auto_drive") {
+                if (button_mode_[i] == "toggle") {
+                    if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                        last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
+                    }
+                    allow_auto_drive_msg_.data = last_toggle_state_[i][entry];
+                } else if (button_mode_[i] == "toggle_on") {
+                    if (msg->buttons[i] == 1) {
+                        allow_auto_drive_msg_.data = true;
+                    }
+                } else if (button_mode_[i] == "toggle_off") {
+                    if (msg->buttons[i] == 1) {
+                        allow_auto_drive_msg_.data = false;
+                    }
+                } else if (button_mode_[i] == "hold") {
+                    allow_auto_drive_msg_.data = (msg->buttons[i] == 1);
+                }
+            } else if (button_function_[i][entry] == "joint_position") {
+                if (!button_joint_enabled_[i][entry] || button_joint_state_index_[i][entry] < 0) {
+                    continue;
+                }
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (button_joint_state_index_[i][entry]);
+                if (button_mode_[i] == "toggle") {
+                    if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                        last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
+                    }
+                    if (last_toggle_state_[i][entry]) {
+                        command_joint_state_msg_.position[index] = position_on_[i][entry];
+                    } else {
+                        command_joint_state_msg_.position[index] = position_off_[i][entry];
+                    }
+                } else if (button_mode_[i] == "toggle_on") {
+                    if (msg->buttons[i] == 1) {
+                        command_joint_state_msg_.position[index] = position_on_[i][entry];
+                    }
+                } else if (button_mode_[i] == "toggle_off") {
+                    if (msg->buttons[i] == 1) {
+                        command_joint_state_msg_.position[index] = position_off_[i][entry];
+                    }
+                } else if (button_mode_[i] == "hold") {
+                    if (msg->buttons[i] == 1) {
+                        if (has_higher_priority_pressed (i, entry)) {
+                            continue;
+                        }
+                        command_joint_state_msg_.position[index] = position_on_[i][entry];
+                    } else {
+                        if (has_any_other_pressed_same_joint (i, entry)) {
+                            continue;
+                        }
+                        command_joint_state_msg_.position[index] = position_off_[i][entry];
+                    }
+                }
+            } else if (button_function_[i][entry] == "joint_speed") {
+                if (!button_joint_enabled_[i][entry] || button_joint_state_index_[i][entry] < 0) {
+                    continue;
+                }
+                command_joint_state_msg_.header.stamp = this->get_clock ()->now ();
+                size_t index                          = static_cast<size_t> (button_joint_state_index_[i][entry]);
+                if (button_mode_[i] == "toggle") {
+                    if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                        last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
+                    }
+                    if (last_toggle_state_[i][entry]) {
+                        command_joint_state_msg_.velocity[index] = speed_on_[i][entry];
+                    } else {
+                        command_joint_state_msg_.velocity[index] = speed_off_[i][entry];
+                    }
+                } else if (button_mode_[i] == "toggle_on") {
+                    if (msg->buttons[i] == 1) {
+                        command_joint_state_msg_.velocity[index] = speed_on_[i][entry];
+                    }
+                } else if (button_mode_[i] == "toggle_off") {
+                    if (msg->buttons[i] == 1) {
+                        command_joint_state_msg_.velocity[index] = speed_off_[i][entry];
+                    }
+                } else if (button_mode_[i] == "hold") {
+                    if (msg->buttons[i] == 1) {
+                        if (has_higher_priority_pressed (i, entry)) {
+                            continue;
+                        }
+                        command_joint_state_msg_.velocity[index] = speed_on_[i][entry];
+                    } else {
+                        if (has_any_other_pressed_same_joint (i, entry)) {
+                            continue;
+                        }
+                        command_joint_state_msg_.velocity[index] = speed_off_[i][entry];
+                    }
+                }
+            } else if (button_function_[i][entry] == "get_origin") {
+                if (button_mode_[i] == "positive_edge") {
+                    if (msg->buttons[i] == 1 && last_button_state_[i] == 0) {
                         std_msgs::msg::String origin_get_msg;
-                        origin_get_msg.data = joint_name;
+                        origin_get_msg.data = joint_name_[i][entry];
                         origin_get_publisher_->publish (origin_get_msg);
                     }
                 }

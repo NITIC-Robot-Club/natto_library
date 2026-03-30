@@ -16,13 +16,14 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | num_button | int | 0 | 管理するボタン数 |
 | button_N.mode | string | "none" | ボタンNの動作モード（"toggle", "toggle_on", "toggle_off", "hold", "positive_edge", "none"） |
 | button_N.function | string | "none" | ボタンNの機能（"power", "allow_auto_drive", "joint_position", "joint_speed", "get_origin", "none"） |
-| button_N.joint_name | string | "" | ボタンNが制御するジョイント名（joint_position/joint_speed時に必須） |
-| button_N.joint_names | string[] | [""] | ボタンNが対象とするジョイント名リスト（get_origin時に必須） |
-| button_N.position_on | double | 1.0 | ボタンNがONのときのジョイント目標位置 |
-| button_N.position_off | double | 0.0 | ボタンNがOFFのときのジョイント目標位置 |
-| button_N.speed_on | double | 1.0 | ボタンNがONのときのジョイント目標速度 |
-| button_N.speed_off | double | 0.0 | ボタンNがOFFのときのジョイント目標速度 |
-| button_N.publish_always | bool | false | 自動運転中でもジョイント状態をパブリッシュするか |
+| button_N.functions | string[] | [] | ボタンNの機能リスト（`function` より優先）。1ボタンで複数機能を実行可能 |
+| button_N.joint_name | string | "" | 旧仕様: ボタンNが制御するジョイント名（単一エントリ時） |
+| button_N.joint_names | string[] | [] | 複数エントリ時のジョイント名リスト（`functions` と同じ添字で対応） |
+| button_N.position_on | double / double[] | 1.0 | ON時の目標位置（単一値またはエントリごとの配列） |
+| button_N.position_off | double / double[] | 0.0 | OFF時の目標位置（単一値またはエントリごとの配列） |
+| button_N.speed_on | double / double[] | 1.0 | ON時の目標速度（単一値またはエントリごとの配列） |
+| button_N.speed_off | double / double[] | 0.0 | OFF時の目標速度（単一値またはエントリごとの配列） |
+| button_N.publish_always | bool / bool[] | false | 自動運転中でもパブリッシュするか（単一値またはエントリごとの配列） |
 | zr.mode | string | "none" | ZRトリガーの動作モード |
 | zr.function | string | "none" | ZRトリガーの機能 |
 | zr.joint_name | string | "" | ZRトリガーが制御するジョイント名 |
@@ -52,6 +53,19 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | joy | sensor_msgs/msg/Joy | ジョイスティックの入力データ |
+
+### `button_N.functions` の使用例
+
+```yaml
+button_0:
+	mode: "hold"
+	functions: ["joint_speed", "joint_position"]
+	joint_names: ["joint_1", "joint_2"]
+	speed_on: [1.0, 0.0]
+	speed_off: [0.0, 0.0]
+	position_on: [0.0, 1.0]
+	position_off: [0.0, 0.0]
+```
 
 # joy_to_twist
 joy_to_twistノードは、ジョイスティックの入力を受け取り、ロボットの移動コマンド（geometry_msgs/msg/TwistStamped型）に変換してパブリッシュします。
