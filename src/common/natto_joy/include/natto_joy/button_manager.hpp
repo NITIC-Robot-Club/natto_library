@@ -42,20 +42,19 @@ class button_manager : public rclcpp::Node {
     std::vector<std::vector<bool>>        publish_always_;
     std::vector<int>         last_button_state_;
     std::vector<std::vector<bool>>        last_toggle_state_;
-    std::vector<int>         priority_;
+    std::vector<std::vector<int>>         priority_;
     std::vector<std::vector<int>>         button_joint_state_index_;
     std::vector<std::vector<bool>>        button_joint_enabled_;
 
-    std::string zr_mode_, zl_mode_;
-    std::string zr_function_, zl_function_;
-    std::string zr_joint_name_, zl_joint_name_;
-    double      zr_position_on_, zr_position_off_;
-    double      zl_position_on_, zl_position_off_;
-    double      zr_speed_on_, zr_speed_off_;
-    double      zl_speed_on_, zl_speed_off_;
-    bool        zr_publish_always_, zl_publish_always_;
-    int         zr_joint_state_index_ = -1;
-    int         zl_joint_state_index_ = -1;
+    std::string              zr_mode_, zl_mode_;
+    std::vector<std::string> zr_functions_, zl_functions_;
+    std::vector<std::string> zr_joint_names_, zl_joint_names_;
+    std::vector<double>      zr_position_ons_, zr_position_offs_;
+    std::vector<double>      zl_position_ons_, zl_position_offs_;
+    std::vector<double>      zr_speed_ons_, zr_speed_offs_;
+    std::vector<double>      zl_speed_ons_, zl_speed_offs_;
+    std::vector<bool>        zr_publish_always_list_, zl_publish_always_list_;
+    std::vector<int>         zr_joint_state_indices_, zl_joint_state_indices_;
 
     std_msgs::msg::Bool          power_msg_, allow_auto_drive_msg_;
     sensor_msgs::msg::JointState command_joint_state_msg_, command_joint_state_always_msg_;
