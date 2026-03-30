@@ -143,9 +143,13 @@ void canable::read_can_socket () {
             msg.len = frame.can_dlc;
             msg.data.resize (frame.can_dlc);
             msg.is_extended = frame.can_id & CAN_EFF_FLAG;
+            msg.is_rtr      = frame.can_id & CAN_RTR_FLAG;
             msg.id          = msg.is_extended ? (frame.can_id & CAN_EFF_MASK) : (frame.can_id & CAN_SFF_MASK);
 
-            std::copy (frame.data, frame.data + frame.can_dlc, msg.data.begin ());
+            if (!msg.is_rtr) {
+                std::copy (frame.data, frame.data + frame.can_dlc, msg.data.begin ());
+            }
+
             msg.header.stamp = this->now ();
             canable_pub_->publish (msg);
         }
@@ -176,10 +180,19 @@ void canable::write_can_socket (const natto_msgs::msg::Can &msg) {
             ret = write (fd, &frame, sizeof (frame));
         } else {
             struct can_frame frame {};
-            frame.can_id  = msg.is_extended ? ((msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG) : (msg.id & CAN_SFF_MASK);
+            frame.can_id = msg.is_extended ? ((msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG) : (msg.id & CAN_SFF_MASK);
+
+            if (msg.is_rtr) {
+                frame.can_id |= CAN_RTR_FLAG;
+            }
+
             frame.can_dlc = msg.len;
             frame.len     = msg.len;
-            std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
+
+            if (!msg.is_rtr) {
+                std::copy (msg.data.begin (), msg.data.begin () + msg.len, frame.data);
+            }
+
             ret = write (fd, &frame, sizeof (frame));
         }
 
