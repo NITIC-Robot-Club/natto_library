@@ -31,8 +31,8 @@ class button_manager : public rclcpp::Node {
     button_manager (const rclcpp::NodeOptions &node_options);
 
    private:
-    size_t                   num_button_;
-    std::vector<std::string> button_mode_;
+    size_t                                num_button_;
+    std::vector<std::string>              button_mode_;
     std::vector<std::vector<std::string>> button_function_;
     std::vector<std::vector<std::string>> joint_name_;
     std::vector<std::vector<double>>      position_on_;
@@ -40,7 +40,7 @@ class button_manager : public rclcpp::Node {
     std::vector<std::vector<double>>      speed_on_;
     std::vector<std::vector<double>>      speed_off_;
     std::vector<std::vector<bool>>        publish_always_;
-    std::vector<int>         last_button_state_;
+    std::vector<int>                      last_button_state_;
     std::vector<std::vector<bool>>        last_toggle_state_;
     std::vector<std::vector<int>>         priority_;
     std::vector<std::vector<int>>         button_joint_state_index_;

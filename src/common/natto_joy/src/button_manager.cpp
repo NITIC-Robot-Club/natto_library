@@ -90,23 +90,23 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     for (size_t i = 0; i < num_button_; i++) {
         button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "none"));
         std::string button_function_legacy = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none");
-        auto        button_functions       = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".functions", std::vector<std::string> {});
+        auto        button_functions       = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".functions", std::vector<std::string>{});
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
-        std::string              joint_name_legacy    = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", "");
-        std::vector<std::string> button_joint_names   = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".joint_names", std::vector<std::string> {});
-        double                   position_on_default  = this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_on", 1.0);
-        double                   position_off_default = this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_off", 0.0);
-        double                   speed_on_default     = this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_on", 1.0);
-        double                   speed_off_default    = this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0);
+        std::string              joint_name_legacy      = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", "");
+        std::vector<std::string> button_joint_names     = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".joint_names", std::vector<std::string>{});
+        double                   position_on_default    = this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_on", 1.0);
+        double                   position_off_default   = this->declare_parameter<double> ("button_" + std::to_string (i) + ".position_off", 0.0);
+        double                   speed_on_default       = this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_on", 1.0);
+        double                   speed_off_default      = this->declare_parameter<double> ("button_" + std::to_string (i) + ".speed_off", 0.0);
         bool                     publish_always_default = this->declare_parameter<bool> ("button_" + std::to_string (i) + ".publish_always", false);
-        std::vector<double>      position_on_values     = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".position_ons", std::vector<double> {});
-        std::vector<double>      position_off_values    = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".position_offs", std::vector<double> {});
-        std::vector<double>      speed_on_values        = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".speed_ons", std::vector<double> {});
-        std::vector<double>      speed_off_values       = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".speed_offs", std::vector<double> {});
-        std::vector<bool>        publish_always_values  = this->declare_parameter<std::vector<bool>> ("button_" + std::to_string (i) + ".publish_always_list", std::vector<bool> {});
-        int                      priority_default        = static_cast<int> (this->declare_parameter<int> ("button_" + std::to_string (i) + ".priority", 0));
-        std::vector<int64_t>     priority_values_raw     = this->declare_parameter<std::vector<int64_t>> ("button_" + std::to_string (i) + ".priorities", std::vector<int64_t> {});
+        std::vector<double>      position_on_values     = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".position_ons", std::vector<double>{});
+        std::vector<double>      position_off_values    = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".position_offs", std::vector<double>{});
+        std::vector<double>      speed_on_values        = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".speed_ons", std::vector<double>{});
+        std::vector<double>      speed_off_values       = this->declare_parameter<std::vector<double>> ("button_" + std::to_string (i) + ".speed_offs", std::vector<double>{});
+        std::vector<bool>        publish_always_values  = this->declare_parameter<std::vector<bool>> ("button_" + std::to_string (i) + ".publish_always_list", std::vector<bool>{});
+        int                      priority_default       = static_cast<int> (this->declare_parameter<int> ("button_" + std::to_string (i) + ".priority", 0));
+        std::vector<int64_t>     priority_values_raw    = this->declare_parameter<std::vector<int64_t>> ("button_" + std::to_string (i) + ".priorities", std::vector<int64_t>{});
         std::vector<int>         priority_values;
         priority_values.reserve (priority_values_raw.size ());
         for (const auto value : priority_values_raw) {
@@ -239,35 +239,35 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
 
     std::string zr_function_legacy = this->declare_parameter<std::string> ("zr.function", "none");
     std::string zl_function_legacy = this->declare_parameter<std::string> ("zl.function", "none");
-    zr_functions_                  = this->declare_parameter<std::vector<std::string>> ("zr.functions", std::vector<std::string> {});
-    zl_functions_                  = this->declare_parameter<std::vector<std::string>> ("zl.functions", std::vector<std::string> {});
+    zr_functions_                  = this->declare_parameter<std::vector<std::string>> ("zr.functions", std::vector<std::string>{});
+    zl_functions_                  = this->declare_parameter<std::vector<std::string>> ("zl.functions", std::vector<std::string>{});
 
     std::string zr_joint_name_legacy = this->declare_parameter<std::string> ("zr.joint_name", "");
     std::string zl_joint_name_legacy = this->declare_parameter<std::string> ("zl.joint_name", "");
-    zr_joint_names_                  = this->declare_parameter<std::vector<std::string>> ("zr.joint_names", std::vector<std::string> {});
-    zl_joint_names_                  = this->declare_parameter<std::vector<std::string>> ("zl.joint_names", std::vector<std::string> {});
+    zr_joint_names_                  = this->declare_parameter<std::vector<std::string>> ("zr.joint_names", std::vector<std::string>{});
+    zl_joint_names_                  = this->declare_parameter<std::vector<std::string>> ("zl.joint_names", std::vector<std::string>{});
 
-    double zr_position_on_default   = this->declare_parameter<double> ("zr.position_on", 1.0);
-    double zr_position_off_default  = this->declare_parameter<double> ("zr.position_off", 0.0);
-    double zl_position_on_default   = this->declare_parameter<double> ("zl.position_on", 1.0);
-    double zl_position_off_default  = this->declare_parameter<double> ("zl.position_off", 0.0);
-    double zr_speed_on_default      = this->declare_parameter<double> ("zr.speed_on", 1.0);
-    double zr_speed_off_default     = this->declare_parameter<double> ("zr.speed_off", 0.0);
-    double zl_speed_on_default      = this->declare_parameter<double> ("zl.speed_on", 1.0);
-    double zl_speed_off_default     = this->declare_parameter<double> ("zl.speed_off", 0.0);
+    double zr_position_on_default    = this->declare_parameter<double> ("zr.position_on", 1.0);
+    double zr_position_off_default   = this->declare_parameter<double> ("zr.position_off", 0.0);
+    double zl_position_on_default    = this->declare_parameter<double> ("zl.position_on", 1.0);
+    double zl_position_off_default   = this->declare_parameter<double> ("zl.position_off", 0.0);
+    double zr_speed_on_default       = this->declare_parameter<double> ("zr.speed_on", 1.0);
+    double zr_speed_off_default      = this->declare_parameter<double> ("zr.speed_off", 0.0);
+    double zl_speed_on_default       = this->declare_parameter<double> ("zl.speed_on", 1.0);
+    double zl_speed_off_default      = this->declare_parameter<double> ("zl.speed_off", 0.0);
     bool   zr_publish_always_default = this->declare_parameter<bool> ("zr.publish_always", false);
     bool   zl_publish_always_default = this->declare_parameter<bool> ("zl.publish_always", false);
 
-    zr_position_ons_        = this->declare_parameter<std::vector<double>> ("zr.position_ons", std::vector<double> {});
-    zr_position_offs_       = this->declare_parameter<std::vector<double>> ("zr.position_offs", std::vector<double> {});
-    zl_position_ons_        = this->declare_parameter<std::vector<double>> ("zl.position_ons", std::vector<double> {});
-    zl_position_offs_       = this->declare_parameter<std::vector<double>> ("zl.position_offs", std::vector<double> {});
-    zr_speed_ons_           = this->declare_parameter<std::vector<double>> ("zr.speed_ons", std::vector<double> {});
-    zr_speed_offs_          = this->declare_parameter<std::vector<double>> ("zr.speed_offs", std::vector<double> {});
-    zl_speed_ons_           = this->declare_parameter<std::vector<double>> ("zl.speed_ons", std::vector<double> {});
-    zl_speed_offs_          = this->declare_parameter<std::vector<double>> ("zl.speed_offs", std::vector<double> {});
-    zr_publish_always_list_ = this->declare_parameter<std::vector<bool>> ("zr.publish_always_list", std::vector<bool> {});
-    zl_publish_always_list_ = this->declare_parameter<std::vector<bool>> ("zl.publish_always_list", std::vector<bool> {});
+    zr_position_ons_        = this->declare_parameter<std::vector<double>> ("zr.position_ons", std::vector<double>{});
+    zr_position_offs_       = this->declare_parameter<std::vector<double>> ("zr.position_offs", std::vector<double>{});
+    zl_position_ons_        = this->declare_parameter<std::vector<double>> ("zl.position_ons", std::vector<double>{});
+    zl_position_offs_       = this->declare_parameter<std::vector<double>> ("zl.position_offs", std::vector<double>{});
+    zr_speed_ons_           = this->declare_parameter<std::vector<double>> ("zr.speed_ons", std::vector<double>{});
+    zr_speed_offs_          = this->declare_parameter<std::vector<double>> ("zr.speed_offs", std::vector<double>{});
+    zl_speed_ons_           = this->declare_parameter<std::vector<double>> ("zl.speed_ons", std::vector<double>{});
+    zl_speed_offs_          = this->declare_parameter<std::vector<double>> ("zl.speed_offs", std::vector<double>{});
+    zr_publish_always_list_ = this->declare_parameter<std::vector<bool>> ("zr.publish_always_list", std::vector<bool>{});
+    zl_publish_always_list_ = this->declare_parameter<std::vector<bool>> ("zl.publish_always_list", std::vector<bool>{});
 
     if (zr_functions_.empty ()) {
         zr_functions_.push_back (zr_function_legacy);
@@ -307,18 +307,18 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         zl_publish_always_list_.push_back (zl_publish_always_default);
     }
 
-    const auto zr_joint_names_src          = zr_joint_names_;
-    const auto zl_joint_names_src          = zl_joint_names_;
-    const auto zr_position_ons_src         = zr_position_ons_;
-    const auto zr_position_offs_src        = zr_position_offs_;
-    const auto zl_position_ons_src         = zl_position_ons_;
-    const auto zl_position_offs_src        = zl_position_offs_;
-    const auto zr_speed_ons_src            = zr_speed_ons_;
-    const auto zr_speed_offs_src           = zr_speed_offs_;
-    const auto zl_speed_ons_src            = zl_speed_ons_;
-    const auto zl_speed_offs_src           = zl_speed_offs_;
-    const auto zr_publish_always_list_src  = zr_publish_always_list_;
-    const auto zl_publish_always_list_src  = zl_publish_always_list_;
+    const auto zr_joint_names_src         = zr_joint_names_;
+    const auto zl_joint_names_src         = zl_joint_names_;
+    const auto zr_position_ons_src        = zr_position_ons_;
+    const auto zr_position_offs_src       = zr_position_offs_;
+    const auto zl_position_ons_src        = zl_position_ons_;
+    const auto zl_position_offs_src       = zl_position_offs_;
+    const auto zr_speed_ons_src           = zr_speed_ons_;
+    const auto zr_speed_offs_src          = zr_speed_offs_;
+    const auto zl_speed_ons_src           = zl_speed_ons_;
+    const auto zl_speed_offs_src          = zl_speed_offs_;
+    const auto zr_publish_always_list_src = zr_publish_always_list_;
+    const auto zl_publish_always_list_src = zl_publish_always_list_;
 
     zr_joint_names_.clear ();
     zl_joint_names_.clear ();
@@ -338,13 +338,13 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
 
     RCLCPP_INFO (this->get_logger (), "zr.mode: %s", zr_mode_.c_str ());
     for (size_t entry = 0; entry < zr_functions_.size (); entry++) {
-        auto function = zr_functions_[entry];
-        auto jn       = get_string_at (zr_joint_names_src, entry, zr_joint_name_legacy);
-        auto pos_on   = get_double_at (zr_position_ons_src, entry, zr_position_on_default);
-        auto pos_off  = get_double_at (zr_position_offs_src, entry, zr_position_off_default);
-        auto spd_on   = get_double_at (zr_speed_ons_src, entry, zr_speed_on_default);
-        auto spd_off  = get_double_at (zr_speed_offs_src, entry, zr_speed_off_default);
-        auto pub_alw  = get_bool_at (zr_publish_always_list_src, entry, zr_publish_always_default);
+        auto function        = zr_functions_[entry];
+        auto jn              = get_string_at (zr_joint_names_src, entry, zr_joint_name_legacy);
+        auto pos_on          = get_double_at (zr_position_ons_src, entry, zr_position_on_default);
+        auto pos_off         = get_double_at (zr_position_offs_src, entry, zr_position_off_default);
+        auto spd_on          = get_double_at (zr_speed_ons_src, entry, zr_speed_on_default);
+        auto spd_off         = get_double_at (zr_speed_offs_src, entry, zr_speed_off_default);
+        auto pub_alw         = get_bool_at (zr_publish_always_list_src, entry, zr_publish_always_default);
         zr_functions_[entry] = function;
         zr_joint_names_.push_back (jn);
         zr_position_ons_.push_back (pos_on);
@@ -388,13 +388,13 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
 
     RCLCPP_INFO (this->get_logger (), "zl.mode: %s", zl_mode_.c_str ());
     for (size_t entry = 0; entry < zl_functions_.size (); entry++) {
-        auto function = zl_functions_[entry];
-        auto jn       = get_string_at (zl_joint_names_src, entry, zl_joint_name_legacy);
-        auto pos_on   = get_double_at (zl_position_ons_src, entry, zl_position_on_default);
-        auto pos_off  = get_double_at (zl_position_offs_src, entry, zl_position_off_default);
-        auto spd_on   = get_double_at (zl_speed_ons_src, entry, zl_speed_on_default);
-        auto spd_off  = get_double_at (zl_speed_offs_src, entry, zl_speed_off_default);
-        auto pub_alw  = get_bool_at (zl_publish_always_list_src, entry, zl_publish_always_default);
+        auto function        = zl_functions_[entry];
+        auto jn              = get_string_at (zl_joint_names_src, entry, zl_joint_name_legacy);
+        auto pos_on          = get_double_at (zl_position_ons_src, entry, zl_position_on_default);
+        auto pos_off         = get_double_at (zl_position_offs_src, entry, zl_position_off_default);
+        auto spd_on          = get_double_at (zl_speed_ons_src, entry, zl_speed_on_default);
+        auto spd_off         = get_double_at (zl_speed_offs_src, entry, zl_speed_off_default);
+        auto pub_alw         = get_bool_at (zl_publish_always_list_src, entry, zl_publish_always_default);
         zl_functions_[entry] = function;
         zl_joint_names_.push_back (jn);
         zl_position_ons_.push_back (pos_on);
