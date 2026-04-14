@@ -63,6 +63,10 @@ void speed_path_loader::load_speed_path (std::string file_path) {
         std::stringstream                ss (line);
         geometry_msgs::msg::PoseStamped  pose;
         geometry_msgs::msg::TwistStamped twist;
+
+        pose.header.frame_id = "map";
+        twist.header.frame_id = "command/base_link";
+
         std::string                      val;
 
         std::getline (ss, val, ',');

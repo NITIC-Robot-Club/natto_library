@@ -92,8 +92,8 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
             }
 
             if (x == 0.0 && y == 0.0 && z == 0.0) {
-                double vx = -wheel_position_y;
-                double vy = +wheel_position_x;
+                double vx = wheel_position_y;
+                double vy = wheel_position_x;
 
                 command_joint_state_.velocity[i]               = 0.0;
                 command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
