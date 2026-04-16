@@ -6,19 +6,19 @@
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
     <arg name="initial_allow_auto_drive" default="true"/>
 
-    <arg name="urdf_path" default="$(find-pkg-share nhk2025_sample)/urdf/swerve_sample.urdf.xacro"/>
-    <arg name="chassis_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve.yaml"/>
-    <arg name="line_segments_path" default="$(find-pkg-share nhk2025_sample)/config/map/line_segments.csv"/>
-    <arg name="circles_path" default="$(find-pkg-share nhk2025_sample)/config/map/circles.csv"/>
-    <arg name="footprint_param_path" default="$(find-pkg-share nhk2025_sample)/config/footprint.yaml"/>
-    <arg name="lidar_param_path" default="$(find-pkg-share nhk2025_sample)/config/lidar.yaml"/>
-    <arg name="control_param_path" default="$(find-pkg-share nhk2025_sample)/config/control.yaml"/>
-    <arg name="planning_param_path" default="$(find-pkg-share nhk2025_sample)/config/planning.yaml"/>
-    <arg name="localization_param_path" default="$(find-pkg-share nhk2025_sample)/config/localization.yaml"/>
-    <arg name="simulation_param_path" default="$(find-pkg-share nhk2025_sample)/config/chassis/swerve_simulation.yaml"/>
-    <arg name="controller_param_path" default="$(find-pkg-share nhk2025_sample)/config/controller.yaml"/>
-    <arg name="state_graph_path" default="$(find-pkg-share nhk2025_sample)/state_graph/sample.md"/>
-    <arg name="joint_rule_path" default="$(find-pkg-share nhk2025_sample)/config/joint_rule.yaml"/>
+    <arg name="urdf_path" default="$(find-pkg-share natto_nhk2025_sample)/urdf/swerve_sample.urdf.xacro"/>
+    <arg name="chassis_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/chassis/swerve.yaml"/>
+    <arg name="line_segments_path" default="$(find-pkg-share natto_nhk2025_sample)/config/map/line_segments.csv"/>
+    <arg name="circles_path" default="$(find-pkg-share natto_nhk2025_sample)/config/map/circles.csv"/>
+    <arg name="footprint_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/footprint.yaml"/>
+    <arg name="lidar_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/lidar.yaml"/>
+    <arg name="control_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/control.yaml"/>
+    <arg name="planning_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/planning.yaml"/>
+    <arg name="localization_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/localization.yaml"/>
+    <arg name="simulation_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/chassis/swerve_simulation.yaml"/>
+    <arg name="controller_param_path" default="$(find-pkg-share natto_nhk2025_sample)/config/controller.yaml"/>
+    <arg name="state_graph_path" default="$(find-pkg-share natto_nhk2025_sample)/state_graph/sample.md"/>
+    <arg name="joint_rule_path" default="$(find-pkg-share natto_nhk2025_sample)/config/joint_rule.yaml"/>
 
     <arg name="joint_state_topics" default="['/$(var chassis_type)/command_joint_states', '/controller/joint_states', '/behavior/command_joint_states']"/>
 
