@@ -57,6 +57,10 @@ void map_loader::load_line_segments (const std::string &path) {
     std::getline (file, line);
 
     while (std::getline (file, line)) {
+        if (!line.empty () && line[0] == '#') {
+            continue;
+        }
+
         std::stringstream            ss (line);
         natto_msgs::msg::LineSegment seg;
         std::string                  val;
