@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <chrono>
-
 #include "natto_visualization_converter/stl_visualizer.hpp"
+
+#include <chrono>
 
 namespace stl_visualizer {
 
@@ -41,39 +41,42 @@ stl_visualizer::stl_visualizer (const rclcpp::NodeOptions &options) : Node ("stl
     frame_id_        = this->declare_parameter<std::string> ("frame_id", "map");
     file_path_       = this->declare_parameter<std::string> ("file_path", "");
 
-    const double position_x      = this->declare_parameter<double> ("position.x", 0.0);
-    const double position_y      = this->declare_parameter<double> ("position.y", 0.0);
-    const double position_z      = this->declare_parameter<double> ("position.z", 0.0);
-    const double qx     = this->declare_parameter<double> ("quaternion.x", 0.0);
-    const double qy     = this->declare_parameter<double> ("quaternion.y", 0.0);
-    const double qz     = this->declare_parameter<double> ("quaternion.z", 0.0);
-    const double qw     = this->declare_parameter<double> ("quaternion.w", 1.0);
-    const double scale_x  = this->declare_parameter<double> ("scale.x", 1.0);
-    const double scale_y  = this->declare_parameter<double> ("scale.y", 1.0);
-    const double scale_z  = this->declare_parameter<double> ("scale.z", 1.0);
-    const double alpha  = this->declare_parameter<double> ("alpha", 1.0);
+    const double position_x = this->declare_parameter<double> ("position.x", 0.0);
+    const double position_y = this->declare_parameter<double> ("position.y", 0.0);
+    const double position_z = this->declare_parameter<double> ("position.z", 0.0);
+    const double qx         = this->declare_parameter<double> ("quaternion.x", 0.0);
+    const double qy         = this->declare_parameter<double> ("quaternion.y", 0.0);
+    const double qz         = this->declare_parameter<double> ("quaternion.z", 0.0);
+    const double qw         = this->declare_parameter<double> ("quaternion.w", 1.0);
+    const double scale_x    = this->declare_parameter<double> ("scale.x", 1.0);
+    const double scale_y    = this->declare_parameter<double> ("scale.y", 1.0);
+    const double scale_z    = this->declare_parameter<double> ("scale.z", 1.0);
+    const double color_r    = this->declare_parameter<double> ("color.red", 1.0);
+    const double color_g    = this->declare_parameter<double> ("color.green", 1.0);
+    const double color_b    = this->declare_parameter<double> ("color.blue", 1.0);
+    const double alpha      = this->declare_parameter<double> ("alpha", 1.0);
 
-    marker_.header.frame_id                   = frame_id_;
-    marker_.ns                                = "stl_visualizer";
-    marker_.id                                = 0;
-    marker_.type                              = visualization_msgs::msg::Marker::MESH_RESOURCE;
-    marker_.action                            = visualization_msgs::msg::Marker::ADD;
-    marker_.pose.position.x                   = position_x;
-    marker_.pose.position.y                   = position_y;
-    marker_.pose.position.z                   = position_z;
-    marker_.pose.orientation.x                = qx;
-    marker_.pose.orientation.y                = qy;
-    marker_.pose.orientation.z                = qz;
-    marker_.pose.orientation.w                = qw;
-    marker_.scale.x                           = scale_x;
-    marker_.scale.y                           = scale_y;
-    marker_.scale.z                           = scale_z;
-    marker_.color.r                           = 1.0f;
-    marker_.color.g                           = 1.0f;
-    marker_.color.b                           = 1.0f;
-    marker_.color.a                           = static_cast<float> (alpha);
-    marker_.mesh_use_embedded_materials        = false;
-    marker_.mesh_resource                     = to_mesh_resource_uri (file_path_);
+    marker_.header.frame_id             = frame_id_;
+    marker_.ns                          = "stl_visualizer";
+    marker_.id                          = 0;
+    marker_.type                        = visualization_msgs::msg::Marker::MESH_RESOURCE;
+    marker_.action                      = visualization_msgs::msg::Marker::ADD;
+    marker_.pose.position.x             = position_x;
+    marker_.pose.position.y             = position_y;
+    marker_.pose.position.z             = position_z;
+    marker_.pose.orientation.x          = qx;
+    marker_.pose.orientation.y          = qy;
+    marker_.pose.orientation.z          = qz;
+    marker_.pose.orientation.w          = qw;
+    marker_.scale.x                     = scale_x;
+    marker_.scale.y                     = scale_y;
+    marker_.scale.z                     = scale_z;
+    marker_.color.r                     = static_cast<float> (color_r);
+    marker_.color.g                     = static_cast<float> (color_g);
+    marker_.color.b                     = static_cast<float> (color_b);
+    marker_.color.a                     = static_cast<float> (alpha);
+    marker_.mesh_use_embedded_materials = false;
+    marker_.mesh_resource               = to_mesh_resource_uri (file_path_);
 
     RCLCPP_INFO (this->get_logger (), "stl_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
