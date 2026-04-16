@@ -33,4 +33,14 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE speed_path_visualizer
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "stl_visualizer::stl_visualizer"
+    EXECUTABLE stl_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "area_visualizer::area_visualizer"
+    EXECUTABLE area_visualizer
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
