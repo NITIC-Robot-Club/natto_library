@@ -38,4 +38,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE stl_visualizer
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "area_visualizer::area_visualizer"
+    EXECUTABLE area_visualizer
+)
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
