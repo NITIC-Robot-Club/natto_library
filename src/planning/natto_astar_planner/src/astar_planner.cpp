@@ -438,7 +438,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     path.header.stamp    = this->now ();
     for (auto &p : rev) {
         geometry_msgs::msg::PoseStamped ps;
-        ps.header = path.header;
+        ps.header          = path.header;
         ps.pose.position.x = ox + (static_cast<double> (p.first) + 0.5) * res;
         ps.pose.position.y = oy + (static_cast<double> (p.second) + 0.5) * res;
         path.poses.push_back (ps);

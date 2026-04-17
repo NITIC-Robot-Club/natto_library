@@ -18,6 +18,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
 #include "tf2/utils.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include "geometry_msgs/msg/polygon_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -25,8 +27,6 @@
 #include "nav_msgs/msg/path.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
 
 #include <algorithm>
 #include <array>
@@ -48,11 +48,11 @@ class astar_planner : public rclcpp::Node {
     astar_planner (const rclcpp::NodeOptions &node_options);
 
    private:
-    int    theta_resolution_deg_;
+    int         theta_resolution_deg_;
     std::string map_frame_;
-    double xy_inflation_, xy_offset_, yaw_offset_;
-    double grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
-    double replan_distance_threshold_;
+    double      xy_inflation_, xy_offset_, yaw_offset_;
+    double      grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
+    double      replan_distance_threshold_;
 
     nav_msgs::msg::OccupancyGrid       raw_map_;
     nav_msgs::msg::OccupancyGrid       costmap_;
