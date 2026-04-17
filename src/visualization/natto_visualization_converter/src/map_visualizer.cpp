@@ -72,6 +72,9 @@ void map_visualizer::map_callback (const natto_msgs::msg::Map::SharedPtr msg) {
 }
 
 void map_visualizer::timer_callback () {
+    for(auto &marker : marker_array_.markers) {
+        marker.header.stamp = this->now ();
+    }
     marker_publisher_->publish (marker_array_);
 }
 

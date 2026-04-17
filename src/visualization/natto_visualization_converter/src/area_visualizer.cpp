@@ -38,6 +38,9 @@ area_visualizer::area_visualizer (const rclcpp::NodeOptions &options) : Node ("a
     const double color_blue  = this->declare_parameter<double> ("color.blue", 0.0);
     const double alpha       = this->declare_parameter<double> ("alpha", 1.0);
 
+    const bool   reverse_y        = this->declare_parameter<bool> ("reverse_y", false);
+    const double reverse_y_offset = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+
     const double center_x = (start_x + end_x) * 0.5;
     const double center_y = (start_y + end_y) * 0.5;
     const double center_z = (start_z + end_z) * 0.5;
@@ -58,6 +61,12 @@ area_visualizer::area_visualizer (const rclcpp::NodeOptions &options) : Node ("a
     marker_.color.g            = static_cast<float> (color_green);
     marker_.color.b            = static_cast<float> (color_blue);
     marker_.color.a            = static_cast<float> (alpha);
+
+    if (reverse_y) {
+        marker_.pose.position.y *= -1.0;
+        marker_.pose.position.y += reverse_y_offset;
+        marker_.scale.y *= -1.0;
+    }
 
     RCLCPP_INFO (this->get_logger (), "area_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);

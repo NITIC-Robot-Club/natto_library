@@ -27,6 +27,7 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     goal_reached_subscription_ = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&astar_planner::goal_reached_callback, this, std::placeholders::_1));
 
     theta_resolution_deg_      = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
+    map_frame_                 = this->declare_parameter<std::string> ("map_frame", "map");
     xy_inflation_              = this->declare_parameter<double> ("xy_inflation", 0.5);
     xy_offset_                 = this->declare_parameter<double> ("xy_offset", 0.1);
     yaw_offset_                = this->declare_parameter<double> ("yaw_offset", 0.1);
@@ -35,11 +36,14 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     grad_gamma_                = this->declare_parameter<double> ("grad_gamma", 0.0);
     grad_step_size_            = this->declare_parameter<double> ("grad_step_size", 0.1);
     replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.2);
+    tf_buffer_                 = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
+    tf_listener_               = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 
-    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (100), std::bind (&astar_planner::replan_timer_callback, this));
+    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (10), std::bind (&astar_planner::replan_timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "theta_resolution_deg: %d", theta_resolution_deg_);
+    RCLCPP_INFO (this->get_logger (), "map_frame: %s", map_frame_.c_str ());
     RCLCPP_INFO (this->get_logger (), "xy_inflation: %.2f", xy_inflation_);
     RCLCPP_INFO (this->get_logger (), "xy_offset: %.2f", xy_offset_);
     RCLCPP_INFO (this->get_logger (), "yaw_offset: %.2f", yaw_offset_);
@@ -59,15 +63,34 @@ void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid:
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    if (is_same_goal (*msg, previous_goal_pose_)) {
+    if (msg->header.frame_id.empty ()) {
+        RCLCPP_WARN (this->get_logger (), "Received goal_pose with empty frame_id. Ignoring.");
+        return;
+    }
+
+    geometry_msgs::msg::PoseStamped goal_pose_in_map;
+    if (msg->header.frame_id == map_frame_) {
+        goal_pose_in_map = *msg;
+    } else {
+        try {
+            const auto transform = tf_buffer_->lookupTransform (map_frame_, msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec (0.1));
+            tf2::doTransform (*msg, goal_pose_in_map, transform);
+            goal_pose_in_map.header.frame_id = map_frame_;
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_WARN (this->get_logger (), "Failed to transform goal_pose from %s to %s: %s", msg->header.frame_id.c_str (), map_frame_.c_str (), ex.what ());
+            return;
+        }
+    }
+
+    if (is_same_goal (goal_pose_in_map, previous_goal_pose_)) {
         double min_dist = calculate_min_distance_to_path ();
         if (min_dist <= replan_distance_threshold_) {
             return;
         }
     }
 
-    goal_pose_          = *msg;
-    previous_goal_pose_ = *msg;
+    goal_pose_          = goal_pose_in_map;
+    previous_goal_pose_ = goal_pose_in_map;
     create_path ();
 }
 
@@ -415,6 +438,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     path.header.stamp    = this->now ();
     for (auto &p : rev) {
         geometry_msgs::msg::PoseStamped ps;
+        ps.header = path.header;
         ps.pose.position.x = ox + (static_cast<double> (p.first) + 0.5) * res;
         ps.pose.position.y = oy + (static_cast<double> (p.second) + 0.5) * res;
         path.poses.push_back (ps);
@@ -761,6 +785,9 @@ void astar_planner::replan_timer_callback () {
     if (min_distance > replan_distance_threshold_) {
         RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_);
         create_path ();
+    } else {
+        path_.header.stamp = this->now ();
+        path_publisher_->publish (path_);
     }
 }
 

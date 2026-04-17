@@ -25,14 +25,18 @@
 #include "nav_msgs/msg/path.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -45,6 +49,7 @@ class astar_planner : public rclcpp::Node {
 
    private:
     int    theta_resolution_deg_;
+    std::string map_frame_;
     double xy_inflation_, xy_offset_, yaw_offset_;
     double grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
     double replan_distance_threshold_;
@@ -95,6 +100,8 @@ class astar_planner : public rclcpp::Node {
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                goal_reached_subscription_;
+    std::unique_ptr<tf2_ros::Buffer>                                    tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener>                         tf_listener_;
     rclcpp::TimerBase::SharedPtr                                        replan_timer_;
 };
 
