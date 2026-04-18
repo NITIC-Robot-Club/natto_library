@@ -17,8 +17,9 @@
 namespace astar_planner {
 
 astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("astar_planner", node_options) {
-    path_publisher_    = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
-    costmap_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    path_publisher_      = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
+    costmap_publisher_   = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    goal_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("fixed_goal_pose", 10);
     occupancy_grid_subscription_ =
         this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
     goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
@@ -86,8 +87,10 @@ void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::S
 
     if (is_same_goal (goal_pose_in_map, previous_goal_pose_)) {
         size_t closest_index = calculate_min_distance_to_path_index ();
-        double min_distance = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
-        double min_angle    = tf2::getYaw (path_.poses[closest_index].pose.orientation);
+        double min_distance  = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
+        double min_angle     = tf2::getYaw (path_.poses[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+        min_angle            = abs (fix_angle (min_angle));
+
         if (min_distance <= replan_distance_threshold_m_) {
             return;
         }
@@ -123,6 +126,11 @@ void astar_planner::create_path () {
 
     auto start_pose = find_free_space_pose (current_pose_.pose);
     auto goal_pose  = find_free_space_pose (goal_pose_.pose);
+    geometry_msgs::msg::PoseStamped fixed_goal_pose;
+    fixed_goal_pose.header.frame_id = map_frame_;
+    fixed_goal_pose.header.stamp    = this->get_clock ()->now ();
+    fixed_goal_pose.pose           = goal_pose;
+    goal_pose_publisher_->publish (fixed_goal_pose);
 
     current_pose_.pose = start_pose;
     goal_pose_.pose    = goal_pose;
@@ -793,7 +801,8 @@ void astar_planner::replan_timer_callback () {
     size_t closest_index = calculate_min_distance_to_path_index ();
 
     double min_distance = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
-    double min_angle    = tf2::getYaw (path_.poses[closest_index].pose.orientation);
+    double min_angle    = tf2::getYaw (path_.poses[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    min_angle           = abs (fix_angle (min_angle));
 
     if (min_distance > replan_distance_threshold_m_) {
         RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_m_);
