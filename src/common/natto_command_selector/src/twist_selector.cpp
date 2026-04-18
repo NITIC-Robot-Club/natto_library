@@ -23,7 +23,7 @@ twist_selector::twist_selector (const rclcpp::NodeOptions &node_options) : Node 
     selected_twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
     allow_auto_drive_            = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
 
-    double frequency = this->declare_parameter<double> ("frequency", 100.0);
+    double frequency = this->declare_parameter<double> ("frequency", 10.0);
     RCLCPP_INFO (this->get_logger (), "twist_selector node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "initial_allow_auto_drive: %s", allow_auto_drive_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "frequency: %f", frequency);
