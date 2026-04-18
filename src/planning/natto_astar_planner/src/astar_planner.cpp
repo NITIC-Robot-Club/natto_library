@@ -326,27 +326,103 @@ bool astar_planner::rectangle_is_collision_free (const size_t cx, const size_t c
     size_t center_idx = cy * width + cx;
     if (is_blocked (center_idx)) return false;
 
-    if (footprint_.polygon.points.size () < 4) {
+    if (footprint_.polygon.points.size () < 3) {
         return true;
     }
 
     double wx = ox + (static_cast<double> (cx) + 0.5) * res;
     double wy = oy + (static_cast<double> (cy) + 0.5) * res;
 
-    double yaw_sin = sin (yaw);
-    double yaw_cos = cos (yaw);
+    double yaw_sin = std::sin (yaw);
+    double yaw_cos = std::cos (yaw);
 
-    for (const auto &vertex : footprint_.polygon.points) {
-        double vx = wx + vertex.x * yaw_cos - vertex.y * yaw_sin;
-        double vy = wy + vertex.x * yaw_sin + vertex.y * yaw_cos;
+    const size_t N = footprint_.polygon.points.size ();
+    std::vector<double> poly_x (N);
+    std::vector<double> poly_y (N);
+
+    double min_wx = std::numeric_limits<double>::infinity ();
+    double max_wx = -std::numeric_limits<double>::infinity ();
+    double min_wy = std::numeric_limits<double>::infinity ();
+    double max_wy = -std::numeric_limits<double>::infinity ();
+
+    for (size_t i = 0; i < N; ++i) {
+        const auto &vertex = footprint_.polygon.points[i];
+        double      vx     = wx + vertex.x * yaw_cos - vertex.y * yaw_sin;
+        double      vy     = wy + vertex.x * yaw_sin + vertex.y * yaw_cos;
+
+        poly_x[i] = vx;
+        poly_y[i] = vy;
+
+        min_wx = std::min (min_wx, vx);
+        max_wx = std::max (max_wx, vx);
+        min_wy = std::min (min_wy, vy);
+        max_wy = std::max (max_wy, vy);
 
         size_t gx = static_cast<size_t> ((vx - ox) / res);
         size_t gy = static_cast<size_t> ((vy - oy) / res);
-
         if (gx >= width || gy >= height) return false;
+        if (is_blocked (gy * width + gx)) return false;
+    }
 
-        size_t vidx = gy * width + gx;
-        if (is_blocked (vidx)) return false;
+    auto point_inside_polygon = [&] (double px, double py) {
+        bool inside = false;
+        for (size_t i = 0, j = N - 1; i < N; j = i++) {
+            const double xi = poly_x[i], yi = poly_y[i];
+            const double xj = poly_x[j], yj = poly_y[j];
+            const bool   cross_y = ((yi > py) != (yj > py));
+            if (!cross_y) continue;
+            const double x_intersect = (xj - xi) * (py - yi) / (yj - yi) + xi;
+            if (px < x_intersect) inside = !inside;
+        }
+        return inside;
+    };
+
+    auto point_segment_dist_sq = [] (double px, double py, double ax, double ay, double bx, double by) {
+        const double abx = bx - ax;
+        const double aby = by - ay;
+        const double apx = px - ax;
+        const double apy = py - ay;
+        const double ab2 = abx * abx + aby * aby;
+        double       t   = 0.0;
+        if (ab2 > 1e-12) {
+            t = (apx * abx + apy * aby) / ab2;
+            t = std::clamp (t, 0.0, 1.0);
+        }
+        const double qx = ax + t * abx;
+        const double qy = ay + t * aby;
+        const double dx = px - qx;
+        const double dy = py - qy;
+        return dx * dx + dy * dy;
+    };
+
+    if (max_wx < ox || min_wx > ox + static_cast<double> (width) * res || max_wy < oy || min_wy > oy + static_cast<double> (height) * res) {
+        return false;
+    }
+
+    size_t min_gx = static_cast<size_t> (std::max (0.0, std::floor ((min_wx - ox) / res)));
+    size_t max_gx = static_cast<size_t> (std::min (static_cast<double> (width - 1), std::floor ((max_wx - ox) / res)));
+    size_t min_gy = static_cast<size_t> (std::max (0.0, std::floor ((min_wy - oy) / res)));
+    size_t max_gy = static_cast<size_t> (std::min (static_cast<double> (height - 1), std::floor ((max_wy - oy) / res)));
+
+    const double edge_tol_sq = 0.25 * res * res;
+
+    for (size_t gy = min_gy; gy <= max_gy; ++gy) {
+        for (size_t gx = min_gx; gx <= max_gx; ++gx) {
+            const size_t idx = gy * width + gx;
+            if (!is_blocked (idx)) continue;
+
+            const double px = ox + (static_cast<double> (gx) + 0.5) * res;
+            const double py = oy + (static_cast<double> (gy) + 0.5) * res;
+
+            if (point_inside_polygon (px, py)) return false;
+
+            for (size_t i = 0; i < N; ++i) {
+                const size_t j = (i + 1) % N;
+                if (point_segment_dist_sq (px, py, poly_x[i], poly_y[i], poly_x[j], poly_y[j]) <= edge_tol_sq) {
+                    return false;
+                }
+            }
+        }
     }
 
     return true;
