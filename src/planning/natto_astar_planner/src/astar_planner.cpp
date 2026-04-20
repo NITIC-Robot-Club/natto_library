@@ -131,12 +131,12 @@ void astar_planner::create_path () {
     if (goal_pose_.header.frame_id.empty ()) return;
     if (current_pose_.header.frame_id.empty ()) return;
 
-    auto start_pose = find_free_space_pose (current_pose_.pose);
-    auto goal_pose  = find_free_space_pose (goal_pose_.pose);
+    auto                            start_pose = find_free_space_pose (current_pose_.pose);
+    auto                            goal_pose  = find_free_space_pose (goal_pose_.pose);
     geometry_msgs::msg::PoseStamped fixed_goal_pose;
     fixed_goal_pose.header.frame_id = map_frame_;
     fixed_goal_pose.header.stamp    = this->get_clock ()->now ();
-    fixed_goal_pose.pose           = goal_pose;
+    fixed_goal_pose.pose            = goal_pose;
     goal_pose_publisher_->publish (fixed_goal_pose);
 
     current_pose_.pose = start_pose;
@@ -343,7 +343,7 @@ bool astar_planner::rectangle_is_collision_free (const size_t cx, const size_t c
     double yaw_sin = std::sin (yaw);
     double yaw_cos = std::cos (yaw);
 
-    const size_t N = footprint_.polygon.points.size ();
+    const size_t        N = footprint_.polygon.points.size ();
     std::vector<double> poly_x (N);
     std::vector<double> poly_y (N);
 
