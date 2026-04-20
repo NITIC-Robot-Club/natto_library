@@ -86,6 +86,13 @@ void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::S
     }
 
     if (is_same_goal (goal_pose_in_map, previous_goal_pose_)) {
+        if (path_.poses.empty ()) {
+            goal_pose_          = goal_pose_in_map;
+            previous_goal_pose_ = goal_pose_in_map;
+            create_path ();
+            return;
+        }
+
         size_t closest_index = calculate_min_distance_to_path_index ();
         double min_distance  = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
         double min_angle     = tf2::getYaw (path_.poses[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
