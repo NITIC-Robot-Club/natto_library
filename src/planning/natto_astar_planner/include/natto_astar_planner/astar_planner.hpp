@@ -95,6 +95,7 @@ class astar_planner : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr                   path_publisher_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr          costmap_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       goal_pose_publisher_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr       occupancy_grid_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;

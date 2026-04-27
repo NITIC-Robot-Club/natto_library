@@ -85,7 +85,11 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
                 }
             } else if (msg->arguments_names[i] == "yaw") {
                 tf2::Quaternion q;
-                q.setRPY (0.0, 0.0, std::stod (msg->arguments_values[i]) * M_PI / 180.0);
+                if (reverse_y_) {
+                    q.setRPY (0.0, 0.0, -std::stod (msg->arguments_values[i]) * M_PI / 180.0);
+                } else {
+                    q.setRPY (0.0, 0.0, std::stod (msg->arguments_values[i]) * M_PI / 180.0);
+                }
                 goal_pose_.orientation = tf2::toMsg (q);
             }
         }
