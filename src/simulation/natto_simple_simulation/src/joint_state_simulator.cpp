@@ -23,6 +23,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_ = this->declare_parameter<std::string> ("chassis_type", "");
+    simulation_frame_id_ = this->declare_parameter<std::string> ("simulation_frame_id", "simulation");
     wheel_names_  = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
     wheel_radius_ = this->declare_parameter<double> ("wheel_radius", 0.05);
     frequency_    = this->declare_parameter<double> ("frequency", 1000.0);
@@ -330,7 +331,7 @@ void joint_state_simulator::timer_callback () {
     geometry_msgs::msg::TransformStamped tf_msg;
     tf_msg.header.stamp            = this->now ();
     tf_msg.header.frame_id         = "map";
-    tf_msg.child_frame_id          = "simulation";
+    tf_msg.child_frame_id          = simulation_frame_id_;
     tf_msg.transform.translation.x = current_pose_.pose.position.x;
     tf_msg.transform.translation.y = current_pose_.pose.position.y;
     tf_msg.transform.translation.z = current_pose_.pose.position.z;

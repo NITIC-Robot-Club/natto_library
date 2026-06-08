@@ -86,6 +86,8 @@ void speed_path_controller::timer_callback () {
         }
     }
 
+    closest_index_ += 1;
+
     if (closest_index_ >= speed_path_.path.size ()) {
         closest_index_ = speed_path_.path.size () - 1;
     }
