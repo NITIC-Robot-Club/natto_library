@@ -22,11 +22,11 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
-    chassis_type_ = this->declare_parameter<std::string> ("chassis_type", "");
+    chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
     simulation_frame_id_ = this->declare_parameter<std::string> ("simulation_frame_id", "simulation");
-    wheel_names_  = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    wheel_radius_ = this->declare_parameter<double> ("wheel_radius", 0.05);
-    frequency_    = this->declare_parameter<double> ("frequency", 1000.0);
+    wheel_names_         = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    wheel_radius_        = this->declare_parameter<double> ("wheel_radius", 0.05);
+    frequency_           = this->declare_parameter<double> ("frequency", 1000.0);
 
     initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
