@@ -126,3 +126,39 @@ speed_path_visualizer ノードは、natto_msgs/msg/SpeedPath メッセージを
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | speed_path | natto_msgs/msg/SpeedPath | スピードパスデータ |
+
+
+# steering_vector_visualizer
+steering_vector_visualizer ノードは、`command_joint_states` を受信し、swerve シャーシの各ホイールの向きと速度をベクトルとして可視化します。
+
+## 機能
+- `chassis_calculator` と同じパラメータ名で swerve 用の設定を受け取る
+- 各ホイールのステア角と車輪速度から、長さ付きの矢印を生成
+- 連続する `command_joint_states` のステア角差分を 5 サンプル平均し、車体前方 0° を始点にした円弧状ステア速マーカーを生成
+- `visualization_msgs/msg/MarkerArray` としてパブリッシュ
+- RViz では `/visualization/steering_vector` の `MarkerArray` ディスプレイで確認できる
+
+## パラメーター
+| パラメーター名 | 型 | デフォルト値 | 説明 |
+| - | - | - | - |
+| chassis_type | string | "" | シャーシタイプ（`swerve` のみ対応） |
+| wheel_radius | double | 0.05 | ホイール半径（m）。回転速度を表示長に変換するために使用 |
+| wheel_names | string[] | {""} | ホイールジョイント名のリスト |
+| wheel_base_names | string[] | {""} | ホイールベースジョイント名のリスト |
+| infinite_swerve_mode | bool | false | `chassis_calculator` 互換のための設定 |
+| frequency | double | 100.0 | マーカー配列をパブリッシュする周期（Hz） |
+| frame_id | string | "command/base_link" | マーカーのフレームID |
+| line_width | double | 0.05 | 矢印の太さ |
+| vector_scale | double | 0.25 | 車輪速度に掛ける表示スケール |
+| rotation_vector_scale | double | 0.12 | 円弧の半径スケール |
+| rotation_vector_line_width | double | 0.03 | 円弧と矢印の線幅 |
+
+## パブリッシャー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| marker_array | visualization_msgs/msg/MarkerArray | 変換したステアベクトル |
+
+## サブスクライバー
+| トピック名 | メッセージ型 | 説明 |
+| - | - | - |
+| command_joint_states | sensor_msgs/msg/JointState | `chassis_calculator` の出力 |

@@ -29,6 +29,11 @@ rclcpp_components_register_node(${PROJECT_NAME}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN "steering_vector_visualizer::steering_vector_visualizer"
+    EXECUTABLE steering_vector_visualizer
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN "speed_path_visualizer::speed_path_visualizer"
     EXECUTABLE speed_path_visualizer
 )

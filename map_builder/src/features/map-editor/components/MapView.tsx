@@ -526,13 +526,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       } else {
         const path = buildArcPath(circle, viewport)
         if (path) {
+          const arcColor = isSelected ? "#ffd166" : "#e2a95f"
           arcElements.push(
             <path
               key={`${circle.id}-arc`}
               d={path}
-              stroke={isSelected ? '#ffd166' : '#e2a95f'}
+              stroke={arcColor}
               strokeWidth={isSelected ? 3 : 2.2}
               fill="none"
+              markerEnd={isSelected ? "url(#mapViewArcArrowSelected)" : "url(#mapViewArcArrow)"}
               onPointerDown={(event) => {
                 event.stopPropagation()
                 onSelectElement({ type: 'circle', circleId: circle.id })
@@ -604,6 +606,28 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           onContextMenu={(event) => event.preventDefault()}
         >
           <defs>
+            <marker
+              id="mapViewArcArrow"
+              markerWidth={12}
+              markerHeight={12}
+              refX={10}
+              refY={6}
+              markerUnits="userSpaceOnUse"
+              orient="auto"
+            >
+              <path d="M 0 0 L 12 6 L 0 12 z" fill="#e2a95f" />
+            </marker>
+            <marker
+              id="mapViewArcArrowSelected"
+              markerWidth={12}
+              markerHeight={12}
+              refX={10}
+              refY={6}
+              markerUnits="userSpaceOnUse"
+              orient="auto"
+            >
+              <path d="M 0 0 L 12 6 L 0 12 z" fill="#ffd166" />
+            </marker>
             <pattern
               id="mapGrid"
               width={viewport.scale}
