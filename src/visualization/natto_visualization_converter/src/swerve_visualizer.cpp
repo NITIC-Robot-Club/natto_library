@@ -23,7 +23,7 @@
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-namespace steering_vector_visualizer {
+namespace swerve_visualizer {
 
 namespace {
 
@@ -61,9 +61,9 @@ std::vector<geometry_msgs::msg::Point> build_arc_points (
 
 }  // namespace
 
-steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOptions &options) : Node ("steering_vector_visualizer", options) {
+swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node ("swerve_visualizer", options) {
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&steering_vector_visualizer::joint_state_callback, this, std::placeholders::_1));
+    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
     double frequency      = this->declare_parameter<double> ("frequency", 100.0);
     chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
@@ -94,11 +94,11 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
     steering_speed_history_index_.assign (wheel_names_.size (), 0);
     steering_speed_history_count_.assign (wheel_names_.size (), 0);
 
-    RCLCPP_INFO (this->get_logger (), "steering_vector_visualizer node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     if (chassis_type_ != "swerve") {
-        RCLCPP_WARN (this->get_logger (), "steering_vector_visualizer supports only swerve chassis_type. No markers will be published.");
+        RCLCPP_WARN (this->get_logger (), "swerve_visualizer supports only swerve chassis_type. No markers will be published.");
     }
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.3f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
@@ -111,10 +111,10 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
     RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", wheel_names_.size ());
 
-    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&steering_vector_visualizer::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&swerve_visualizer::timer_callback, this));
 }
 
-void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
+void swerve_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     // command_joint_states の連続差分を少しだけ平滑化して、低速域の符号反転を抑える。
     if (has_previous_joint_state_) {
         const rclcpp::Time current_stamp  (msg->header.stamp);
@@ -162,7 +162,7 @@ void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::J
     joint_state_              = *msg;
 }
 
-void steering_vector_visualizer::timer_callback () {
+void swerve_visualizer::timer_callback () {
     marker_array_.markers.clear ();
 
     visualization_msgs::msg::Marker clear_marker;
@@ -308,7 +308,7 @@ void steering_vector_visualizer::timer_callback () {
     marker_pub_->publish (marker_array_);
 }
 
-}  // namespace steering_vector_visualizer
+}  // namespace swerve_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (steering_vector_visualizer::steering_vector_visualizer)
+RCLCPP_COMPONENTS_REGISTER_NODE (swerve_visualizer::swerve_visualizer)

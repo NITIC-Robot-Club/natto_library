@@ -128,8 +128,8 @@ speed_path_visualizer ノードは、natto_msgs/msg/SpeedPath メッセージを
 | speed_path | natto_msgs/msg/SpeedPath | スピードパスデータ |
 
 
-# steering_vector_visualizer
-steering_vector_visualizer ノードは、`command_joint_states` を受信し、swerve シャーシの各ホイールの向きと速度をベクトルとして可視化します。
+# swerve_visualizer
+swerve_visualizer ノードは、`command_joint_states` を受信し、swerve シャーシの各ホイールの向きと速度をベクトルとして可視化します。
 
 ## 機能
 - `chassis_calculator` と同じパラメータ名で swerve 用の設定を受け取る
@@ -158,7 +158,8 @@ steering_vector_visualizer ノードは、`command_joint_states` を受信し、
 ## 調整の目安
 - `steering_speed_history_length` を増やすと円弧の速度表示がなめらかになり、減らすと生の変化に近づく
 - `steering_speed_render_alpha` を上げると表示が速く追従し、下げると残像が長くなる
-- 低速域の見やすさを優先したい場合は `steering_speed_render_alpha` を少し下げる
+- 低速域を見やすくしたい場合は `steering_speed_render_alpha` を少し下げる
+- 平滑化の影響で表示は実際の変化から少し遅れて見えるため、値のズレが気になる場合は `steering_speed_history_length` と `steering_speed_render_alpha` を調整する
 
 
 ## launch での調整

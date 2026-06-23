@@ -36,7 +36,7 @@
         </composable_node>
 
         <!-- ステアベクトル表示 -->
-        <composable_node pkg="natto_visualization_converter" plugin="steering_vector_visualizer::steering_vector_visualizer" name="steering_vector" namespace="visualization/steering_vector">
+        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="swerve_visualizer" namespace="visualization/swerve_visualizer">
             <param from="$(var chassis_param_path)"/>
             <param name="frequency" value="$(var fps)"/>
             <param name="frame_id" value="command/base_link"/>
