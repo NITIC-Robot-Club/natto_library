@@ -14,14 +14,15 @@
 
 #include "natto_visualization_converter/swerve_visualizer.hpp"
 
+#include "tf2/utils.hpp"
+
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
-
-#include "tf2/utils.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace swerve_visualizer {
 
@@ -39,9 +40,8 @@ double normalize_angle (double angle) {
     return std::atan2 (std::sin (angle), std::cos (angle));
 }
 
-std::vector<geometry_msgs::msg::Point> build_arc_points (
-    const geometry_msgs::msg::Point &center, double start_angle, double delta, double radius) {
-    const int segments = std::max (8, static_cast<int> (std::ceil (std::abs (delta) / (M_PI / 18.0))));
+std::vector<geometry_msgs::msg::Point> build_arc_points (const geometry_msgs::msg::Point &center, double start_angle, double delta, double radius) {
+    const int                              segments = std::max (8, static_cast<int> (std::ceil (std::abs (delta) / (M_PI / 18.0))));
     std::vector<geometry_msgs::msg::Point> points;
     points.reserve (static_cast<size_t> (segments) + 1);
 
@@ -62,23 +62,23 @@ std::vector<geometry_msgs::msg::Point> build_arc_points (
 }  // namespace
 
 swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node ("swerve_visualizer", options) {
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
+    marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
-    double frequency      = this->declare_parameter<double> ("frequency", 100.0);
-    chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
-    wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    wheel_base_names_     = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
-    infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "command/base_link");
-    line_width_                 = this->declare_parameter<double> ("line_width", 0.05);
-    vector_scale_               = this->declare_parameter<double> ("vector_scale", 0.25);
-    rotation_vector_scale_      = this->declare_parameter<double> ("rotation_vector_scale", 0.12);
-    rotation_vector_line_width_ = this->declare_parameter<double> ("rotation_vector_line_width", 0.03);
+    double frequency                               = this->declare_parameter<double> ("frequency", 100.0);
+    chassis_type_                                  = this->declare_parameter<std::string> ("chassis_type", "");
+    wheel_radius_                                  = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_names_                                   = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    wheel_base_names_                              = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+    infinite_swerve_mode_                          = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+    frame_id_                                      = this->declare_parameter<std::string> ("frame_id", "command/base_link");
+    line_width_                                    = this->declare_parameter<double> ("line_width", 0.05);
+    vector_scale_                                  = this->declare_parameter<double> ("vector_scale", 0.25);
+    rotation_vector_scale_                         = this->declare_parameter<double> ("rotation_vector_scale", 0.12);
+    rotation_vector_line_width_                    = this->declare_parameter<double> ("rotation_vector_line_width", 0.03);
     const long steering_speed_history_length_param = this->declare_parameter<long> ("steering_speed_history_length", 5L);
-    steering_speed_history_length_ = static_cast<size_t> (std::max<long> (1L, steering_speed_history_length_param));
-    steering_speed_render_alpha_   = std::clamp (this->declare_parameter<double> ("steering_speed_render_alpha", 0.16), 0.0, 1.0);
+    steering_speed_history_length_                 = static_cast<size_t> (std::max<long> (1L, steering_speed_history_length_param));
+    steering_speed_render_alpha_                   = std::clamp (this->declare_parameter<double> ("steering_speed_render_alpha", 0.16), 0.0, 1.0);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -117,31 +117,28 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node
 void swerve_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     // command_joint_states の連続差分を少しだけ平滑化して、低速域の符号反転を抑える。
     if (has_previous_joint_state_) {
-        const rclcpp::Time current_stamp  (msg->header.stamp);
+        const rclcpp::Time current_stamp (msg->header.stamp);
         const rclcpp::Time previous_stamp (previous_joint_state_.header.stamp);
-        const double       dt             = (current_stamp - previous_stamp).seconds ();
+        const double       dt = (current_stamp - previous_stamp).seconds ();
 
         if (dt > 1e-6) {
             for (size_t i = 0; i < wheel_base_names_.size (); ++i) {
                 const int current_idx  = find_index (msg->name, wheel_base_names_[i]);
                 const int previous_idx = find_index (previous_joint_state_.name, wheel_base_names_[i]);
 
-                if (
-                    current_idx < 0 || previous_idx < 0 ||
-                    static_cast<size_t> (current_idx) >= msg->position.size () ||
-                    static_cast<size_t> (previous_idx) >= previous_joint_state_.position.size ()) {
+                if (current_idx < 0 || previous_idx < 0 || static_cast<size_t> (current_idx) >= msg->position.size () || static_cast<size_t> (previous_idx) >= previous_joint_state_.position.size ()) {
                     continue;
                 }
 
-                const double current_angle = msg->position[static_cast<size_t> (current_idx)];
+                const double current_angle  = msg->position[static_cast<size_t> (current_idx)];
                 const double previous_angle = previous_joint_state_.position[static_cast<size_t> (previous_idx)];
                 const double raw_speed      = normalize_angle (current_angle - previous_angle) / dt;
 
                 steering_speeds_[i] = raw_speed;
 
-                auto &history = steering_speed_history_[i];
-                const size_t slot = steering_speed_history_index_[i];
-                history[slot] = raw_speed;
+                auto        &history             = steering_speed_history_[i];
+                const size_t slot                = steering_speed_history_index_[i];
+                history[slot]                    = raw_speed;
                 steering_speed_history_index_[i] = (slot + 1) % steering_speed_history_length_;
                 steering_speed_history_count_[i] = std::min (steering_speed_history_count_[i] + 1, steering_speed_history_length_);
 
@@ -152,7 +149,6 @@ void swerve_visualizer::joint_state_callback (const sensor_msgs::msg::JointState
                 }
                 const double average_speed = sum / static_cast<double> (sample_count);
                 steering_speed_average_[i] = average_speed;
-
             }
         }
     }
@@ -182,7 +178,7 @@ void swerve_visualizer::timer_callback () {
     }
 
     for (size_t i = 0; i < wheel_names_.size (); ++i) {
-        const int wheel_idx     = find_index (joint_state_.name, wheel_names_[i]);
+        const int wheel_idx      = find_index (joint_state_.name, wheel_names_[i]);
         const int wheel_base_idx = find_index (joint_state_.name, wheel_base_names_[i]);
 
         if (wheel_idx < 0 || static_cast<size_t> (wheel_idx) >= joint_state_.velocity.size ()) {
@@ -239,8 +235,8 @@ void swerve_visualizer::timer_callback () {
             continue;
         }
 
-        const double target_speed = steering_speed_average_[i];
-        const double render_alpha  = steering_speed_render_alpha_;
+        const double target_speed   = steering_speed_average_[i];
+        const double render_alpha   = steering_speed_render_alpha_;
         steering_speed_rendered_[i] = steering_speed_rendered_[i] * (1.0 - render_alpha) + target_speed * render_alpha;
 
         const double steering_speed = steering_speed_rendered_[i];
@@ -248,12 +244,12 @@ void swerve_visualizer::timer_callback () {
             continue;
         }
 
-        const int direction = steering_speed >= 0.0 ? 1 : -1;
-        const double speed_magnitude = std::abs (steering_speed);
-        const double arc_radius = std::max (rotation_vector_scale_ * 1.8, rotation_vector_line_width_ * 5.0);
-        const double arc_delta   = std::clamp (speed_magnitude, 0.35, M_PI * 0.9);
+        const int    direction        = steering_speed >= 0.0 ? 1 : -1;
+        const double speed_magnitude  = std::abs (steering_speed);
+        const double arc_radius       = std::max (rotation_vector_scale_ * 1.8, rotation_vector_line_width_ * 5.0);
+        const double arc_delta        = std::clamp (speed_magnitude, 0.35, M_PI * 0.9);
         const double signed_arc_delta = static_cast<double> (direction) * arc_delta;
-        const auto   arc_points = build_arc_points (start, 0.0, signed_arc_delta, arc_radius);
+        const auto   arc_points       = build_arc_points (start, 0.0, signed_arc_delta, arc_radius);
         if (arc_points.size () < 2) {
             continue;
         }
@@ -275,10 +271,10 @@ void swerve_visualizer::timer_callback () {
 
         marker_array_.markers.push_back (rotation_marker);
 
-        const geometry_msgs::msg::Point &arc_end = arc_points.back ();
-        const double arc_end_angle               = signed_arc_delta;
-        const double tangent_yaw                 = arc_end_angle + (direction >= 0 ? M_PI / 2.0 : -M_PI / 2.0);
-        const double arrow_length                = std::max (rotation_vector_line_width_ * 8.0, arc_radius * 0.85);
+        const geometry_msgs::msg::Point &arc_end       = arc_points.back ();
+        const double                     arc_end_angle = signed_arc_delta;
+        const double                     tangent_yaw   = arc_end_angle + (direction >= 0 ? M_PI / 2.0 : -M_PI / 2.0);
+        const double                     arrow_length  = std::max (rotation_vector_line_width_ * 8.0, arc_radius * 0.85);
 
         geometry_msgs::msg::Point arrow_start;
         arrow_start.x = arc_end.x - std::cos (tangent_yaw) * arrow_length;
