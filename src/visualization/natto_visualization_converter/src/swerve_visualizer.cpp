@@ -14,14 +14,15 @@
 
 #include "natto_visualization_converter/swerve_visualizer.hpp"
 
+#include "tf2/utils.hpp"
+
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
-
-#include "tf2/utils.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace steering_vector_visualizer {
 
@@ -39,9 +40,8 @@ double normalize_angle (double angle) {
     return std::atan2 (std::sin (angle), std::cos (angle));
 }
 
-std::vector<geometry_msgs::msg::Point> build_arc_points (
-    const geometry_msgs::msg::Point &center, double start_angle, double delta, double radius) {
-    const int segments = std::max (8, static_cast<int> (std::ceil (std::abs (delta) / (M_PI / 18.0))));
+std::vector<geometry_msgs::msg::Point> build_arc_points (const geometry_msgs::msg::Point &center, double start_angle, double delta, double radius) {
+    const int                              segments = std::max (8, static_cast<int> (std::ceil (std::abs (delta) / (M_PI / 18.0))));
     std::vector<geometry_msgs::msg::Point> points;
     points.reserve (static_cast<size_t> (segments) + 1);
 
@@ -62,16 +62,16 @@ std::vector<geometry_msgs::msg::Point> build_arc_points (
 }  // namespace
 
 steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOptions &options) : Node ("steering_vector_visualizer", options) {
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
+    marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&steering_vector_visualizer::joint_state_callback, this, std::placeholders::_1));
 
-    double frequency      = this->declare_parameter<double> ("frequency", 100.0);
-    chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
-    wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    wheel_base_names_     = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
-    infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "command/base_link");
+    double frequency            = this->declare_parameter<double> ("frequency", 100.0);
+    chassis_type_               = this->declare_parameter<std::string> ("chassis_type", "");
+    wheel_radius_               = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_names_                = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    wheel_base_names_           = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+    infinite_swerve_mode_       = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+    frame_id_                   = this->declare_parameter<std::string> ("frame_id", "command/base_link");
     line_width_                 = this->declare_parameter<double> ("line_width", 0.05);
     vector_scale_               = this->declare_parameter<double> ("vector_scale", 0.25);
     rotation_vector_scale_      = this->declare_parameter<double> ("rotation_vector_scale", 0.12);
@@ -112,33 +112,30 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
 void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     // command_joint_states の連続差分を 5 サンプル平均して、低速域の符号反転を抑える。
     if (has_previous_joint_state_) {
-        const rclcpp::Time current_stamp  (msg->header.stamp);
+        const rclcpp::Time current_stamp (msg->header.stamp);
         const rclcpp::Time previous_stamp (previous_joint_state_.header.stamp);
-        const double       dt             = (current_stamp - previous_stamp).seconds ();
+        const double       dt = (current_stamp - previous_stamp).seconds ();
 
         if (dt > 1e-6) {
             constexpr double direction_threshold = 0.25;
-            constexpr size_t history_length = 5;
+            constexpr size_t history_length      = 5;
             for (size_t i = 0; i < wheel_base_names_.size (); ++i) {
                 const int current_idx  = find_index (msg->name, wheel_base_names_[i]);
                 const int previous_idx = find_index (previous_joint_state_.name, wheel_base_names_[i]);
 
-                if (
-                    current_idx < 0 || previous_idx < 0 ||
-                    static_cast<size_t> (current_idx) >= msg->position.size () ||
-                    static_cast<size_t> (previous_idx) >= previous_joint_state_.position.size ()) {
+                if (current_idx < 0 || previous_idx < 0 || static_cast<size_t> (current_idx) >= msg->position.size () || static_cast<size_t> (previous_idx) >= previous_joint_state_.position.size ()) {
                     continue;
                 }
 
-                const double current_angle = msg->position[static_cast<size_t> (current_idx)];
+                const double current_angle  = msg->position[static_cast<size_t> (current_idx)];
                 const double previous_angle = previous_joint_state_.position[static_cast<size_t> (previous_idx)];
                 const double raw_speed      = normalize_angle (current_angle - previous_angle) / dt;
 
                 steering_speeds_[i] = raw_speed;
 
-                auto &history = steering_speed_history_[i];
-                const size_t slot = steering_speed_history_index_[i];
-                history[slot] = raw_speed;
+                auto        &history             = steering_speed_history_[i];
+                const size_t slot                = steering_speed_history_index_[i];
+                history[slot]                    = raw_speed;
                 steering_speed_history_index_[i] = (slot + 1) % history_length;
                 steering_speed_history_count_[i] = std::min (steering_speed_history_count_[i] + 1, history_length);
 
@@ -178,7 +175,7 @@ void steering_vector_visualizer::timer_callback () {
     }
 
     for (size_t i = 0; i < wheel_names_.size (); ++i) {
-        const int wheel_idx     = find_index (joint_state_.name, wheel_names_[i]);
+        const int wheel_idx      = find_index (joint_state_.name, wheel_names_[i]);
         const int wheel_base_idx = find_index (joint_state_.name, wheel_base_names_[i]);
 
         if (wheel_idx < 0 || static_cast<size_t> (wheel_idx) >= joint_state_.velocity.size ()) {
@@ -240,12 +237,12 @@ void steering_vector_visualizer::timer_callback () {
             continue;
         }
 
-        const double steering_speed = steering_speed_average_[i];
-        const double speed_magnitude = std::max (std::abs (steering_speed), 0.35);
-        const double arc_radius = std::max (rotation_vector_scale_ * 1.8, rotation_vector_line_width_ * 5.0);
-        const double arc_delta   = std::clamp (speed_magnitude, 0.35, M_PI * 0.9);
+        const double steering_speed   = steering_speed_average_[i];
+        const double speed_magnitude  = std::max (std::abs (steering_speed), 0.35);
+        const double arc_radius       = std::max (rotation_vector_scale_ * 1.8, rotation_vector_line_width_ * 5.0);
+        const double arc_delta        = std::clamp (speed_magnitude, 0.35, M_PI * 0.9);
         const double signed_arc_delta = static_cast<double> (direction) * arc_delta;
-        const auto   arc_points = build_arc_points (start, 0.0, signed_arc_delta, arc_radius);
+        const auto   arc_points       = build_arc_points (start, 0.0, signed_arc_delta, arc_radius);
         if (arc_points.size () < 2) {
             continue;
         }
@@ -267,10 +264,10 @@ void steering_vector_visualizer::timer_callback () {
 
         marker_array_.markers.push_back (rotation_marker);
 
-        const geometry_msgs::msg::Point &arc_end = arc_points.back ();
-        const double arc_end_angle               = signed_arc_delta;
-        const double tangent_yaw                 = arc_end_angle + (direction >= 0 ? M_PI / 2.0 : -M_PI / 2.0);
-        const double arrow_length                = std::max (rotation_vector_line_width_ * 8.0, arc_radius * 0.85);
+        const geometry_msgs::msg::Point &arc_end       = arc_points.back ();
+        const double                     arc_end_angle = signed_arc_delta;
+        const double                     tangent_yaw   = arc_end_angle + (direction >= 0 ? M_PI / 2.0 : -M_PI / 2.0);
+        const double                     arrow_length  = std::max (rotation_vector_line_width_ * 8.0, arc_radius * 0.85);
 
         geometry_msgs::msg::Point arrow_start;
         arrow_start.x = arc_end.x - std::cos (tangent_yaw) * arrow_length;

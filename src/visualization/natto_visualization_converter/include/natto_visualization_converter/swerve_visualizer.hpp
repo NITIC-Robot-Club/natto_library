@@ -15,15 +15,15 @@
 #ifndef __STEERING_VECTOR_VISUALIZER_HPP__
 #define __STEERING_VECTOR_VISUALIZER_HPP__
 
-#include <string>
-#include <vector>
-
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_listener.hpp"
 
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
+
+#include <string>
+#include <vector>
 
 namespace steering_vector_visualizer {
 
@@ -32,25 +32,25 @@ class steering_vector_visualizer : public rclcpp::Node {
     explicit steering_vector_visualizer (const rclcpp::NodeOptions &options);
 
    private:
-    std::string             chassis_type_;
-    bool                    infinite_swerve_mode_;
-    double                  wheel_radius_;
-    std::string             frame_id_;
-    double                  line_width_;
-    double                  vector_scale_;
-    double                  rotation_vector_scale_;
-    double                  rotation_vector_line_width_;
-    std::vector<std::string> wheel_names_;
-    std::vector<std::string> wheel_base_names_;
-    sensor_msgs::msg::JointState joint_state_;
-    sensor_msgs::msg::JointState previous_joint_state_;
-    std::vector<double>         steering_speeds_;
-    std::vector<double>         steering_speed_average_;
+    std::string                      chassis_type_;
+    bool                             infinite_swerve_mode_;
+    double                           wheel_radius_;
+    std::string                      frame_id_;
+    double                           line_width_;
+    double                           vector_scale_;
+    double                           rotation_vector_scale_;
+    double                           rotation_vector_line_width_;
+    std::vector<std::string>         wheel_names_;
+    std::vector<std::string>         wheel_base_names_;
+    sensor_msgs::msg::JointState     joint_state_;
+    sensor_msgs::msg::JointState     previous_joint_state_;
+    std::vector<double>              steering_speeds_;
+    std::vector<double>              steering_speed_average_;
     std::vector<std::vector<double>> steering_speed_history_;
-    std::vector<size_t>         steering_speed_history_index_;
-    std::vector<size_t>         steering_speed_history_count_;
-    std::vector<int>            steering_speed_directions_;
-    bool                        has_previous_joint_state_ = false;
+    std::vector<size_t>              steering_speed_history_index_;
+    std::vector<size_t>              steering_speed_history_count_;
+    std::vector<int>                 steering_speed_directions_;
+    bool                             has_previous_joint_state_ = false;
 
     visualization_msgs::msg::MarkerArray marker_array_;
 
@@ -60,7 +60,7 @@ class steering_vector_visualizer : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr     joint_state_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      joint_state_sub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
 };
