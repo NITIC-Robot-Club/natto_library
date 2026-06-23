@@ -134,7 +134,7 @@ steering_vector_visualizer ノードは、`command_joint_states` を受信し、
 ## 機能
 - `chassis_calculator` と同じパラメータ名で swerve 用の設定を受け取る
 - 各ホイールのステア角と車輪速度から、長さ付きの矢印を生成
-- 連続する `command_joint_states` のステア角差分を 5 サンプル平均し、車体前方 0° を始点にした円弧状ステア速マーカーを生成
+- 連続する `command_joint_states` のステア角差分を少しだけ平滑化し、車体前方 0° を始点にした円弧状ステア速マーカーを生成
 - `visualization_msgs/msg/MarkerArray` としてパブリッシュ
 - RViz では `/visualization/steering_vector` の `MarkerArray` ディスプレイで確認できる
 
@@ -152,6 +152,19 @@ steering_vector_visualizer ノードは、`command_joint_states` を受信し、
 | vector_scale | double | 0.25 | 車輪速度に掛ける表示スケール |
 | rotation_vector_scale | double | 0.12 | 円弧の半径スケール |
 | rotation_vector_line_width | double | 0.03 | 円弧と矢印の線幅 |
+| steering_speed_history_length | int | 5 | ステア速の履歴平均に使うサンプル数 |
+| steering_speed_render_alpha | double | 0.16 | ステア速の描画追従量。大きいほど速く追従する |
+
+## 調整の目安
+- `steering_speed_history_length` を増やすと円弧の速度表示がなめらかになり、減らすと生の変化に近づく
+- `steering_speed_render_alpha` を上げると表示が速く追従し、下げると残像が長くなる
+- 低速域の見やすさを優先したい場合は `steering_speed_render_alpha` を少し下げる
+
+
+## launch での調整
+- `visualization.launch.xml` に `steering_speed_history_length` と `steering_speed_render_alpha` を引数として追加してあるので、起動時に上書きできる
+- 例: `ros2 launch natto_launch visualization.launch.xml steering_speed_history_length:=3 steering_speed_render_alpha:=0.25`
+
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |

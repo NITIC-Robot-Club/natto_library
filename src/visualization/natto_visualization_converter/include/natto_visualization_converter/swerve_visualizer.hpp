@@ -45,11 +45,13 @@ class steering_vector_visualizer : public rclcpp::Node {
     sensor_msgs::msg::JointState joint_state_;
     sensor_msgs::msg::JointState previous_joint_state_;
     std::vector<double>         steering_speeds_;
+    size_t                      steering_speed_history_length_;
+    double                      steering_speed_render_alpha_;
     std::vector<double>         steering_speed_average_;
+    std::vector<double>         steering_speed_rendered_;
     std::vector<std::vector<double>> steering_speed_history_;
     std::vector<size_t>         steering_speed_history_index_;
     std::vector<size_t>         steering_speed_history_count_;
-    std::vector<int>            steering_speed_directions_;
     bool                        has_previous_joint_state_ = false;
 
     visualization_msgs::msg::MarkerArray marker_array_;

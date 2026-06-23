@@ -1,4 +1,7 @@
 <launch>
+    <arg name="steering_speed_history_length" default="5"/>
+    <arg name="steering_speed_render_alpha" default="0.16"/>
+
     <!-- 表示コンテナ -->
     <node_container pkg="rclcpp_components" exec="component_container" name="visualization_container" namespace="visualization">
         <!-- マップ表示 -->
@@ -41,6 +44,8 @@
             <param name="vector_scale" value="0.25"/>
             <param name="rotation_vector_scale" value="0.12"/>
             <param name="rotation_vector_line_width" value="0.03"/>
+            <param name="steering_speed_history_length" value="$(var steering_speed_history_length)"/>
+            <param name="steering_speed_render_alpha" value="$(var steering_speed_render_alpha)"/>
             <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
             <remap from="marker_array" to="/visualization/steering_vector"/>
         </composable_node>

@@ -76,6 +76,9 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
     vector_scale_               = this->declare_parameter<double> ("vector_scale", 0.25);
     rotation_vector_scale_      = this->declare_parameter<double> ("rotation_vector_scale", 0.12);
     rotation_vector_line_width_ = this->declare_parameter<double> ("rotation_vector_line_width", 0.03);
+    const long steering_speed_history_length_param = this->declare_parameter<long> ("steering_speed_history_length", 5L);
+    steering_speed_history_length_ = static_cast<size_t> (std::max<long> (1L, steering_speed_history_length_param));
+    steering_speed_render_alpha_   = std::clamp (this->declare_parameter<double> ("steering_speed_render_alpha", 0.16), 0.0, 1.0);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -86,10 +89,10 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
 
     steering_speeds_.assign (wheel_names_.size (), 0.0);
     steering_speed_average_.assign (wheel_names_.size (), 0.0);
-    steering_speed_history_.assign (wheel_names_.size (), std::vector<double> (5, 0.0));
+    steering_speed_rendered_.assign (wheel_names_.size (), 0.0);
+    steering_speed_history_.assign (wheel_names_.size (), std::vector<double> (steering_speed_history_length_, 0.0));
     steering_speed_history_index_.assign (wheel_names_.size (), 0);
     steering_speed_history_count_.assign (wheel_names_.size (), 0);
-    steering_speed_directions_.assign (wheel_names_.size (), 0);
 
     RCLCPP_INFO (this->get_logger (), "steering_vector_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
@@ -103,6 +106,8 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
     RCLCPP_INFO (this->get_logger (), "vector_scale: %.3f", vector_scale_);
     RCLCPP_INFO (this->get_logger (), "rotation_vector_scale: %.3f", rotation_vector_scale_);
     RCLCPP_INFO (this->get_logger (), "rotation_vector_line_width: %.3f", rotation_vector_line_width_);
+    RCLCPP_INFO (this->get_logger (), "steering_speed_history_length: %zu", steering_speed_history_length_);
+    RCLCPP_INFO (this->get_logger (), "steering_speed_render_alpha: %.3f", steering_speed_render_alpha_);
     RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", wheel_names_.size ());
 
@@ -110,15 +115,13 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
 }
 
 void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
-    // command_joint_states の連続差分を 5 サンプル平均して、低速域の符号反転を抑える。
+    // command_joint_states の連続差分を少しだけ平滑化して、低速域の符号反転を抑える。
     if (has_previous_joint_state_) {
         const rclcpp::Time current_stamp  (msg->header.stamp);
         const rclcpp::Time previous_stamp (previous_joint_state_.header.stamp);
         const double       dt             = (current_stamp - previous_stamp).seconds ();
 
         if (dt > 1e-6) {
-            constexpr double direction_threshold = 0.25;
-            constexpr size_t history_length = 5;
             for (size_t i = 0; i < wheel_base_names_.size (); ++i) {
                 const int current_idx  = find_index (msg->name, wheel_base_names_[i]);
                 const int previous_idx = find_index (previous_joint_state_.name, wheel_base_names_[i]);
@@ -139,22 +142,17 @@ void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::J
                 auto &history = steering_speed_history_[i];
                 const size_t slot = steering_speed_history_index_[i];
                 history[slot] = raw_speed;
-                steering_speed_history_index_[i] = (slot + 1) % history_length;
-                steering_speed_history_count_[i] = std::min (steering_speed_history_count_[i] + 1, history_length);
+                steering_speed_history_index_[i] = (slot + 1) % steering_speed_history_length_;
+                steering_speed_history_count_[i] = std::min (steering_speed_history_count_[i] + 1, steering_speed_history_length_);
 
-                double sum = 0.0;
-                for (size_t j = 0; j < history_length; ++j) {
+                const size_t sample_count = std::max<size_t> (1, steering_speed_history_count_[i]);
+                double       sum          = 0.0;
+                for (size_t j = 0; j < sample_count; ++j) {
                     sum += history[j];
                 }
-                const double average_speed = sum / static_cast<double> (history_length);
+                const double average_speed = sum / static_cast<double> (sample_count);
                 steering_speed_average_[i] = average_speed;
 
-                if (std::abs (average_speed) >= direction_threshold) {
-                    steering_speed_directions_[i] = average_speed >= 0.0 ? 1 : -1;
-                } else {
-                    steering_speed_directions_[i] = 0;
-                    steering_speed_average_[i]    = 0.0;
-                }
             }
         }
     }
@@ -166,6 +164,12 @@ void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::J
 
 void steering_vector_visualizer::timer_callback () {
     marker_array_.markers.clear ();
+
+    visualization_msgs::msg::Marker clear_marker;
+    clear_marker.header.frame_id = frame_id_;
+    clear_marker.header.stamp    = this->now ();
+    clear_marker.action          = visualization_msgs::msg::Marker::DELETEALL;
+    marker_array_.markers.push_back (clear_marker);
 
     if (chassis_type_ != "swerve") {
         marker_pub_->publish (marker_array_);
@@ -235,13 +239,17 @@ void steering_vector_visualizer::timer_callback () {
             continue;
         }
 
-        const int direction = steering_speed_directions_[i];
-        if (direction == 0) {
+        const double target_speed = steering_speed_average_[i];
+        const double render_alpha  = steering_speed_render_alpha_;
+        steering_speed_rendered_[i] = steering_speed_rendered_[i] * (1.0 - render_alpha) + target_speed * render_alpha;
+
+        const double steering_speed = steering_speed_rendered_[i];
+        if (std::abs (steering_speed) < 1e-4) {
             continue;
         }
 
-        const double steering_speed = steering_speed_average_[i];
-        const double speed_magnitude = std::max (std::abs (steering_speed), 0.35);
+        const int direction = steering_speed >= 0.0 ? 1 : -1;
+        const double speed_magnitude = std::abs (steering_speed);
         const double arc_radius = std::max (rotation_vector_scale_ * 1.8, rotation_vector_line_width_ * 5.0);
         const double arc_delta   = std::clamp (speed_magnitude, 0.35, M_PI * 0.9);
         const double signed_arc_delta = static_cast<double> (direction) * arc_delta;
