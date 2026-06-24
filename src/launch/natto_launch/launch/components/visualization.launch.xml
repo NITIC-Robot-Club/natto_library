@@ -42,7 +42,7 @@
             <param name="rotation_vector_scale" value="0.12"/>
             <param name="rotation_vector_line_width" value="0.03"/>
             <remap from="command_joint_states" to="/$(var chassis_type)/command_joint_states"/>
-            <remap from="marker_array" to="/visualization/steering_vector"/>
+            <remap from="marker_array" to="/visualization/swerve_command"/>
         </composable_node>
     </node_container>
 

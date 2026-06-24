@@ -134,7 +134,6 @@ steering_vector_visualizer ノードは、`command_joint_states` を受信し、
 ## 機能
 - `chassis_calculator` と同じパラメータ名で swerve 用の設定を受け取る
 - 各ホイールのステア角と車輪速度から、長さ付きの矢印を生成
-- 連続する `command_joint_states` のステア角差分を 5 サンプル平均し、車体前方 0° を始点にした円弧状ステア速マーカーを生成
 - `visualization_msgs/msg/MarkerArray` としてパブリッシュ
 - RViz では `/visualization/steering_vector` の `MarkerArray` ディスプレイで確認できる
 
@@ -150,8 +149,10 @@ steering_vector_visualizer ノードは、`command_joint_states` を受信し、
 | frame_id | string | "command/base_link" | マーカーのフレームID |
 | line_width | double | 0.05 | 矢印の太さ |
 | vector_scale | double | 0.25 | 車輪速度に掛ける表示スケール |
-| rotation_vector_scale | double | 0.12 | 円弧の半径スケール |
-| rotation_vector_line_width | double | 0.03 | 円弧と矢印の線幅 |
+| arrow_color_r | double | 0.1 | 矢印の赤成分 |
+| arrow_color_g | double | 0.8 | 矢印の緑成分 |
+| arrow_color_b | double | 0.2 | 矢印の青成分 |
+| arrow_color_a | double | 1.0 | 矢印のアルファ値 |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
