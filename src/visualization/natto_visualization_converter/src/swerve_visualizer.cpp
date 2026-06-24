@@ -23,7 +23,7 @@
 #include <iterator>
 #include <stdexcept>
 
-namespace steering_vector_visualizer {
+namespace swerve_visualizer {
 
 namespace {
 
@@ -37,9 +37,9 @@ int find_index (const std::vector<std::string> &names, const std::string &name) 
 
 }  // namespace
 
-steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOptions &options) : Node ("steering_vector_visualizer", options) {
+swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node ("swerve_visualizer", options) {
     marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&steering_vector_visualizer::joint_state_callback, this, std::placeholders::_1));
+    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
     double frequency     = this->declare_parameter<double> ("frequency", 100.0);
     chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
@@ -62,11 +62,11 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
         throw std::runtime_error ("Invalid parameters: wheel_names and wheel_base_names size mismatch.");
     }
 
-    RCLCPP_INFO (this->get_logger (), "steering_vector_visualizer node has been initialized.");
+    RCLCPP_INFO (this->get_logger (), "swerve_visualizer node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     if (chassis_type_ != "swerve") {
-        RCLCPP_WARN (this->get_logger (), "steering_vector_visualizer supports only swerve chassis_type. No markers will be published.");
+        RCLCPP_WARN (this->get_logger (), "swerve_visualizer supports only swerve chassis_type. No markers will be published.");
     }
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.3f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "frame_id: %s", frame_id_.c_str ());
@@ -76,14 +76,14 @@ steering_vector_visualizer::steering_vector_visualizer (const rclcpp::NodeOption
     RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", wheel_names_.size ());
 
-    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&steering_vector_visualizer::timer_callback, this));
+    timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / frequency), std::bind (&swerve_visualizer::timer_callback, this));
 }
 
-void steering_vector_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
+void swerve_visualizer::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     joint_state_ = *msg;
 }
 
-void steering_vector_visualizer::timer_callback () {
+void swerve_visualizer::timer_callback () {
     marker_array_.markers.clear ();
 
     visualization_msgs::msg::Marker clear_marker;
@@ -139,7 +139,7 @@ void steering_vector_visualizer::timer_callback () {
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = frame_id_;
         marker.header.stamp    = this->now ();
-        marker.ns              = "steering_vector";
+        marker.ns              = "swerve_visualizer";
         marker.id              = static_cast<int> (i);
         marker.type            = visualization_msgs::msg::Marker::ARROW;
         marker.action          = visualization_msgs::msg::Marker::ADD;
@@ -159,7 +159,7 @@ void steering_vector_visualizer::timer_callback () {
     marker_pub_->publish (marker_array_);
 }
 
-}  // namespace steering_vector_visualizer
+}  // namespace swerve_visualizer
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE (steering_vector_visualizer::steering_vector_visualizer)
+RCLCPP_COMPONENTS_REGISTER_NODE (swerve_visualizer::swerve_visualizer)

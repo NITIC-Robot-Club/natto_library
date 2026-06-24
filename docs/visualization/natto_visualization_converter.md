@@ -128,14 +128,14 @@ speed_path_visualizer ノードは、natto_msgs/msg/SpeedPath メッセージを
 | speed_path | natto_msgs/msg/SpeedPath | スピードパスデータ |
 
 
-# steering_vector_visualizer
-steering_vector_visualizer ノードは、`command_joint_states` を受信し、swerve シャーシの各ホイールの向きと速度をベクトルとして可視化します。
+# swerve_visualizer
+swerve_visualizer ノードは、`command_joint_states` を受信し、swerve シャーシの各ホイールの向きと速度をベクトルとして可視化します。
 
 ## 機能
 - `chassis_calculator` と同じパラメータ名で swerve 用の設定を受け取る
 - 各ホイールのステア角と車輪速度から、長さ付きの矢印を生成
 - `visualization_msgs/msg/MarkerArray` としてパブリッシュ
-- RViz では `/visualization/steering_vector` の `MarkerArray` ディスプレイで確認できる
+- RViz では `/visualization/swerve_visualizer` の `MarkerArray` ディスプレイで確認できる
 
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |

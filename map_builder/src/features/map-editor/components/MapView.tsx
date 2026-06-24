@@ -28,6 +28,7 @@ type MapViewProps = {
     circleId: string,
     updater: (circle: CircleArc) => CircleArc,
   ) => void
+  arcArrow?: ArcArrowProps
 }
 
 export type MapViewHandle = {
@@ -78,6 +79,7 @@ type DragState =
 const MIN_SCALE = 10
 const MAX_SCALE = 350
 const LINE_HIT_STROKE_WIDTH = 16
+const DEFAULT_ARC_ARROW_PATH = 'M 0 0 L 12 6 L 0 12 z'
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(
   (
     {
@@ -88,6 +90,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       onBeginInteraction,
       onUpdateLine,
       onUpdateCircle,
+      arcArrow,
     },
     ref,
   ) => {
@@ -105,6 +108,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
     const initialFitDone = useRef(false)
     const linesRef = useLatest(lines)
     const circlesRef = useLatest(circles)
+    const arcArrowStyle: ArcArrowProps = arcArrow ? { enabled: true, ...arcArrow } : {}
 
     useEffect(() => {
       if (!containerRef.current) return
@@ -534,7 +538,11 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
               stroke={arcColor}
               strokeWidth={isSelected ? 3 : 2.2}
               fill="none"
-              markerEnd={isSelected ? "url(#mapViewArcArrowSelected)" : "url(#mapViewArcArrow)"}
+              markerEnd={
+                arcArrowStyle.enabled
+                  ? `url(#${isSelected ? 'mapViewArcArrowSelected' : 'mapViewArcArrow'})`
+                  : undefined
+              }
               onPointerDown={(event) => {
                 event.stopPropagation()
                 onSelectElement({ type: 'circle', circleId: circle.id })
@@ -606,28 +614,38 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
           onContextMenu={(event) => event.preventDefault()}
         >
           <defs>
-            <marker
-              id="mapViewArcArrow"
-              markerWidth={12}
-              markerHeight={12}
-              refX={10}
-              refY={6}
-              markerUnits="userSpaceOnUse"
-              orient="auto"
-            >
-              <path d="M 0 0 L 12 6 L 0 12 z" fill="#e2a95f" />
-            </marker>
-            <marker
-              id="mapViewArcArrowSelected"
-              markerWidth={12}
-              markerHeight={12}
-              refX={10}
-              refY={6}
-              markerUnits="userSpaceOnUse"
-              orient="auto"
-            >
-              <path d="M 0 0 L 12 6 L 0 12 z" fill="#ffd166" />
-            </marker>
+            {arcArrowStyle.enabled ? (
+              <>
+                <marker
+                  id="mapViewArcArrow"
+                  markerWidth={arcArrowStyle.markerWidth ?? 12}
+                  markerHeight={arcArrowStyle.markerHeight ?? 12}
+                  refX={arcArrowStyle.refX ?? 10}
+                  refY={arcArrowStyle.refY ?? 6}
+                  markerUnits="userSpaceOnUse"
+                  orient="auto"
+                >
+                  <path
+                    d={arcArrowStyle.path ?? DEFAULT_ARC_ARROW_PATH}
+                    fill={arcArrowStyle.color ?? '#e2a95f'}
+                  />
+                </marker>
+                <marker
+                  id="mapViewArcArrowSelected"
+                  markerWidth={arcArrowStyle.selectedMarkerWidth ?? arcArrowStyle.markerWidth ?? 12}
+                  markerHeight={arcArrowStyle.selectedMarkerHeight ?? arcArrowStyle.markerHeight ?? 12}
+                  refX={arcArrowStyle.selectedRefX ?? arcArrowStyle.refX ?? 10}
+                  refY={arcArrowStyle.selectedRefY ?? arcArrowStyle.refY ?? 6}
+                  markerUnits="userSpaceOnUse"
+                  orient="auto"
+                >
+                  <path
+                    d={arcArrowStyle.selectedPath ?? arcArrowStyle.path ?? DEFAULT_ARC_ARROW_PATH}
+                    fill={arcArrowStyle.selectedColor ?? '#ffd166'}
+                  />
+                </marker>
+              </>
+            ) : null}
             <pattern
               id="mapGrid"
               width={viewport.scale}
@@ -664,6 +682,22 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
 )
 
 MapView.displayName = 'MapView'
+
+type ArcArrowProps = {
+  enabled?: boolean
+  color?: string
+  selectedColor?: string
+  markerWidth?: number
+  markerHeight?: number
+  refX?: number
+  refY?: number
+  path?: string
+  selectedMarkerWidth?: number
+  selectedMarkerHeight?: number
+  selectedRefX?: number
+  selectedRefY?: number
+  selectedPath?: string
+}
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)

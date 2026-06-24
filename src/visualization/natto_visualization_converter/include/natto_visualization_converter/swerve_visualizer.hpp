@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __STEERING_VECTOR_VISUALIZER_HPP__
-#define __STEERING_VECTOR_VISUALIZER_HPP__
+#ifndef __SWERVE_VISUALIZER_HPP__
+#define __SWERVE_VISUALIZER_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.hpp"
@@ -25,11 +25,11 @@
 #include <string>
 #include <vector>
 
-namespace steering_vector_visualizer {
+namespace swerve_visualizer {
 
-class steering_vector_visualizer : public rclcpp::Node {
+class swerve_visualizer : public rclcpp::Node {
    public:
-    explicit steering_vector_visualizer (const rclcpp::NodeOptions &options);
+    explicit swerve_visualizer (const rclcpp::NodeOptions &options);
 
    private:
     std::string                  chassis_type_;
@@ -59,6 +59,6 @@ class steering_vector_visualizer : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr                                       timer_;
 };
 
-}  // namespace steering_vector_visualizer
+}  // namespace swerve_visualizer
 
-#endif  // __STEERING_VECTOR_VISUALIZER_HPP__
+#endif  // __SWERVE_VISUALIZER_HPP__
