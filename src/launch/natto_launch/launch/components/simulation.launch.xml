@@ -1,4 +1,12 @@
 <launch>
+    <arg name="simulation_param_path" default=""/>
+    <arg name="chassis_param_path" default=""/>
+    <arg name="lidar_param_path" default=""/>
+    <arg name="reverse_y" default="false"/>
+    <arg name="reverse_y_offset" default="0.0"/>
+    <arg name="simulation_frame_id" default="simulation"/>
+    <arg name="simulation_pose_topic" default="/simulation/pose"/>
+
     <!-- シミュレーションコンテナー -->
     <node_container pkg="rclcpp_components" exec="component_container" name="simulation_container" namespace="/simulation">
         <composable_node pkg="natto_simple_simulation" plugin="joint_state_simulator::joint_state_simulator" name="joint_state_simulator" namespace="/simulation">
@@ -6,9 +14,10 @@
             <param from="$(var chassis_param_path)"/>
             <remap from="joint_states" to="/joint_states"/>
             <remap from="command_joint_states" to="/command_joint_states"/>
-            <remap from="simulation_pose" to="/simulation/pose"/>
+            <remap from="simulation_pose" to="$(var simulation_pose_topic)"/>
             <param name="reverse_y" value="$(var reverse_y)"/>
             <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
+            <param name="simulation_frame_id" value="$(var simulation_frame_id)"/>
         </composable_node>
     </node_container>
 

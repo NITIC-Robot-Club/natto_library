@@ -34,6 +34,7 @@ class joint_state_simulator : public rclcpp::Node {
 
    private:
     std::string chassis_type_;
+    std::string simulation_frame_id_;
     bool        infinite_swerve_mode_;
     double      wheel_radius_;
     size_t      num_wheels_;
