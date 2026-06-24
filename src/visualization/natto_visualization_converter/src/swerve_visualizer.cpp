@@ -15,6 +15,7 @@
 #include "natto_visualization_converter/swerve_visualizer.hpp"
 
 #include "tf2/utils.hpp"
+
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <algorithm>
@@ -41,19 +42,19 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node
     marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
-    double frequency     = this->declare_parameter<double> ("frequency", 100.0);
-    chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
-    wheel_radius_        = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_names_         = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    wheel_base_names_    = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+    double frequency      = this->declare_parameter<double> ("frequency", 100.0);
+    chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
+    wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    wheel_base_names_     = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
     infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-    frame_id_            = this->declare_parameter<std::string> ("frame_id", "command/base_link");
-    line_width_          = this->declare_parameter<double> ("line_width", 0.05);
-    vector_scale_        = this->declare_parameter<double> ("vector_scale", 0.25);
-    arrow_color_r_       = this->declare_parameter<double> ("arrow_color_r", 0.1);
-    arrow_color_g_       = this->declare_parameter<double> ("arrow_color_g", 0.8);
-    arrow_color_b_       = this->declare_parameter<double> ("arrow_color_b", 0.2);
-    arrow_color_a_       = this->declare_parameter<double> ("arrow_color_a", 1.0);
+    frame_id_             = this->declare_parameter<std::string> ("frame_id", "command/base_link");
+    line_width_           = this->declare_parameter<double> ("line_width", 0.05);
+    vector_scale_         = this->declare_parameter<double> ("vector_scale", 0.25);
+    arrow_color_r_        = this->declare_parameter<double> ("arrow_color_r", 0.1);
+    arrow_color_g_        = this->declare_parameter<double> ("arrow_color_g", 0.8);
+    arrow_color_b_        = this->declare_parameter<double> ("arrow_color_b", 0.2);
+    arrow_color_a_        = this->declare_parameter<double> ("arrow_color_a", 1.0);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
