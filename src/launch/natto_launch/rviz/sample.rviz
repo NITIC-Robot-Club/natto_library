@@ -541,7 +541,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /visualization/steering_vector
+            Value: /visualization/swerve_command
           Value: true
       Enabled: true
       Name: Control
