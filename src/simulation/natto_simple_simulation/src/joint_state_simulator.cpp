@@ -151,7 +151,8 @@ void joint_state_simulator::timer_callback () {
         if (control_modes_[i] == "position") {
             const double target_position  = command_.position[index];
             const double error            = target_position - current_.position[i];
-            double       command_velocity = error / joint_position_tau_[i];
+            const double target_velocity  = (index < command_.velocity.size ()) ? command_.velocity[index] : 0.0;
+            double       command_velocity = error / joint_position_tau_[i] + target_velocity;
 
             command_velocity     = std::clamp (command_velocity, -joint_velocity_max_[i], joint_velocity_max_[i]);
             current_.velocity[i] = command_velocity;
