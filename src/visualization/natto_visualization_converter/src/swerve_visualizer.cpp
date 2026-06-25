@@ -40,7 +40,7 @@ int find_index (const std::vector<std::string> &names, const std::string &name) 
 
 swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node ("swerve_visualizer", options) {
     marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
-    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
+    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
     double frequency      = this->declare_parameter<double> ("frequency", 100.0);
     chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
