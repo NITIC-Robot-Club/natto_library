@@ -70,7 +70,7 @@ class swerve_visualizer : public rclcpp::Node {
     void timer_callback ();
     void update_steering_rates ();
     void append_wheel_speed_marker (size_t wheel_index, const geometry_msgs::msg::TransformStamped &tf_stamped, double steering_yaw, double wheel_speed);
-    void append_steering_arc_markers (size_t wheel_index, const geometry_msgs::msg::TransformStamped &tf_stamped, double steering_rate);
+    void append_steering_arc_markers (size_t wheel_index, const geometry_msgs::msg::TransformStamped &tf_stamped, double steering_yaw, double wheel_speed, double steering_rate);
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

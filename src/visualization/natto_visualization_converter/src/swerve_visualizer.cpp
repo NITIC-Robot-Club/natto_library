@@ -216,7 +216,7 @@ void swerve_visualizer::append_wheel_speed_marker (size_t wheel_index, const geo
     marker_array_.markers.push_back (marker);
 }
 
-void swerve_visualizer::append_steering_arc_markers (size_t wheel_index, const geometry_msgs::msg::TransformStamped &tf_stamped, double steering_rate) {
+void swerve_visualizer::append_steering_arc_markers (size_t wheel_index, const geometry_msgs::msg::TransformStamped &tf_stamped, double steering_yaw, double wheel_speed, double steering_rate) {
     if (std::abs (steering_rate) < 1e-6) {
         return;
     }
@@ -228,8 +228,10 @@ void swerve_visualizer::append_steering_arc_markers (size_t wheel_index, const g
     const double radius      = rotation_vector_scale_;
     const int    samples     = 24;
     const double span        = std::clamp (std::abs (steering_rate) * steering_arc_span_, 0.15, steering_arc_max_span_);
-    const double start_angle = 0.0;
-    const double end_angle   = sign * span;
+    const double vector_x    = std::cos (steering_yaw) * wheel_speed;
+    const double vector_y    = std::sin (steering_yaw) * wheel_speed;
+    const double start_angle = (std::abs (wheel_speed) < 1e-6) ? steering_yaw : std::atan2 (vector_y, vector_x);
+    const double end_angle   = start_angle + sign * span;
 
     visualization_msgs::msg::Marker arc_marker;
     arc_marker.header.frame_id = frame_id_;
@@ -322,7 +324,7 @@ void swerve_visualizer::timer_callback () {
 
         append_wheel_speed_marker (i, tf_stamped, steering_yaw, wheel_speed);
         if (show_steering_arc_) {
-            append_steering_arc_markers (i, tf_stamped, cached_steering_rates_[i]);
+            append_steering_arc_markers (i, tf_stamped, steering_yaw, wheel_speed, cached_steering_rates_[i]);
         }
     }
 
