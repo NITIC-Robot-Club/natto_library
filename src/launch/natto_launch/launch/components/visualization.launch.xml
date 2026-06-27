@@ -39,7 +39,19 @@
             <param name="frame_id" value="command/base_link"/>
             <param name="line_width" value="0.05"/>
             <param name="vector_scale" value="0.25"/>
-            <param name="arrow_color_a" value="0.5"/>
+            <param name="show_steering_arc" value="true"/>
+            <param name="rotation_vector_line_width" value="0.055"/>
+            <param name="rotation_vector_scale" value="0.36"/>
+            <param name="steering_arc_span" value="0.35"/>
+            <param name="steering_arc_max_span" value="1.2"/>
+            <param name="steering_arrow_length" value="0.09"/>
+            <param name="steering_arrow_head_scale" value="0.85"/>
+            <param name="steering_arrow_head_cone_scale" value="0.986"/>
+            <param name="steering_color_r" value="1.0"/>
+            <param name="steering_color_g" value="0.55"/>
+            <param name="steering_color_b" value="0.0"/>
+            <param name="steering_color_a" value="1.0"/>
+            <param name="arrow_color_a" value="1.0"/>
             <remap from="joint_states" to="/$(var chassis_type)/command_joint_states"/>
             <remap from="marker_array" to="/visualization/swerve_command"/>
         </composable_node>
