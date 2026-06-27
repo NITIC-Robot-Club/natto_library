@@ -60,31 +60,31 @@ swerve_visualizer::swerve_visualizer (const rclcpp::NodeOptions &options) : Node
     marker_pub_      = this->create_publisher<visualization_msgs::msg::MarkerArray> ("marker_array", 10);
     joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&swerve_visualizer::joint_state_callback, this, std::placeholders::_1));
 
-    double frequency      = this->declare_parameter<double> ("frequency", 100.0);
-    chassis_type_         = this->declare_parameter<std::string> ("chassis_type", "");
-    wheel_radius_         = this->declare_parameter<double> ("wheel_radius", 0.05);
-    wheel_names_          = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
-    wheel_base_names_     = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
-    infinite_swerve_mode_ = this->declare_parameter<bool> ("infinite_swerve_mode", false);
-    frame_id_             = this->declare_parameter<std::string> ("frame_id", "command/base_link");
-    line_width_           = this->declare_parameter<double> ("line_width", 0.05);
-    vector_scale_         = this->declare_parameter<double> ("vector_scale", 0.25);
-    arrow_color_r_        = this->declare_parameter<double> ("arrow_color_r", 0.1);
-    arrow_color_g_        = this->declare_parameter<double> ("arrow_color_g", 0.8);
-    arrow_color_b_        = this->declare_parameter<double> ("arrow_color_b", 0.2);
-    arrow_color_a_        = this->declare_parameter<double> ("arrow_color_a", 1.0);
-    show_steering_arc_    = this->declare_parameter<bool> ("show_steering_arc", false);
-    rotation_vector_line_width_ = this->declare_parameter<double> ("rotation_vector_line_width", line_width_ * 0.9);
-    rotation_vector_scale_      = this->declare_parameter<double> ("rotation_vector_scale", std::max (line_width_ * 4.5, 0.36));
-    steering_arc_span_      = this->declare_parameter<double> ("steering_arc_span", 0.35);
-    steering_arc_max_span_  = this->declare_parameter<double> ("steering_arc_max_span", 1.2);
+    double frequency                = this->declare_parameter<double> ("frequency", 100.0);
+    chassis_type_                   = this->declare_parameter<std::string> ("chassis_type", "");
+    wheel_radius_                   = this->declare_parameter<double> ("wheel_radius", 0.05);
+    wheel_names_                    = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
+    wheel_base_names_               = this->declare_parameter<std::vector<std::string>> ("wheel_base_names", {""});
+    infinite_swerve_mode_           = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+    frame_id_                       = this->declare_parameter<std::string> ("frame_id", "command/base_link");
+    line_width_                     = this->declare_parameter<double> ("line_width", 0.05);
+    vector_scale_                   = this->declare_parameter<double> ("vector_scale", 0.25);
+    arrow_color_r_                  = this->declare_parameter<double> ("arrow_color_r", 0.1);
+    arrow_color_g_                  = this->declare_parameter<double> ("arrow_color_g", 0.8);
+    arrow_color_b_                  = this->declare_parameter<double> ("arrow_color_b", 0.2);
+    arrow_color_a_                  = this->declare_parameter<double> ("arrow_color_a", 1.0);
+    show_steering_arc_              = this->declare_parameter<bool> ("show_steering_arc", false);
+    rotation_vector_line_width_     = this->declare_parameter<double> ("rotation_vector_line_width", line_width_ * 0.9);
+    rotation_vector_scale_          = this->declare_parameter<double> ("rotation_vector_scale", std::max (line_width_ * 4.5, 0.36));
+    steering_arc_span_              = this->declare_parameter<double> ("steering_arc_span", 0.35);
+    steering_arc_max_span_          = this->declare_parameter<double> ("steering_arc_max_span", 1.2);
     steering_arrow_length_          = this->declare_parameter<double> ("steering_arrow_length", 0.09);
     steering_arrow_head_scale_      = this->declare_parameter<double> ("steering_arrow_head_scale", 1.05);
     steering_arrow_head_cone_scale_ = this->declare_parameter<double> ("steering_arrow_head_cone_scale", 1.05);
-    steering_color_r_       = this->declare_parameter<double> ("steering_color_r", 1.0);
-    steering_color_g_       = this->declare_parameter<double> ("steering_color_g", 0.55);
-    steering_color_b_       = this->declare_parameter<double> ("steering_color_b", 0.0);
-    steering_color_a_       = this->declare_parameter<double> ("steering_color_a", 1.0);
+    steering_color_r_               = this->declare_parameter<double> ("steering_color_r", 1.0);
+    steering_color_g_               = this->declare_parameter<double> ("steering_color_g", 0.55);
+    steering_color_b_               = this->declare_parameter<double> ("steering_color_b", 0.0);
+    steering_color_a_               = this->declare_parameter<double> ("steering_color_a", 1.0);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -173,7 +173,7 @@ void swerve_visualizer::update_steering_rates () {
             delta = normalize_angle (delta);
         }
 
-        cached_steering_rates_[i]      = delta / dt;
+        cached_steering_rates_[i]       = delta / dt;
         previous_steering_positions_[i] = current_position;
     }
 
@@ -253,8 +253,8 @@ void swerve_visualizer::append_steering_arc_markers (size_t wheel_index, const g
     }
     marker_array_.markers.push_back (arc_marker);
 
-    const double tangent_x = -sign * std::sin (end_angle);
-    const double tangent_y = sign * std::cos (end_angle);
+    const double                    tangent_x   = -sign * std::sin (end_angle);
+    const double                    tangent_y   = sign * std::cos (end_angle);
     const geometry_msgs::msg::Point arrow_start = arc_marker.points.back ();
     const geometry_msgs::msg::Point arrow_end   = make_point (arrow_start.x + tangent_x * steering_arrow_length_, arrow_start.y + tangent_y * steering_arrow_length_, arrow_start.z);
 
