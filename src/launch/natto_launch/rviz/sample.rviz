@@ -537,7 +537,7 @@ Visualization Manager:
             Value: /control/lookahead
           Value: true
         - Class: rviz_default_plugins/MarkerArray
-          Enabled: false
+          Enabled: true
           Name: SwerveStates
           Namespaces:
             swerve_visualizer: true
