@@ -47,10 +47,13 @@
             <param name="steering_arrow_length" value="0.09"/>
             <param name="steering_arrow_head_scale" value="0.85"/>
             <param name="steering_arrow_head_cone_scale" value="0.986"/>
-            <param name="steering_color_r" value="1.0"/>
-            <param name="steering_color_g" value="0.55"/>
-            <param name="steering_color_b" value="0.0"/>
+            <param name="steering_color_r" value="0.0"/>
+            <param name="steering_color_g" value="0.0"/>
+            <param name="steering_color_b" value="1.0"/>
             <param name="steering_color_a" value="0.5"/>
+            <param name="arrow_color_r" value="0.0"/>
+            <param name="arrow_color_g" value="0.0"/>
+            <param name="arrow_color_b" value="1.0"/>
             <param name="arrow_color_a" value="0.5"/>
             <remap from="joint_states" to="/$(var chassis_type)/command_joint_states"/>
             <remap from="marker_array" to="/visualization/swerve_command"/>
