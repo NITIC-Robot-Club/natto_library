@@ -16,16 +16,6 @@
 
 namespace chassis_calculator {
 
-bool get_joint_position (const sensor_msgs::msg::JointState &joint_state, const std::string &joint_name, double *joint_position) {
-    for (size_t i = 0; i < joint_state.name.size (); i++) {
-        if (joint_state.name[i] == joint_name) {
-            *joint_position = joint_state.position[i];
-            return true;
-        }
-    }
-    return false;
-}
-
 chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options) : Node ("chassis_calculator", node_options) {
     command_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
     joint_state_subscriber_        = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&chassis_calculator::joint_state_callback, this, std::placeholders::_1));
@@ -110,17 +100,17 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
 
             if (x == 0.0 && y == 0.0 && z == 0.0) {
                 command_joint_state_.velocity[i] = 0.0;
+
                 if (steering_stop_mode_ == "turn") {
                     double vx = -wheel_position_y;
                     double vy = +wheel_position_x;
 
                     command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
                 } else if (steering_stop_mode_ == "lock") {
-                    double current_angle;
+                    double vx = wheel_position_x;
+                    double vy = wheel_position_y;
 
-                    if (get_joint_position (joint_state_, wheel_base_names_[i], &current_angle)) {
-                        command_joint_state_.position[i + num_wheels_] = current_angle + M_PI / 2.0;
-                    }
+                    command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
                 } else if (steering_stop_mode_ == "hold") {
                     // Keep the previous steering direction.
                 }
