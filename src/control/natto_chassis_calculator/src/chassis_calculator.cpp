@@ -109,7 +109,7 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
             }
 
             if (x == 0.0 && y == 0.0 && z == 0.0) {
-                command_joint_state_.velocity[i]               = 0.0;
+                command_joint_state_.velocity[i] = 0.0;
                 if (steering_stop_mode_ == "turn") {
                     double vx = -wheel_position_y;
                     double vy = +wheel_position_x;
