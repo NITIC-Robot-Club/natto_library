@@ -42,21 +42,15 @@ void joint_state_merger::joint_states_callback (const sensor_msgs::msg::JointSta
         return;
     }
     if (!msg->position.empty () && msg->position.size () != msg->name.size ()) {
-        RCLCPP_WARN (
-          this->get_logger (), "Received JointState with invalid position entries: name=%zu position=%zu. Ignored.",
-          msg->name.size (), msg->position.size ());
+        RCLCPP_WARN (this->get_logger (), "Received JointState with invalid position entries: name=%zu position=%zu. Ignored.", msg->name.size (), msg->position.size ());
         return;
     }
     if (!msg->velocity.empty () && msg->velocity.size () != msg->name.size ()) {
-        RCLCPP_WARN (
-          this->get_logger (), "Received JointState with invalid velocity entries: name=%zu velocity=%zu. Ignored.",
-          msg->name.size (), msg->velocity.size ());
+        RCLCPP_WARN (this->get_logger (), "Received JointState with invalid velocity entries: name=%zu velocity=%zu. Ignored.", msg->name.size (), msg->velocity.size ());
         return;
     }
     if (!msg->effort.empty () && msg->effort.size () != msg->name.size ()) {
-        RCLCPP_WARN (
-          this->get_logger (), "Received JointState with invalid effort entries: name=%zu effort=%zu. Ignored.",
-          msg->name.size (), msg->effort.size ());
+        RCLCPP_WARN (this->get_logger (), "Received JointState with invalid effort entries: name=%zu effort=%zu. Ignored.", msg->name.size (), msg->effort.size ());
         return;
     }
 
