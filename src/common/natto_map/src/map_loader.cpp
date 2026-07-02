@@ -102,7 +102,7 @@ void map_loader::load_circles (const std::string &path) {
         if (!line.empty () && line[0] == '#') {
             continue;
         }
-        
+
         std::stringstream       ss (line);
         natto_msgs::msg::Circle c;
         std::string             val;
