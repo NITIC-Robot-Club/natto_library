@@ -55,6 +55,7 @@ class mcl : public rclcpp::Node {
     double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_yaw_deg_;
     double      normal_noise_position_, normal_noise_orientation_deg_, expansion_radius_position_, expansion_radius_orientation_deg_;
     double      laser_likelihood_max_dist_, transform_tolerance_;
+    double      lidar_timeout_seconds_;
     double      resolution_, delta_t_;
     int         width_, height_;
     double      origin_x_, origin_y_;
@@ -70,6 +71,7 @@ class mcl : public rclcpp::Node {
 
     std::vector<float> scan_x_, scan_y_;
     int                scan_size_;
+    rclcpp::Time       last_lidar_time_;
 
     void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);

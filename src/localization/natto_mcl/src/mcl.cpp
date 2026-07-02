@@ -56,12 +56,15 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     expansion_radius_orientation_deg_ = this->declare_parameter<double> ("expansion_radius_orientation_deg", 30.0);
     laser_likelihood_max_dist_        = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
     transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
+    lidar_timeout_seconds_            = this->declare_parameter<double> ("lidar_timeout_seconds", 0.3);
 
     max_trajectory_length_ = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
     reverse_y_             = this->declare_parameter<bool> ("reverse_y", false);
     reverse_y_offset_      = this->declare_parameter<double> ("reverse_y_offset", 0.0);
 
     trajectory_msg_.header.frame_id = map_frame_id_;
+    scan_size_                      = 0;
+    last_lidar_time_                = this->now () - rclcpp::Duration::from_seconds (lidar_timeout_seconds_ + 1.0);
 
     RCLCPP_INFO (this->get_logger (), "mcl node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "use_odom_tf: %s", use_odom_tf_ ? "true" : "false");
@@ -85,6 +88,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation_deg: %f", expansion_radius_orientation_deg_);
     RCLCPP_INFO (this->get_logger (), "laser_likelihood_max_dist: %f", laser_likelihood_max_dist_);
     RCLCPP_INFO (this->get_logger (), "transform_tolerance: %f", transform_tolerance_);
+    RCLCPP_INFO (this->get_logger (), "lidar_timeout_seconds: %f", lidar_timeout_seconds_);
     RCLCPP_INFO (this->get_logger (), "max_trajectory_length: %zu", max_trajectory_length_);
     RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %f", reverse_y_offset_);
@@ -176,6 +180,8 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         scan_y_.push_back (*iter_y);
         scan_size_++;
     }
+
+    last_lidar_time_ = msg->header.stamp;
 }
 
 void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -228,19 +234,33 @@ void mcl::timer_callback () {
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
     motion_update (delta_x, delta_y, delta_yaw);
-    double total_weight = 0.0;
-    for (auto &p : particles_) {
-        p.weight *= compute_laser_likelihood (p);
-        total_weight += p.weight;
-    }
+    const bool lidar_is_valid = scan_size_ > 0 && (this->now () - last_lidar_time_).seconds () <= lidar_timeout_seconds_;
+    if (lidar_is_valid) {
+        double total_weight = 0.0;
+        for (auto &p : particles_) {
+            p.weight *= compute_laser_likelihood (p);
+            total_weight += p.weight;
+        }
 
-    for (auto &p : particles_) {
-        p.weight /= total_weight;
-    }
+        if (total_weight > 0.0) {
+            for (auto &p : particles_) {
+                p.weight /= total_weight;
+            }
 
-    if (total_weight > 0.000001) {
-        resample_particles ();
+            if (total_weight > 0.000001) {
+                resample_particles ();
+            } else {
+                for (auto &p : particles_) {
+                    p.weight = 1.0 / static_cast<double> (particles_.size ());
+                }
+            }
+        } else {
+            for (auto &p : particles_) {
+                p.weight = 1.0 / static_cast<double> (particles_.size ());
+            }
+        }
     } else {
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "LiDAR pointcloud expired or not received yet. Using odometry only.");
         for (auto &p : particles_) {
             p.weight = 1.0 / static_cast<double> (particles_.size ());
         }
