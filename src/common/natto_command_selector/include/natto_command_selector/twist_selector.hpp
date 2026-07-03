@@ -18,6 +18,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float32.hpp"
@@ -42,7 +43,7 @@ class twist_selector : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr              allow_auto_drive_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr manual_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr auto_subscriber_;
-    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr           controller_angle_subscriber_;
+    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr           controller_orientation_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr  current_pose_subscriber_;
     rclcpp::TimerBase::SharedPtr                                      timer_;
 };

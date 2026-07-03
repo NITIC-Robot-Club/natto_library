@@ -17,11 +17,12 @@
 namespace twist_selector {
 
 twist_selector::twist_selector (const rclcpp::NodeOptions &node_options) : Node ("twist_selector", node_options) {
-    allow_auto_drive_subscriber_ = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, std::bind (&twist_selector::allow_auto_drive_callback, this, std::placeholders::_1));
-    manual_subscriber_           = this->create_subscription<geometry_msgs::msg::TwistStamped> ("manual_twist", 10, std::bind (&twist_selector::manual_callback, this, std::placeholders::_1));
-    auto_subscriber_             = this->create_subscription<geometry_msgs::msg::TwistStamped> ("auto_twist", 10, std::bind (&twist_selector::auto_callback, this, std::placeholders::_1));
-    selected_twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
-    controller_angle_subscriber_ = this->create_subscription<std_msgs::msg::Float32> ("controller_angle", rclcpp::SensorDataQoS (), [this] (const std_msgs::msg::Float32::SharedPtr msg) { controller_angle_ = msg->data; });
+    allow_auto_drive_subscriber_       = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, std::bind (&twist_selector::allow_auto_drive_callback, this, std::placeholders::_1));
+    manual_subscriber_                 = this->create_subscription<geometry_msgs::msg::TwistStamped> ("manual_twist", 10, std::bind (&twist_selector::manual_callback, this, std::placeholders::_1));
+    auto_subscriber_                   = this->create_subscription<geometry_msgs::msg::TwistStamped> ("auto_twist", 10, std::bind (&twist_selector::auto_callback, this, std::placeholders::_1));
+    selected_twist_publisher_          = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
+    controller_orientation_subscriber_ = this->create_subscription<geometry_msgs::msg::Quaternion> (
+        "controller_orientation", 10, [this] (const geometry_msgs::msg::Quaternion::SharedPtr msg) { controller_angle_ = std::atan2 (2.0 * (msg->w * msg->z + msg->x * msg->y), 1.0 - 2.0 * (msg->y * msg->y + msg->z * msg->z)); });
 
     current_pose_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
         robot_angle_ = std::atan2 (
