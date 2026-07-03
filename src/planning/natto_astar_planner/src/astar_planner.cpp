@@ -17,8 +17,9 @@
 namespace astar_planner {
 
 astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("astar_planner", node_options) {
-    path_publisher_    = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
-    costmap_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    path_publisher_      = this->create_publisher<nav_msgs::msg::Path> ("path", 10);
+    costmap_publisher_   = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("costmap", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
+    goal_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped> ("fixed_goal_pose", 10);
     occupancy_grid_subscription_ =
         this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&astar_planner::occupancy_grid_callback, this, std::placeholders::_1));
     goal_pose_subscription_    = this->create_subscription<geometry_msgs::msg::PoseStamped> ("goal_pose", 10, std::bind (&astar_planner::goal_pose_callback, this, std::placeholders::_1));
@@ -26,20 +27,25 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     footprint_subscription_    = this->create_subscription<geometry_msgs::msg::PolygonStamped> ("footprint", 10, std::bind (&astar_planner::footprint_callback, this, std::placeholders::_1));
     goal_reached_subscription_ = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&astar_planner::goal_reached_callback, this, std::placeholders::_1));
 
-    theta_resolution_deg_      = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
-    xy_inflation_              = this->declare_parameter<double> ("xy_inflation", 0.5);
-    xy_offset_                 = this->declare_parameter<double> ("xy_offset", 0.1);
-    yaw_offset_                = this->declare_parameter<double> ("yaw_offset", 0.1);
-    grad_alpha_                = this->declare_parameter<double> ("grad_alpha", 1.0);
-    grad_beta_                 = this->declare_parameter<double> ("grad_beta", 8.0);
-    grad_gamma_                = this->declare_parameter<double> ("grad_gamma", 0.0);
-    grad_step_size_            = this->declare_parameter<double> ("grad_step_size", 0.1);
-    replan_distance_threshold_ = this->declare_parameter<double> ("replan_distance_threshold", 0.2);
+    theta_resolution_deg_              = static_cast<int> (this->declare_parameter<int> ("theta_resolution_deg", 5));
+    map_frame_                         = this->declare_parameter<std::string> ("map_frame", "map");
+    xy_inflation_                      = this->declare_parameter<double> ("xy_inflation", 0.5);
+    xy_offset_                         = this->declare_parameter<double> ("xy_offset", 0.1);
+    yaw_offset_                        = this->declare_parameter<double> ("yaw_offset", 0.1);
+    grad_alpha_                        = this->declare_parameter<double> ("grad_alpha", 1.0);
+    grad_beta_                         = this->declare_parameter<double> ("grad_beta", 8.0);
+    grad_gamma_                        = this->declare_parameter<double> ("grad_gamma", 0.0);
+    grad_step_size_                    = this->declare_parameter<double> ("grad_step_size", 0.1);
+    replan_distance_threshold_m_       = this->declare_parameter<double> ("replan_distance_threshold_m", 0.2);
+    replan_distance_threshold_yaw_deg_ = this->declare_parameter<double> ("replan_distance_threshold_yaw_deg", 30.0);
+    tf_buffer_                         = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
+    tf_listener_                       = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 
-    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (100), std::bind (&astar_planner::replan_timer_callback, this));
+    replan_timer_ = this->create_wall_timer (std::chrono::milliseconds (10), std::bind (&astar_planner::replan_timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "astar_planner node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "theta_resolution_deg: %d", theta_resolution_deg_);
+    RCLCPP_INFO (this->get_logger (), "map_frame: %s", map_frame_.c_str ());
     RCLCPP_INFO (this->get_logger (), "xy_inflation: %.2f", xy_inflation_);
     RCLCPP_INFO (this->get_logger (), "xy_offset: %.2f", xy_offset_);
     RCLCPP_INFO (this->get_logger (), "yaw_offset: %.2f", yaw_offset_);
@@ -47,7 +53,8 @@ astar_planner::astar_planner (const rclcpp::NodeOptions &node_options) : Node ("
     RCLCPP_INFO (this->get_logger (), "grad_beta: %.2f", grad_beta_);
     RCLCPP_INFO (this->get_logger (), "grad_gamma: %.2f", grad_gamma_);
     RCLCPP_INFO (this->get_logger (), "grad_step_size: %.2f", grad_step_size_);
-    RCLCPP_INFO (this->get_logger (), "replan_distance_threshold: %.2f", replan_distance_threshold_);
+    RCLCPP_INFO (this->get_logger (), "replan_distance_threshold_m: %.2f", replan_distance_threshold_m_);
+    RCLCPP_INFO (this->get_logger (), "replan_distance_threshold_yaw_deg: %.2f", replan_distance_threshold_yaw_deg_);
 }
 
 void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -59,15 +66,48 @@ void astar_planner::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid:
 }
 
 void astar_planner::goal_pose_callback (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    if (is_same_goal (*msg, previous_goal_pose_)) {
-        double min_dist = calculate_min_distance_to_path ();
-        if (min_dist <= replan_distance_threshold_) {
+    if (msg->header.frame_id.empty ()) {
+        RCLCPP_WARN (this->get_logger (), "Received goal_pose with empty frame_id. Ignoring.");
+        return;
+    }
+
+    geometry_msgs::msg::PoseStamped goal_pose_in_map;
+    if (msg->header.frame_id == map_frame_) {
+        goal_pose_in_map = *msg;
+    } else {
+        try {
+            const auto transform = tf_buffer_->lookupTransform (map_frame_, msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec (0.1));
+            tf2::doTransform (*msg, goal_pose_in_map, transform);
+            goal_pose_in_map.header.frame_id = map_frame_;
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_WARN (this->get_logger (), "Failed to transform goal_pose from %s to %s: %s", msg->header.frame_id.c_str (), map_frame_.c_str (), ex.what ());
             return;
         }
     }
 
-    goal_pose_          = *msg;
-    previous_goal_pose_ = *msg;
+    if (is_same_goal (goal_pose_in_map, previous_goal_pose_)) {
+        if (path_.poses.empty ()) {
+            goal_pose_          = goal_pose_in_map;
+            previous_goal_pose_ = goal_pose_in_map;
+            create_path ();
+            return;
+        }
+
+        size_t closest_index = calculate_min_distance_to_path_index ();
+        double min_distance  = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
+        double min_angle     = tf2::getYaw (path_.poses[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+        min_angle            = abs (fix_angle (min_angle));
+
+        if (min_distance <= replan_distance_threshold_m_) {
+            return;
+        }
+        if (min_angle <= replan_distance_threshold_yaw_deg_ * M_PI / 180.0) {
+            return;
+        }
+    }
+
+    goal_pose_          = goal_pose_in_map;
+    previous_goal_pose_ = goal_pose_in_map;
     create_path ();
 }
 
@@ -91,8 +131,13 @@ void astar_planner::create_path () {
     if (goal_pose_.header.frame_id.empty ()) return;
     if (current_pose_.header.frame_id.empty ()) return;
 
-    auto start_pose = find_free_space_pose (current_pose_.pose);
-    auto goal_pose  = find_free_space_pose (goal_pose_.pose);
+    auto                            start_pose = find_free_space_pose (current_pose_.pose);
+    auto                            goal_pose  = find_free_space_pose (goal_pose_.pose);
+    geometry_msgs::msg::PoseStamped fixed_goal_pose;
+    fixed_goal_pose.header.frame_id = map_frame_;
+    fixed_goal_pose.header.stamp    = this->get_clock ()->now ();
+    fixed_goal_pose.pose            = goal_pose;
+    goal_pose_publisher_->publish (fixed_goal_pose);
 
     current_pose_.pose = start_pose;
     goal_pose_.pose    = goal_pose;
@@ -288,27 +333,103 @@ bool astar_planner::rectangle_is_collision_free (const size_t cx, const size_t c
     size_t center_idx = cy * width + cx;
     if (is_blocked (center_idx)) return false;
 
-    if (footprint_.polygon.points.size () < 4) {
+    if (footprint_.polygon.points.size () < 3) {
         return true;
     }
 
     double wx = ox + (static_cast<double> (cx) + 0.5) * res;
     double wy = oy + (static_cast<double> (cy) + 0.5) * res;
 
-    double yaw_sin = sin (yaw);
-    double yaw_cos = cos (yaw);
+    double yaw_sin = std::sin (yaw);
+    double yaw_cos = std::cos (yaw);
 
-    for (const auto &vertex : footprint_.polygon.points) {
-        double vx = wx + vertex.x * yaw_cos - vertex.y * yaw_sin;
-        double vy = wy + vertex.x * yaw_sin + vertex.y * yaw_cos;
+    const size_t        N = footprint_.polygon.points.size ();
+    std::vector<double> poly_x (N);
+    std::vector<double> poly_y (N);
+
+    double min_wx = std::numeric_limits<double>::infinity ();
+    double max_wx = -std::numeric_limits<double>::infinity ();
+    double min_wy = std::numeric_limits<double>::infinity ();
+    double max_wy = -std::numeric_limits<double>::infinity ();
+
+    for (size_t i = 0; i < N; ++i) {
+        const auto &vertex = footprint_.polygon.points[i];
+        double      vx     = wx + vertex.x * yaw_cos - vertex.y * yaw_sin;
+        double      vy     = wy + vertex.x * yaw_sin + vertex.y * yaw_cos;
+
+        poly_x[i] = vx;
+        poly_y[i] = vy;
+
+        min_wx = std::min (min_wx, vx);
+        max_wx = std::max (max_wx, vx);
+        min_wy = std::min (min_wy, vy);
+        max_wy = std::max (max_wy, vy);
 
         size_t gx = static_cast<size_t> ((vx - ox) / res);
         size_t gy = static_cast<size_t> ((vy - oy) / res);
-
         if (gx >= width || gy >= height) return false;
+        if (is_blocked (gy * width + gx)) return false;
+    }
 
-        size_t vidx = gy * width + gx;
-        if (is_blocked (vidx)) return false;
+    auto point_inside_polygon = [&] (double px, double py) {
+        bool inside = false;
+        for (size_t i = 0, j = N - 1; i < N; j = i++) {
+            const double xi = poly_x[i], yi = poly_y[i];
+            const double xj = poly_x[j], yj = poly_y[j];
+            const bool   cross_y = ((yi > py) != (yj > py));
+            if (!cross_y) continue;
+            const double x_intersect = (xj - xi) * (py - yi) / (yj - yi) + xi;
+            if (px < x_intersect) inside = !inside;
+        }
+        return inside;
+    };
+
+    auto point_segment_dist_sq = [] (double px, double py, double ax, double ay, double bx, double by) {
+        const double abx = bx - ax;
+        const double aby = by - ay;
+        const double apx = px - ax;
+        const double apy = py - ay;
+        const double ab2 = abx * abx + aby * aby;
+        double       t   = 0.0;
+        if (ab2 > 1e-12) {
+            t = (apx * abx + apy * aby) / ab2;
+            t = std::clamp (t, 0.0, 1.0);
+        }
+        const double qx = ax + t * abx;
+        const double qy = ay + t * aby;
+        const double dx = px - qx;
+        const double dy = py - qy;
+        return dx * dx + dy * dy;
+    };
+
+    if (max_wx < ox || min_wx > ox + static_cast<double> (width) * res || max_wy < oy || min_wy > oy + static_cast<double> (height) * res) {
+        return false;
+    }
+
+    size_t min_gx = static_cast<size_t> (std::max (0.0, std::floor ((min_wx - ox) / res)));
+    size_t max_gx = static_cast<size_t> (std::min (static_cast<double> (width - 1), std::floor ((max_wx - ox) / res)));
+    size_t min_gy = static_cast<size_t> (std::max (0.0, std::floor ((min_wy - oy) / res)));
+    size_t max_gy = static_cast<size_t> (std::min (static_cast<double> (height - 1), std::floor ((max_wy - oy) / res)));
+
+    const double edge_tol_sq = 0.25 * res * res;
+
+    for (size_t gy = min_gy; gy <= max_gy; ++gy) {
+        for (size_t gx = min_gx; gx <= max_gx; ++gx) {
+            const size_t idx = gy * width + gx;
+            if (!is_blocked (idx)) continue;
+
+            const double px = ox + (static_cast<double> (gx) + 0.5) * res;
+            const double py = oy + (static_cast<double> (gy) + 0.5) * res;
+
+            if (point_inside_polygon (px, py)) return false;
+
+            for (size_t i = 0; i < N; ++i) {
+                const size_t j = (i + 1) % N;
+                if (point_segment_dist_sq (px, py, poly_x[i], poly_y[i], poly_x[j], poly_y[j]) <= edge_tol_sq) {
+                    return false;
+                }
+            }
+        }
     }
 
     return true;
@@ -415,6 +536,7 @@ nav_msgs::msg::Path astar_planner::linear_astar () {
     path.header.stamp    = this->now ();
     for (auto &p : rev) {
         geometry_msgs::msg::PoseStamped ps;
+        ps.header          = path.header;
         ps.pose.position.x = ox + (static_cast<double> (p.first) + 0.5) * res;
         ps.pose.position.y = oy + (static_cast<double> (p.second) + 0.5) * res;
         path.poses.push_back (ps);
@@ -713,26 +835,29 @@ double astar_planner::fix_angle (double angle) {
     return angle;
 }
 
-double astar_planner::calculate_min_distance_to_path () {
+size_t astar_planner::calculate_min_distance_to_path_index () {
     if (path_.poses.empty () || current_pose_.header.frame_id.empty ()) {
-        return std::numeric_limits<double>::infinity ();
+        return 0;
     }
 
-    double min_distance = std::numeric_limits<double>::infinity ();
-    double current_x    = current_pose_.pose.position.x;
-    double current_y    = current_pose_.pose.position.y;
+    double min_distance  = std::numeric_limits<double>::infinity ();
+    double current_x     = current_pose_.pose.position.x;
+    double current_y     = current_pose_.pose.position.y;
+    size_t closest_index = 0;
 
-    for (const auto &pose : path_.poses) {
-        double dx       = pose.pose.position.x - current_x;
-        double dy       = pose.pose.position.y - current_y;
-        double distance = std::hypot (dx, dy);
+    for (size_t i = 0; i < path_.poses.size (); ++i) {
+        const auto &pose     = path_.poses[i];
+        double      dx       = pose.pose.position.x - current_x;
+        double      dy       = pose.pose.position.y - current_y;
+        double      distance = std::hypot (dx, dy);
 
         if (distance < min_distance) {
-            min_distance = distance;
+            min_distance  = distance;
+            closest_index = i;
         }
     }
 
-    return min_distance;
+    return closest_index;
 }
 
 bool astar_planner::is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, const geometry_msgs::msg::PoseStamped &goal2, double tolerance) {
@@ -756,11 +881,21 @@ void astar_planner::replan_timer_callback () {
         return;
     }
 
-    double min_distance = calculate_min_distance_to_path ();
+    size_t closest_index = calculate_min_distance_to_path_index ();
 
-    if (min_distance > replan_distance_threshold_) {
-        RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_);
+    double min_distance = std::hypot (path_.poses[closest_index].pose.position.x - current_pose_.pose.position.x, path_.poses[closest_index].pose.position.y - current_pose_.pose.position.y);
+    double min_angle    = tf2::getYaw (path_.poses[closest_index].pose.orientation) - tf2::getYaw (current_pose_.pose.orientation);
+    min_angle           = abs (fix_angle (min_angle));
+
+    if (min_distance > replan_distance_threshold_m_) {
+        RCLCPP_INFO (this->get_logger (), "Distance to path (%.3f m) exceeds threshold (%.3f m), replanning...", min_distance, replan_distance_threshold_m_);
         create_path ();
+    } else if (min_angle > replan_distance_threshold_yaw_deg_ * M_PI / 180.0) {
+        RCLCPP_INFO (this->get_logger (), "Angle to path (%.3f rad) exceeds threshold (%.3f rad), replanning...", min_angle, replan_distance_threshold_yaw_deg_ * M_PI / 180.0);
+        create_path ();
+    } else {
+        path_.header.stamp = this->now ();
+        path_publisher_->publish (path_);
     }
 }
 

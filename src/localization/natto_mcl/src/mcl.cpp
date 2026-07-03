@@ -389,8 +389,8 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
         double cos_yaw = cos_[theta_16bit];
         double sin_yaw = sin_[theta_16bit];
 
-        p.x += delta_x * cos_yaw - delta_y * sin_yaw + nx;
-        p.y += delta_x * sin_yaw + delta_y * cos_yaw + ny;
+        p.x += (delta_x + nx) * cos_yaw - (delta_y + ny) * sin_yaw;
+        p.y += (delta_x + nx) * sin_yaw + (delta_y + ny) * cos_yaw;
         p.yaw += delta_yaw + nyaw;
     }
 }

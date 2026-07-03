@@ -16,29 +16,51 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | num_button | int | 0 | 管理するボタン数 |
 | button_N.mode | string | "none" | ボタンNの動作モード（"toggle", "toggle_on", "toggle_off", "hold", "positive_edge", "none"） |
 | button_N.function | string | "none" | ボタンNの機能（"power", "allow_auto_drive", "joint_position", "joint_speed", "get_origin", "none"） |
-| button_N.joint_name | string | "" | ボタンNが制御するジョイント名（joint_position/joint_speed時に必須） |
-| button_N.joint_names | string[] | [""] | ボタンNが対象とするジョイント名リスト（get_origin時に必須） |
-| button_N.position_on | double | 1.0 | ボタンNがONのときのジョイント目標位置 |
-| button_N.position_off | double | 0.0 | ボタンNがOFFのときのジョイント目標位置 |
-| button_N.speed_on | double | 1.0 | ボタンNがONのときのジョイント目標速度 |
-| button_N.speed_off | double | 0.0 | ボタンNがOFFのときのジョイント目標速度 |
-| button_N.publish_always | bool | false | 自動運転中でもジョイント状態をパブリッシュするか |
+| button_N.functions | string[] | [] | ボタンNの機能リスト（`function` より優先）。1ボタンで複数機能を実行可能 |
+| button_N.joint_name | string | "" | 旧仕様: ボタンNが制御するジョイント名（単一エントリ時） |
+| button_N.joint_names | string[] | [] | 複数エントリ時のジョイント名リスト（`functions` と同じ添字で対応） |
+| button_N.position_on | double | 1.0 | 単一エントリ時のON目標位置 |
+| button_N.position_off | double | 0.0 | 単一エントリ時のOFF目標位置 |
+| button_N.speed_on | double | 1.0 | 単一エントリ時のON目標速度 |
+| button_N.speed_off | double | 0.0 | 単一エントリ時のOFF目標速度 |
+| button_N.publish_always | bool | false | 単一エントリ時に自動運転中もパブリッシュするか |
+| button_N.position_ons | double[] | [] | 複数エントリ時のON目標位置リスト |
+| button_N.position_offs | double[] | [] | 複数エントリ時のOFF目標位置リスト |
+| button_N.speed_ons | double[] | [] | 複数エントリ時のON目標速度リスト |
+| button_N.speed_offs | double[] | [] | 複数エントリ時のOFF目標速度リスト |
+| button_N.publish_always_list | bool[] | [] | 複数エントリ時の自動運転中パブリッシュ設定リスト |
+| button_N.priority | int | 0 | 単一エントリ時の優先度 |
+| button_N.priorities | int[] | [] | 複数エントリ時の優先度リスト |
 | zr.mode | string | "none" | ZRトリガーの動作モード |
 | zr.function | string | "none" | ZRトリガーの機能 |
-| zr.joint_name | string | "" | ZRトリガーが制御するジョイント名 |
-| zr.position_on | double | 1.0 | ZRがONのときのジョイント目標位置 |
-| zr.position_off | double | 0.0 | ZRがOFFのときのジョイント目標位置 |
-| zr.speed_on | double | 1.0 | ZRがONのときのジョイント目標速度 |
-| zr.speed_off | double | 0.0 | ZRがOFFのときのジョイント目標速度 |
-| zr.publish_always | bool | false | 自動運転中でもパブリッシュするか |
+| zr.functions | string[] | [] | ZRの機能リスト（`function` より優先） |
+| zr.joint_name | string | "" | 単一エントリ時のZR対象ジョイント名 |
+| zr.joint_names | string[] | [] | 複数エントリ時のZR対象ジョイント名リスト |
+| zr.position_on | double | 1.0 | 単一エントリ時のZR ON目標位置 |
+| zr.position_off | double | 0.0 | 単一エントリ時のZR OFF目標位置 |
+| zr.speed_on | double | 1.0 | 単一エントリ時のZR ON目標速度 |
+| zr.speed_off | double | 0.0 | 単一エントリ時のZR OFF目標速度 |
+| zr.publish_always | bool | false | 単一エントリ時のZR自動運転中パブリッシュ設定 |
+| zr.position_ons | double[] | [] | 複数エントリ時のZR ON目標位置リスト |
+| zr.position_offs | double[] | [] | 複数エントリ時のZR OFF目標位置リスト |
+| zr.speed_ons | double[] | [] | 複数エントリ時のZR ON目標速度リスト |
+| zr.speed_offs | double[] | [] | 複数エントリ時のZR OFF目標速度リスト |
+| zr.publish_always_list | bool[] | [] | 複数エントリ時のZR自動運転中パブリッシュ設定 |
 | zl.mode | string | "none" | ZLトリガーの動作モード |
 | zl.function | string | "none" | ZLトリガーの機能 |
-| zl.joint_name | string | "" | ZLトリガーが制御するジョイント名 |
-| zl.position_on | double | 1.0 | ZLがONのときのジョイント目標位置 |
-| zl.position_off | double | 0.0 | ZLがOFFのときのジョイント目標位置 |
-| zl.speed_on | double | 1.0 | ZLがONのときのジョイント目標速度 |
-| zl.speed_off | double | 0.0 | ZLがOFFのときのジョイント目標速度 |
-| zl.publish_always | bool | false | 自動運転中でもパブリッシュするか |
+| zl.functions | string[] | [] | ZLの機能リスト（`function` より優先） |
+| zl.joint_name | string | "" | 単一エントリ時のZL対象ジョイント名 |
+| zl.joint_names | string[] | [] | 複数エントリ時のZL対象ジョイント名リスト |
+| zl.position_on | double | 1.0 | 単一エントリ時のZL ON目標位置 |
+| zl.position_off | double | 0.0 | 単一エントリ時のZL OFF目標位置 |
+| zl.speed_on | double | 1.0 | 単一エントリ時のZL ON目標速度 |
+| zl.speed_off | double | 0.0 | 単一エントリ時のZL OFF目標速度 |
+| zl.publish_always | bool | false | 単一エントリ時のZL自動運転中パブリッシュ設定 |
+| zl.position_ons | double[] | [] | 複数エントリ時のZL ON目標位置リスト |
+| zl.position_offs | double[] | [] | 複数エントリ時のZL OFF目標位置リスト |
+| zl.speed_ons | double[] | [] | 複数エントリ時のZL ON目標速度リスト |
+| zl.speed_offs | double[] | [] | 複数エントリ時のZL OFF目標速度リスト |
+| zl.publish_always_list | bool[] | [] | 複数エントリ時のZL自動運転中パブリッシュ設定 |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -52,6 +74,19 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | joy | sensor_msgs/msg/Joy | ジョイスティックの入力データ |
+
+### `button_N.functions` の使用例
+
+```yaml
+button_0:
+	mode: "hold"
+	functions: ["joint_speed", "joint_position"]
+	joint_names: ["joint_1", "joint_2"]
+	speed_ons: [1.0, 0.0]
+	speed_offs: [0.0, 0.0]
+	position_ons: [0.0, 1.0]
+	position_offs: [0.0, 0.0]
+```
 
 # joy_to_twist
 joy_to_twistノードは、ジョイスティックの入力を受け取り、ロボットの移動コマンド（geometry_msgs/msg/TwistStamped型）に変換してパブリッシュします。

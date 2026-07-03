@@ -18,6 +18,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/LinearMath/Quaternion.hpp"
 #include "tf2/utils.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include "geometry_msgs/msg/polygon_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -31,8 +33,10 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -44,10 +48,11 @@ class astar_planner : public rclcpp::Node {
     astar_planner (const rclcpp::NodeOptions &node_options);
 
    private:
-    int    theta_resolution_deg_;
-    double xy_inflation_, xy_offset_, yaw_offset_;
-    double grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
-    double replan_distance_threshold_;
+    int         theta_resolution_deg_;
+    std::string map_frame_;
+    double      xy_inflation_, xy_offset_, yaw_offset_;
+    double      grad_alpha_, grad_beta_, grad_gamma_, grad_step_size_;
+    double      replan_distance_threshold_m_, replan_distance_threshold_yaw_deg_;
 
     nav_msgs::msg::OccupancyGrid       raw_map_;
     nav_msgs::msg::OccupancyGrid       costmap_;
@@ -75,7 +80,7 @@ class astar_planner : public rclcpp::Node {
     void   create_costmap ();
     void   create_obstacle_costmap ();
     double fix_angle (double angle);
-    double calculate_min_distance_to_path ();
+    size_t calculate_min_distance_to_path_index ();
     bool   is_same_goal (const geometry_msgs::msg::PoseStamped &goal1, const geometry_msgs::msg::PoseStamped &goal2, double tolerance = 0.1);
     bool   rectangle_is_collision_free (const size_t cx, const size_t cy, const double yaw);
     bool   rectangle_is_collision_free (const geometry_msgs::msg::Pose &pose);
@@ -90,11 +95,14 @@ class astar_planner : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr                   path_publisher_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr          costmap_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       goal_pose_publisher_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr       occupancy_grid_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    current_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr footprint_subscription_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                goal_reached_subscription_;
+    std::unique_ptr<tf2_ros::Buffer>                                    tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener>                         tf_listener_;
     rclcpp::TimerBase::SharedPtr                                        replan_timer_;
 };
 

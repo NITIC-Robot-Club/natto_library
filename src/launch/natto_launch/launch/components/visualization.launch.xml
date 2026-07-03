@@ -31,6 +31,53 @@
             <remap from="marker_array" to="/visualization/speed_path"/>
             <param name="frame_id" value="map"/>
         </composable_node>
+
+        <!-- swerve command -->
+        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="swerve_command_visualizer" namespace="visualization/swerve_visualizer">
+            <param from="$(var chassis_param_path)"/>
+            <param name="frequency" value="$(var fps)"/>
+            <param name="frame_id" value="command/base_link"/>
+            <param name="line_width" value="0.05"/>
+            <param name="vector_scale" value="0.25"/>
+            <param name="show_steering_arc" value="true"/>
+            <param name="rotation_vector_line_width" value="0.055"/>
+            <param name="rotation_vector_scale" value="0.36"/>
+            <param name="steering_arc_span" value="0.35"/>
+            <param name="steering_arc_max_span" value="1.2"/>
+            <param name="steering_arrow_length" value="0.09"/>
+            <param name="steering_arrow_head_scale" value="0.85"/>
+            <param name="steering_arrow_head_cone_scale" value="0.986"/>
+            <param name="steering_color_r" value="0.0"/>
+            <param name="steering_color_g" value="0.0"/>
+            <param name="steering_color_b" value="1.0"/>
+            <param name="steering_color_a" value="0.5"/>
+            <param name="arrow_color_r" value="0.0"/>
+            <param name="arrow_color_g" value="0.0"/>
+            <param name="arrow_color_b" value="1.0"/>
+            <param name="arrow_color_a" value="0.5"/>
+            <remap from="joint_states" to="/$(var chassis_type)/command_joint_states"/>
+            <remap from="marker_array" to="/visualization/swerve_command"/>
+        </composable_node>
+
+        <!-- swerve state -->
+        <composable_node pkg="natto_visualization_converter" plugin="swerve_visualizer::swerve_visualizer" name="swerve_states_visualizer" namespace="visualization/swerve_visualizer">
+            <param from="$(var chassis_param_path)"/>
+            <param name="frequency" value="$(var fps)"/>
+            <param name="frame_id" value="base_link"/>
+            <param name="line_width" value="0.05"/>
+            <param name="vector_scale" value="0.25"/>
+            <param name="show_steering_arc" value="true"/>
+            <param name="arrow_color_r" value="0.1"/>
+            <param name="arrow_color_g" value="0.8"/>
+            <param name="arrow_color_b" value="0.2"/>
+            <param name="steering_color_r" value="1.0"/>
+            <param name="steering_color_g" value="0.55"/>
+            <param name="steering_color_b" value="0.0"/>
+            <param name="steering_color_a" value="1.0"/>
+            <param name="arrow_color_a" value="1.0"/>
+            <remap from="joint_states" to="/joint_states"/>
+            <remap from="marker_array" to="/visualization/swerve_states"/>
+        </composable_node>
     </node_container>
 
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
@@ -39,5 +86,5 @@
     <node pkg="rviz2" exec="rviz2" name="rviz2" output="screen"
         args="-d $(var rviz_path)" unless="$(var use_dark_rviz)"/>
 
-    
+
 </launch>
