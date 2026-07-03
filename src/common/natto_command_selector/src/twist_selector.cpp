@@ -52,6 +52,7 @@ twist_selector::twist_selector (const rclcpp::NodeOptions &node_options) : Node 
             RCLCPP_WARN (this->get_logger (), "No twist command received yet. Publishing stop command.");
         }
         received_ = false;
+        RCLCPP_INFO (this->get_logger (), "kakudo: %f", controller_angle_ * 180.0 / M_PI);
     });
 }
 
