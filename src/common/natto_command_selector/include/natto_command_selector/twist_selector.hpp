@@ -43,7 +43,7 @@ class twist_selector : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr              allow_auto_drive_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr manual_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr auto_subscriber_;
-    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr           controller_orientation_subscriber_;
+    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr   controller_orientation_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr  current_pose_subscriber_;
     rclcpp::TimerBase::SharedPtr                                      timer_;
 };
