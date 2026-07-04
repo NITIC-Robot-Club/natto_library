@@ -13,6 +13,7 @@
   <test_depend>ament_lint_common</test_depend>
 
   <depend>xacro</depend>
+  <depend>natto_lidar_gate</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

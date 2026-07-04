@@ -34,9 +34,11 @@ class pointcloud2_merger : public rclcpp::Node {
    private:
     std::string frame_id_;
     std::size_t num_lidars_;
+    double      lidar_timeout_seconds_;
 
     geometry_msgs::msg::PolygonStamped         footprint_;
     std::vector<sensor_msgs::msg::PointCloud2> latest_pointclouds_;
+    std::vector<rclcpp::Time>                  latest_received_times_;
 
     void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
     bool check_footprint (double x, double y);

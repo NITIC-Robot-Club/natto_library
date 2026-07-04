@@ -24,12 +24,20 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 
     std::vector<std::string> lidar_topics = this->declare_parameter<std::vector<std::string>> ("lidar_topics", {"/lidar1_pointcloud2", "/lidar2_pointcloud2"});
+    lidar_timeout_seconds_                = this->declare_parameter<double> ("lidar_timeout_seconds", 0.1);
 
     num_lidars_ = lidar_topics.size ();
     latest_pointclouds_.resize (num_lidars_);
+    latest_received_times_.resize (num_lidars_, this->now () - rclcpp::Duration::from_seconds (lidar_timeout_seconds_ + 1.0));
 
     for (size_t i = 0; i < num_lidars_; ++i) {
-        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], rclcpp::SensorDataQoS (), [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) { latest_pointclouds_[i] = *msg; }));
+        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (
+            lidar_topics[i],
+            rclcpp::SensorDataQoS (),
+            [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+                latest_pointclouds_[i]    = *msg;
+                latest_received_times_[i] = this->now ();
+            }));
     }
 
     frame_id_        = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
@@ -50,26 +58,38 @@ void pointcloud2_merger::footprint_callback (const geometry_msgs::msg::PolygonSt
 }
 void pointcloud2_merger::publish_pointcloud2 () {
     bool available = false;
-    for (auto &pc : latest_pointclouds_) {
+    const rclcpp::Time now = this->now ();
+    for (size_t i = 0; i < latest_pointclouds_.size (); ++i) {
+        auto &pc = latest_pointclouds_[i];
         if (!pc.data.empty ()) {
+            if ((now - latest_received_times_[i]).seconds () > lidar_timeout_seconds_) {
+                continue;
+            }
             available = true;
             break;
         }
     }
     if (!available) {
-        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "No pointclouds received yet.");
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "No fresh pointclouds available.");
         return;
     }
 
     std::vector<std::array<float, 3>> merged_points;
+    rclcpp::Time                     merged_stamp = now;
 
-    for (auto &pc : latest_pointclouds_) {
+    for (size_t i = 0; i < latest_pointclouds_.size (); ++i) {
+        auto &pc = latest_pointclouds_[i];
         if (pc.data.empty ()) continue;
+        if ((now - latest_received_times_[i]).seconds () > lidar_timeout_seconds_) continue;
 
         sensor_msgs::msg::PointCloud2 pc_tf;
         try {
             auto tf = tf_buffer_->lookupTransform (frame_id_, pc.header.frame_id, pc.header.stamp);
             tf2::doTransform (pc, pc_tf, tf);
+            const rclcpp::Time pc_stamp (pc.header.stamp);
+            if (pc_stamp > merged_stamp) {
+                merged_stamp = pc_stamp;
+            }
         } catch (tf2::TransformException &ex) {
             RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "TF transform failed: %s", ex.what ());
             continue;
@@ -130,7 +150,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
 
     // --- PointCloud2生成 ---
     sensor_msgs::msg::PointCloud2 output;
-    output.header.stamp    = this->get_clock ()->now ();
+    output.header.stamp    = merged_stamp;
     output.header.frame_id = frame_id_;
     output.height          = 1;
     output.width           = static_cast<uint32_t> (filtered.size ());

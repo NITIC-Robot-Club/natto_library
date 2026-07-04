@@ -56,7 +56,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     expansion_radius_orientation_deg_ = this->declare_parameter<double> ("expansion_radius_orientation_deg", 30.0);
     laser_likelihood_max_dist_        = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
     transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
-    lidar_timeout_seconds_            = this->declare_parameter<double> ("lidar_timeout_seconds", 0.3);
+    lidar_timeout_seconds_            = this->declare_parameter<double> ("lidar_timeout_seconds", 0.1);
 
     max_trajectory_length_ = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
     reverse_y_             = this->declare_parameter<bool> ("reverse_y", false);
@@ -96,6 +96,13 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     if (reverse_y_) {
         initial_pose_y_ = -initial_pose_y_ + reverse_y_offset_;
     }
+
+    odom_fallback_pose_.pose.position.x = initial_pose_x_;
+    odom_fallback_pose_.pose.position.y = initial_pose_y_;
+    odom_fallback_pose_.pose.position.z = 0.0;
+    tf2::Quaternion initial_q;
+    initial_q.setRPY (0, 0, initial_pose_yaw_deg_ * M_PI / 180.0);
+    odom_fallback_pose_.pose.orientation = tf2::toMsg (initial_q);
 
     if (use_odom_tf_) {
         geometry_msgs::msg::TransformStamped map_to_odom;
@@ -233,9 +240,17 @@ void mcl::timer_callback () {
     while (delta_yaw > +M_PI) delta_yaw -= 2 * M_PI;
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
-    motion_update (delta_x, delta_y, delta_yaw);
     const bool lidar_is_valid = scan_size_ > 0 && (this->now () - last_lidar_time_).seconds () <= lidar_timeout_seconds_;
+    geometry_msgs::msg::PoseWithCovariance current_pose;
     if (lidar_is_valid) {
+        if (!lidar_was_valid_) {
+            RCLCPP_INFO (this->get_logger (), "LiDAR recovered. Reinitializing particles around odometry pose.");
+            initialize_particles (odom_fallback_pose_.pose.position.x, odom_fallback_pose_.pose.position.y, tf2::getYaw (odom_fallback_pose_.pose.orientation));
+        }
+
+        apply_odometry_fallback (delta_x, delta_y, delta_yaw);
+        motion_update (delta_x, delta_y, delta_yaw);
+
         double total_weight = 0.0;
         for (auto &p : particles_) {
             p.weight *= compute_laser_likelihood (p);
@@ -259,19 +274,19 @@ void mcl::timer_callback () {
                 p.weight = 1.0 / static_cast<double> (particles_.size ());
             }
         }
+        current_pose = get_mean_pose ();
+        odom_fallback_pose_ = current_pose;
     } else {
-        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "LiDAR pointcloud expired or not received yet. Using odometry only.");
-        for (auto &p : particles_) {
-            p.weight = 1.0 / static_cast<double> (particles_.size ());
-        }
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "LiDAR pointcloud expired or not received yet. Freezing particles.");
+        apply_odometry_fallback (delta_x, delta_y, delta_yaw);
+        current_pose = odom_fallback_pose_;
     }
-    geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
 
-    last_map_to_odom_yaw_ = tf2::getYaw (mean_pose.pose.orientation);
+    lidar_was_valid_ = lidar_is_valid;
 
     if (use_odom_tf_) {
         tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
+        tf2::fromMsg (current_pose.pose, tf_map_to_base);
         tf2::fromMsg (odom_to_base_link.transform, tf_odom_to_base);
 
         tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
@@ -288,7 +303,7 @@ void mcl::timer_callback () {
         map_to_base_link.header.frame_id = map_frame_id_;
         map_to_base_link.child_frame_id  = base_frame_id_;
         tf2::Transform tf_map_to_base;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
+        tf2::fromMsg (current_pose.pose, tf_map_to_base);
         map_to_base_link.transform = tf2::toMsg (tf_map_to_base);
         tf_broadcaster_->sendTransform (map_to_base_link);
     }
@@ -296,13 +311,13 @@ void mcl::timer_callback () {
     geometry_msgs::msg::PoseStamped pose_msg;
     pose_msg.header.frame_id = map_frame_id_;
     pose_msg.header.stamp    = this->now ();
-    pose_msg.pose            = mean_pose.pose;
+    pose_msg.pose            = current_pose.pose;
     pose_publisher_->publish (pose_msg);
 
     geometry_msgs::msg::PoseWithCovarianceStamped pose_with_covariance_msg;
     pose_with_covariance_msg.header.frame_id = map_frame_id_;
     pose_with_covariance_msg.header.stamp    = this->now ();
-    pose_with_covariance_msg.pose            = mean_pose;
+    pose_with_covariance_msg.pose            = current_pose;
     pose_with_covariance_publisher_->publish (pose_with_covariance_msg);
 
     geometry_msgs::msg::PoseArray particles_msg;
@@ -339,6 +354,7 @@ void mcl::timer_callback () {
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
     trajectory_msg_.poses.clear ();
     initialize_particles (msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw (msg->pose.pose.orientation));
+    odom_fallback_pose_ = msg->pose;
 }
 
 void mcl::initialize_particles (double x, double y, double yaw) {
@@ -413,6 +429,20 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
         p.y += (delta_x + nx) * sin_yaw + (delta_y + ny) * cos_yaw;
         p.yaw += delta_yaw + nyaw;
     }
+}
+
+void mcl::apply_odometry_fallback (double delta_x, double delta_y, double delta_yaw) {
+    const double yaw = tf2::getYaw (odom_fallback_pose_.pose.orientation);
+    uint16_t     theta_16bit = get_16bit_theta (yaw);
+    const double cos_yaw     = cos_[theta_16bit];
+    const double sin_yaw     = sin_[theta_16bit];
+
+    odom_fallback_pose_.pose.position.x += delta_x * cos_yaw - delta_y * sin_yaw;
+    odom_fallback_pose_.pose.position.y += delta_x * sin_yaw + delta_y * cos_yaw;
+
+    tf2::Quaternion q;
+    q.setRPY (0, 0, yaw + delta_yaw);
+    odom_fallback_pose_.pose.orientation = tf2::toMsg (q);
 }
 
 geometry_msgs::msg::PoseWithCovariance mcl::get_mean_pose () {

@@ -3,6 +3,7 @@
     <arg name="use_odom_tf" default="false"/>
     <arg name="use_laserscan_convert" default="true"/>
     <arg name="use_ransac" default="true"/>
+    <arg name="use_lidar_correction" default="true"/>
     <arg name="occupancy_grid_resolution" default="0.05"/>
     <arg name="merged_lidar_publish_frequency" default="40.0"/>
     <arg name="publish_map" default="true"/>
@@ -54,7 +55,9 @@
     <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)"/>
 
     <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)"/>
+    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
+        <arg name="use_lidar_correction" value="$(var use_lidar_correction)"/>
+    </include>
 
     <!-- コントロール -->
     <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)"/>

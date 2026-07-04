@@ -19,4 +19,4 @@
     expansion_radius_orientation_deg: 30.0
     laser_likelihood_max_dist: 0.5
     transform_tolerance: 0.0
-    lidar_timeout_seconds: 0.3
+    lidar_timeout_seconds: 0.1

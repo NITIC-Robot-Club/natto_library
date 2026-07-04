@@ -62,16 +62,16 @@ class mcl : public rclcpp::Node {
     bool        reverse_y_;
     double      reverse_y_offset_;
 
-    double last_map_to_odom_yaw_;
-
-    std::vector<particle>             particles_;
-    geometry_msgs::msg::Transform     last_odom_to_base_transform_;
-    nav_msgs::msg::Odometry           last_odometry_, latest_odometry_;
-    std::vector<std::vector<uint8_t>> likelihood_field_;
+    std::vector<particle>                  particles_;
+    geometry_msgs::msg::PoseWithCovariance odom_fallback_pose_;
+    geometry_msgs::msg::Transform          last_odom_to_base_transform_;
+    nav_msgs::msg::Odometry                last_odometry_, latest_odometry_;
+    std::vector<std::vector<uint8_t>>      likelihood_field_;
 
     std::vector<float> scan_x_, scan_y_;
     int                scan_size_;
     rclcpp::Time       last_lidar_time_;
+    bool               lidar_was_valid_{false};
 
     void occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg);
@@ -83,7 +83,7 @@ class mcl : public rclcpp::Node {
     void   motion_update (double delta_x, double delta_y, double delta_yaw);
     void   resample_particles ();
     double compute_laser_likelihood (const particle &p);
-
+    void   apply_odometry_fallback (double delta_x, double delta_y, double delta_yaw);
     uint16_t get_16bit_theta (double theta);
     double   cos_[(1 << 16)];
     double   sin_[(1 << 16)];
