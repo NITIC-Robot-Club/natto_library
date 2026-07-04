@@ -79,11 +79,11 @@ class mcl : public rclcpp::Node {
     void odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg);
     void timer_callback ();
 
-    void   initialize_particles (double x, double y, double yaw);
-    void   motion_update (double delta_x, double delta_y, double delta_yaw);
-    void   resample_particles ();
-    double compute_laser_likelihood (const particle &p);
-    void   apply_odometry_fallback (double delta_x, double delta_y, double delta_yaw);
+    void     initialize_particles (double x, double y, double yaw);
+    void     motion_update (double delta_x, double delta_y, double delta_yaw);
+    void     resample_particles ();
+    double   compute_laser_likelihood (const particle &p);
+    void     apply_odometry_fallback (double delta_x, double delta_y, double delta_yaw);
     uint16_t get_16bit_theta (double theta);
     double   cos_[(1 << 16)];
     double   sin_[(1 << 16)];

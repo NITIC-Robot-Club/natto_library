@@ -31,13 +31,10 @@ pointcloud2_merger::pointcloud2_merger (const rclcpp::NodeOptions &node_options)
     latest_received_times_.resize (num_lidars_, this->now () - rclcpp::Duration::from_seconds (lidar_timeout_seconds_ + 1.0));
 
     for (size_t i = 0; i < num_lidars_; ++i) {
-        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (
-            lidar_topics[i],
-            rclcpp::SensorDataQoS (),
-            [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-                latest_pointclouds_[i]    = *msg;
-                latest_received_times_[i] = this->now ();
-            }));
+        pointcloud2_subscribers_.push_back (this->create_subscription<sensor_msgs::msg::PointCloud2> (lidar_topics[i], rclcpp::SensorDataQoS (), [this, i] (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+            latest_pointclouds_[i]    = *msg;
+            latest_received_times_[i] = this->now ();
+        }));
     }
 
     frame_id_        = this->declare_parameter<std::string> ("frame_id", "pointcloud2_frame");
@@ -57,8 +54,8 @@ void pointcloud2_merger::footprint_callback (const geometry_msgs::msg::PolygonSt
     footprint_ = *msg;
 }
 void pointcloud2_merger::publish_pointcloud2 () {
-    bool available = false;
-    const rclcpp::Time now = this->now ();
+    bool               available = false;
+    const rclcpp::Time now       = this->now ();
     for (size_t i = 0; i < latest_pointclouds_.size (); ++i) {
         auto &pc = latest_pointclouds_[i];
         if (!pc.data.empty ()) {
@@ -75,7 +72,7 @@ void pointcloud2_merger::publish_pointcloud2 () {
     }
 
     std::vector<std::array<float, 3>> merged_points;
-    rclcpp::Time                     merged_stamp = now;
+    rclcpp::Time                      merged_stamp = now;
 
     for (size_t i = 0; i < latest_pointclouds_.size (); ++i) {
         auto &pc = latest_pointclouds_[i];

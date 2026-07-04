@@ -240,7 +240,7 @@ void mcl::timer_callback () {
     while (delta_yaw > +M_PI) delta_yaw -= 2 * M_PI;
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
-    const bool lidar_is_valid = scan_size_ > 0 && (this->now () - last_lidar_time_).seconds () <= lidar_timeout_seconds_;
+    const bool                             lidar_is_valid = scan_size_ > 0 && (this->now () - last_lidar_time_).seconds () <= lidar_timeout_seconds_;
     geometry_msgs::msg::PoseWithCovariance current_pose;
     if (lidar_is_valid) {
         if (!lidar_was_valid_) {
@@ -274,7 +274,7 @@ void mcl::timer_callback () {
                 p.weight = 1.0 / static_cast<double> (particles_.size ());
             }
         }
-        current_pose = get_mean_pose ();
+        current_pose        = get_mean_pose ();
         odom_fallback_pose_ = current_pose;
     } else {
         RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "LiDAR pointcloud expired or not received yet. Freezing particles.");
@@ -432,7 +432,7 @@ void mcl::motion_update (double delta_x, double delta_y, double delta_yaw) {
 }
 
 void mcl::apply_odometry_fallback (double delta_x, double delta_y, double delta_yaw) {
-    const double yaw = tf2::getYaw (odom_fallback_pose_.pose.orientation);
+    const double yaw         = tf2::getYaw (odom_fallback_pose_.pose.orientation);
     uint16_t     theta_16bit = get_16bit_theta (yaw);
     const double cos_yaw     = cos_[theta_16bit];
     const double sin_yaw     = sin_[theta_16bit];
