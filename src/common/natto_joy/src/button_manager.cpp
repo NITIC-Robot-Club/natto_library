@@ -504,6 +504,92 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         return false;
     };
 
+    const auto has_any_active_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (!last_toggle_state_[k][e]) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto has_lower_priority_active_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        const auto  target_priority = priority_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (!last_toggle_state_[k][e]) {
+                    continue;
+                }
+                if (priority_[k][e] >= target_priority) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto has_lower_priority_inactive_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        const auto  target_priority = priority_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (last_toggle_state_[k][e]) {
+                    continue;
+                }
+                if (priority_[k][e] >= target_priority) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (size_t i = 0; i < num_button_; i++) {
         if (i >= msg->buttons.size ()) {
             RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 5000, "Received joy message has no button_%zu", i);
@@ -566,8 +652,17 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                         last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
                     }
                     if (last_toggle_state_[i][entry]) {
+                        if (has_lower_priority_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.position[index] = position_on_[i][entry];
                     } else {
+                        if (has_any_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
+                        if (has_lower_priority_inactive_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.position[index] = position_off_[i][entry];
                     }
                 } else if (button_mode_[i] == "toggle_on") {
@@ -602,8 +697,17 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                         last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
                     }
                     if (last_toggle_state_[i][entry]) {
+                        if (has_lower_priority_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.velocity[index] = speed_on_[i][entry];
                     } else {
+                        if (has_any_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
+                        if (has_lower_priority_inactive_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.velocity[index] = speed_off_[i][entry];
                     }
                 } else if (button_mode_[i] == "toggle_on") {
