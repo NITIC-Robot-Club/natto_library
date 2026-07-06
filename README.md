@@ -40,11 +40,11 @@ sudo apt install ros-jazzy-xacro
 NHK高専ロボコン2025のサンプルデータがあります
 
 ```bash
-ros2 launch nhk2025_sample nhk2025_sample.launch.xml
+ros2 launch natto_nhk2025_sample nhk2025_sample.launch.xml
 ```
 
 オムニホイールのサンプルもあります
 
 ```bash
-ros2 launch nhk2025_sample omni_sample.launch.xml
+ros2 launch natto_nhk2025_sample omni_sample.launch.xml
 ```
