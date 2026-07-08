@@ -261,7 +261,6 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
     trajectory_msg_.header.stamp    = this->now ();
     trajectory_msg_.header.frame_id = map_frame_id_;
     trajectory_publisher_->publish (trajectory_msg_);
-
 }
 
 void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -314,7 +313,6 @@ void mcl::timer_callback () {
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
     motion_update (delta_x, delta_y, delta_yaw);
-
 }
 
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
