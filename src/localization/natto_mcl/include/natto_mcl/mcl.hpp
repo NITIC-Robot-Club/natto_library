@@ -61,8 +61,6 @@ class mcl : public rclcpp::Node {
     bool        reverse_y_;
     double      reverse_y_offset_;
 
-    double last_map_to_odom_yaw_;
-
     std::vector<particle>             particles_;
     geometry_msgs::msg::Transform     last_odom_to_base_transform_;
     nav_msgs::msg::Odometry           last_odometry_, latest_odometry_;

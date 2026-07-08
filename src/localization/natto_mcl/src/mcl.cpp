@@ -176,58 +176,7 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         scan_y_.push_back (*iter_y);
         scan_size_++;
     }
-}
 
-void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
-    latest_odometry_ = *msg;
-}
-
-void mcl::timer_callback () {
-    if (likelihood_field_.empty ()) {
-        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Likelihood field is not ready yet.");
-        return;
-    }
-
-    geometry_msgs::msg::TransformStamped odom_to_base_link;
-
-    double delta_x, delta_y, delta_yaw;
-
-    if (use_odom_tf_) {
-        try {
-            odom_to_base_link = tf_buffer_->lookupTransform (odom_frame_id_, base_frame_id_, tf2::TimePointZero);
-        } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
-            return;
-        }
-        double delta_x_in_map = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
-        double delta_y_in_map = odom_to_base_link.transform.translation.y - last_odom_to_base_transform_.translation.y;
-
-        double odom_to_base_link_yaw = tf2::getYaw (odom_to_base_link.transform.rotation);
-        double last_odom_yaw         = tf2::getYaw (last_odom_to_base_transform_.rotation);
-
-        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
-        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
-        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
-
-        last_odom_to_base_transform_ = odom_to_base_link.transform;
-    } else {
-        double delta_x_in_map = latest_odometry_.pose.pose.position.x - last_odometry_.pose.pose.position.x;
-        double delta_y_in_map = latest_odometry_.pose.pose.position.y - last_odometry_.pose.pose.position.y;
-
-        double odom_to_base_link_yaw = tf2::getYaw (latest_odometry_.pose.pose.orientation);
-        double last_odom_yaw         = tf2::getYaw (last_odometry_.pose.pose.orientation);
-
-        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
-        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
-        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
-
-        last_odometry_ = latest_odometry_;
-    }
-
-    while (delta_yaw > +M_PI) delta_yaw -= 2 * M_PI;
-    while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
-
-    motion_update (delta_x, delta_y, delta_yaw);
     double total_weight = 0.0;
     for (auto &p : particles_) {
         p.weight *= compute_laser_likelihood (p);
@@ -247,12 +196,10 @@ void mcl::timer_callback () {
     }
     geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
 
-    last_map_to_odom_yaw_ = tf2::getYaw (mean_pose.pose.orientation);
-
     if (use_odom_tf_) {
         tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
         tf2::fromMsg (mean_pose.pose, tf_map_to_base);
-        tf2::fromMsg (odom_to_base_link.transform, tf_odom_to_base);
+        tf2::fromMsg (last_odom_to_base_transform_, tf_odom_to_base);
 
         tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
 
@@ -314,6 +261,60 @@ void mcl::timer_callback () {
     trajectory_msg_.header.stamp    = this->now ();
     trajectory_msg_.header.frame_id = map_frame_id_;
     trajectory_publisher_->publish (trajectory_msg_);
+
+}
+
+void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
+    latest_odometry_ = *msg;
+}
+
+void mcl::timer_callback () {
+    if (likelihood_field_.empty ()) {
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Likelihood field is not ready yet.");
+        return;
+    }
+
+    geometry_msgs::msg::TransformStamped odom_to_base_link;
+
+    double delta_x, delta_y, delta_yaw;
+
+    if (use_odom_tf_) {
+        try {
+            odom_to_base_link = tf_buffer_->lookupTransform (odom_frame_id_, base_frame_id_, tf2::TimePointZero);
+        } catch (tf2::TransformException &ex) {
+            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
+            return;
+        }
+        double delta_x_in_map = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
+        double delta_y_in_map = odom_to_base_link.transform.translation.y - last_odom_to_base_transform_.translation.y;
+
+        double odom_to_base_link_yaw = tf2::getYaw (odom_to_base_link.transform.rotation);
+        double last_odom_yaw         = tf2::getYaw (last_odom_to_base_transform_.rotation);
+
+        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
+        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
+        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
+
+        last_odom_to_base_transform_ = odom_to_base_link.transform;
+    } else {
+        double delta_x_in_map = latest_odometry_.pose.pose.position.x - last_odometry_.pose.pose.position.x;
+        double delta_y_in_map = latest_odometry_.pose.pose.position.y - last_odometry_.pose.pose.position.y;
+
+        double odom_to_base_link_yaw = tf2::getYaw (latest_odometry_.pose.pose.orientation);
+        double last_odom_yaw         = tf2::getYaw (last_odometry_.pose.pose.orientation);
+
+        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
+        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
+        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
+
+        last_odometry_ = latest_odometry_;
+    }
+
+    while (delta_yaw > +M_PI) delta_yaw -= 2 * M_PI;
+    while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
+
+    motion_update (delta_x, delta_y, delta_yaw);
+
 }
 
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
