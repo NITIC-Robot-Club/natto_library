@@ -176,6 +176,79 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         scan_y_.push_back (*iter_y);
         scan_size_++;
     }
+
+    double total_weight = 0.0;
+    for (auto &p : particles_) {
+        p.weight *= compute_laser_likelihood (p);
+        total_weight += p.weight;
+    }
+
+    for (auto &p : particles_) {
+        p.weight /= total_weight;
+    }
+
+    if (total_weight > 0.000001) {
+        resample_particles ();
+    } else {
+        for (auto &p : particles_) {
+            p.weight = 1.0 / static_cast<double> (particles_.size ());
+        }
+    }
+    geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
+
+    if (use_odom_tf_) {
+        tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
+        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
+        tf2::fromMsg (last_odom_to_base_transform_, tf_odom_to_base);
+
+        tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
+
+        geometry_msgs::msg::TransformStamped map_to_odom_msg;
+        map_to_odom_msg.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
+        map_to_odom_msg.header.frame_id = map_frame_id_;
+        map_to_odom_msg.child_frame_id  = odom_frame_id_;
+        map_to_odom_msg.transform       = tf2::toMsg (tf_map_to_odom);
+        tf_broadcaster_->sendTransform (map_to_odom_msg);
+
+        last_map_to_odom_       = map_to_odom_msg;
+        last_map_to_odom_valid_ = true;
+    } else {
+        geometry_msgs::msg::TransformStamped map_to_base_link;
+        map_to_base_link.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
+        map_to_base_link.header.frame_id = map_frame_id_;
+        map_to_base_link.child_frame_id  = base_frame_id_;
+        tf2::Transform tf_map_to_base;
+        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
+        map_to_base_link.transform = tf2::toMsg (tf_map_to_base);
+        tf_broadcaster_->sendTransform (map_to_base_link);
+    }
+
+    geometry_msgs::msg::PoseStamped pose_msg;
+    pose_msg.header.frame_id = map_frame_id_;
+    pose_msg.header.stamp    = this->now ();
+    pose_msg.pose            = mean_pose.pose;
+    pose_publisher_->publish (pose_msg);
+
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_with_covariance_msg;
+    pose_with_covariance_msg.header.frame_id = map_frame_id_;
+    pose_with_covariance_msg.header.stamp    = this->now ();
+    pose_with_covariance_msg.pose            = mean_pose;
+    pose_with_covariance_publisher_->publish (pose_with_covariance_msg);
+
+    geometry_msgs::msg::Pose pose_for_traj;
+    pose_for_traj.position    = pose_msg.pose.position;
+    pose_for_traj.orientation = pose_msg.pose.orientation;
+
+    trajectory_msg_.poses.push_back (pose_for_traj);
+
+    if (trajectory_msg_.poses.size () > max_trajectory_length_) {
+        size_t remove_count = trajectory_msg_.poses.size () - max_trajectory_length_;
+        trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + static_cast<std::ptrdiff_t> (remove_count));
+    }
+
+    trajectory_msg_.header.stamp    = this->now ();
+    trajectory_msg_.header.frame_id = map_frame_id_;
+    trajectory_publisher_->publish (trajectory_msg_);
 }
 
 void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -228,62 +301,12 @@ void mcl::timer_callback () {
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
     motion_update (delta_x, delta_y, delta_yaw);
-    double total_weight = 0.0;
-    for (auto &p : particles_) {
-        p.weight *= compute_laser_likelihood (p);
-        total_weight += p.weight;
-    }
 
-    for (auto &p : particles_) {
-        p.weight /= total_weight;
-    }
-
-    if (total_weight > 0.000001) {
-        resample_particles ();
-    } else {
-        for (auto &p : particles_) {
-            p.weight = 1.0 / static_cast<double> (particles_.size ());
-        }
-    }
-    geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
-
-    last_map_to_odom_yaw_ = tf2::getYaw (mean_pose.pose.orientation);
-
-    if (use_odom_tf_) {
-        tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
-        tf2::fromMsg (odom_to_base_link.transform, tf_odom_to_base);
-
-        tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
-
-        geometry_msgs::msg::TransformStamped map_to_odom_msg;
-        map_to_odom_msg.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
-        map_to_odom_msg.header.frame_id = map_frame_id_;
-        map_to_odom_msg.child_frame_id  = odom_frame_id_;
-        map_to_odom_msg.transform       = tf2::toMsg (tf_map_to_odom);
+    if (use_odom_tf_ && last_map_to_odom_valid_) {
+        geometry_msgs::msg::TransformStamped map_to_odom_msg = last_map_to_odom_;
+        map_to_odom_msg.header.stamp                         = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
         tf_broadcaster_->sendTransform (map_to_odom_msg);
-    } else {
-        geometry_msgs::msg::TransformStamped map_to_base_link;
-        map_to_base_link.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
-        map_to_base_link.header.frame_id = map_frame_id_;
-        map_to_base_link.child_frame_id  = base_frame_id_;
-        tf2::Transform tf_map_to_base;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
-        map_to_base_link.transform = tf2::toMsg (tf_map_to_base);
-        tf_broadcaster_->sendTransform (map_to_base_link);
     }
-
-    geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.frame_id = map_frame_id_;
-    pose_msg.header.stamp    = this->now ();
-    pose_msg.pose            = mean_pose.pose;
-    pose_publisher_->publish (pose_msg);
-
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_with_covariance_msg;
-    pose_with_covariance_msg.header.frame_id = map_frame_id_;
-    pose_with_covariance_msg.header.stamp    = this->now ();
-    pose_with_covariance_msg.pose            = mean_pose;
-    pose_with_covariance_publisher_->publish (pose_with_covariance_msg);
 
     geometry_msgs::msg::PoseArray particles_msg;
     particles_msg.header.frame_id = map_frame_id_;
@@ -299,21 +322,6 @@ void mcl::timer_callback () {
         particles_msg.poses.push_back (pose);
     }
     particles_publisher_->publish (particles_msg);
-
-    geometry_msgs::msg::Pose pose_for_traj;
-    pose_for_traj.position    = pose_msg.pose.position;
-    pose_for_traj.orientation = pose_msg.pose.orientation;
-
-    trajectory_msg_.poses.push_back (pose_for_traj);
-
-    if (trajectory_msg_.poses.size () > max_trajectory_length_) {
-        size_t remove_count = trajectory_msg_.poses.size () - max_trajectory_length_;
-        trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + static_cast<std::ptrdiff_t> (remove_count));
-    }
-
-    trajectory_msg_.header.stamp    = this->now ();
-    trajectory_msg_.header.frame_id = map_frame_id_;
-    trajectory_publisher_->publish (trajectory_msg_);
 }
 
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
