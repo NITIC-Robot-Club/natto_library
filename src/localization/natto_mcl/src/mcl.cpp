@@ -304,7 +304,7 @@ void mcl::timer_callback () {
 
     if (use_odom_tf_ && last_map_to_odom_valid_) {
         geometry_msgs::msg::TransformStamped map_to_odom_msg = last_map_to_odom_;
-        map_to_odom_msg.header.stamp = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
+        map_to_odom_msg.header.stamp                         = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
         tf_broadcaster_->sendTransform (map_to_odom_msg);
     }
 
