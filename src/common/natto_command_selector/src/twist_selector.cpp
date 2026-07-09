@@ -17,17 +17,28 @@
 namespace twist_selector {
 
 twist_selector::twist_selector (const rclcpp::NodeOptions &node_options) : Node ("twist_selector", node_options) {
-    allow_auto_drive_subscriber_ = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, std::bind (&twist_selector::allow_auto_drive_callback, this, std::placeholders::_1));
-    manual_subscriber_           = this->create_subscription<geometry_msgs::msg::TwistStamped> ("manual_twist", 10, std::bind (&twist_selector::manual_callback, this, std::placeholders::_1));
-    auto_subscriber_             = this->create_subscription<geometry_msgs::msg::TwistStamped> ("auto_twist", 10, std::bind (&twist_selector::auto_callback, this, std::placeholders::_1));
-    selected_twist_publisher_    = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
-    allow_auto_drive_            = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
+    allow_auto_drive_subscriber_       = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, std::bind (&twist_selector::allow_auto_drive_callback, this, std::placeholders::_1));
+    manual_subscriber_                 = this->create_subscription<geometry_msgs::msg::TwistStamped> ("manual_twist", 10, std::bind (&twist_selector::manual_callback, this, std::placeholders::_1));
+    auto_subscriber_                   = this->create_subscription<geometry_msgs::msg::TwistStamped> ("auto_twist", 10, std::bind (&twist_selector::auto_callback, this, std::placeholders::_1));
+    selected_twist_publisher_          = this->create_publisher<geometry_msgs::msg::TwistStamped> ("selected_twist", 10);
+    controller_orientation_subscriber_ = this->create_subscription<geometry_msgs::msg::Quaternion> (
+        "controller_orientation", 10, [this] (const geometry_msgs::msg::Quaternion::SharedPtr msg) { controller_angle_ = std::atan2 (2.0 * (msg->w * msg->z + msg->x * msg->y), 1.0 - 2.0 * (msg->y * msg->y + msg->z * msg->z)); });
 
-    double frequency = this->declare_parameter<double> ("frequency", 10.0);
+    current_pose_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+        robot_angle_ = std::atan2 (
+            2.0 * (msg->pose.orientation.w * msg->pose.orientation.z + msg->pose.orientation.x * msg->pose.orientation.y), 1.0 - 2.0 * (msg->pose.orientation.y * msg->pose.orientation.y + msg->pose.orientation.z * msg->pose.orientation.z));
+    });
+
+    allow_auto_drive_ = this->declare_parameter<bool> ("initial_allow_auto_drive", false);
+
+    double frequency        = this->declare_parameter<double> ("frequency", 5.0);
+    enable_heading_control_ = this->declare_parameter<bool> ("enable_heading_control", false);
     RCLCPP_INFO (this->get_logger (), "twist_selector node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "initial_allow_auto_drive: %s", allow_auto_drive_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "frequency: %f", frequency);
-    received_ = false;
+    received_         = false;
+    controller_angle_ = 0.0f;
+    robot_angle_      = 0.0f;
 
     timer_ = this->create_wall_timer (std::chrono::milliseconds (static_cast<int> (1000.0 / frequency)), [this] () {
         if (!received_) {
@@ -50,6 +61,12 @@ void twist_selector::allow_auto_drive_callback (const std_msgs::msg::Bool::Share
 
 void twist_selector::manual_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     if (!allow_auto_drive_) {
+        if (enable_heading_control_) {
+            double angle        = std::atan2 (msg->twist.linear.y, msg->twist.linear.x);
+            double speed        = std::hypot (msg->twist.linear.x, msg->twist.linear.y);
+            msg->twist.linear.x = speed * std::cos (angle + controller_angle_ - robot_angle_);
+            msg->twist.linear.y = speed * std::sin (angle + controller_angle_ - robot_angle_);
+        }
         selected_twist_publisher_->publish (*msg);
         received_ = true;
     }
