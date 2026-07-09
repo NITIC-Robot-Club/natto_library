@@ -209,6 +209,9 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         map_to_odom_msg.child_frame_id  = odom_frame_id_;
         map_to_odom_msg.transform       = tf2::toMsg (tf_map_to_odom);
         tf_broadcaster_->sendTransform (map_to_odom_msg);
+
+        last_map_to_odom_       = map_to_odom_msg;
+        last_map_to_odom_valid_ = true;
     } else {
         geometry_msgs::msg::TransformStamped map_to_base_link;
         map_to_base_link.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
@@ -231,21 +234,6 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
     pose_with_covariance_msg.header.stamp    = this->now ();
     pose_with_covariance_msg.pose            = mean_pose;
     pose_with_covariance_publisher_->publish (pose_with_covariance_msg);
-
-    geometry_msgs::msg::PoseArray particles_msg;
-    particles_msg.header.frame_id = map_frame_id_;
-    particles_msg.header.stamp    = this->now ();
-    for (const auto &p : particles_) {
-        geometry_msgs::msg::Pose pose;
-        pose.position.x = p.x;
-        pose.position.y = p.y;
-        pose.position.z = 0.0;
-        tf2::Quaternion q;
-        q.setRPY (0, 0, p.yaw);
-        pose.orientation = tf2::toMsg (q);
-        particles_msg.poses.push_back (pose);
-    }
-    particles_publisher_->publish (particles_msg);
 
     geometry_msgs::msg::Pose pose_for_traj;
     pose_for_traj.position    = pose_msg.pose.position;
@@ -313,6 +301,27 @@ void mcl::timer_callback () {
     while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
 
     motion_update (delta_x, delta_y, delta_yaw);
+
+    if (use_odom_tf_ && last_map_to_odom_valid_) {
+        geometry_msgs::msg::TransformStamped map_to_odom_msg = last_map_to_odom_;
+        map_to_odom_msg.header.stamp = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
+        tf_broadcaster_->sendTransform (map_to_odom_msg);
+    }
+
+    geometry_msgs::msg::PoseArray particles_msg;
+    particles_msg.header.frame_id = map_frame_id_;
+    particles_msg.header.stamp    = this->now ();
+    for (const auto &p : particles_) {
+        geometry_msgs::msg::Pose pose;
+        pose.position.x = p.x;
+        pose.position.y = p.y;
+        pose.position.z = 0.0;
+        tf2::Quaternion q;
+        q.setRPY (0, 0, p.yaw);
+        pose.orientation = tf2::toMsg (q);
+        particles_msg.poses.push_back (pose);
+    }
+    particles_publisher_->publish (particles_msg);
 }
 
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
