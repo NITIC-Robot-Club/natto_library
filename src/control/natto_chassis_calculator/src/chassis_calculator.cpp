@@ -37,6 +37,7 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
 
     if (chassis_type_ == "swerve") {
         infinite_swerve_mode_                = this->declare_parameter<bool> ("infinite_swerve_mode", false);
+        steering_stop_mode_                  = this->declare_parameter<std::string> ("steering_stop_mode", "turn");
         command_joint_state_.header.stamp    = this->now ();
         command_joint_state_.header.frame_id = "base_link";
         command_joint_state_.name.resize (num_wheels_ * 2);
@@ -64,9 +65,15 @@ chassis_calculator::chassis_calculator (const rclcpp::NodeOptions &node_options)
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     if (chassis_type_ == "swerve") {
         RCLCPP_INFO (this->get_logger (), "infinite_swerve_mode: %s", infinite_swerve_mode_ ? "true" : "false");
+        RCLCPP_INFO (this->get_logger (), "steering_stop_mode: %s", steering_stop_mode_.c_str ());
     }
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
+
+    if (chassis_type_ == "swerve" && steering_stop_mode_ != "turn" && steering_stop_mode_ != "lock" && steering_stop_mode_ != "hold") {
+        RCLCPP_ERROR (this->get_logger (), "Unsupported steering_stop_mode: %s", steering_stop_mode_.c_str ());
+        throw std::runtime_error ("Invalid parameter: unsupported steering_stop_mode.");
+    }
 }
 
 void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
@@ -92,11 +99,21 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
             }
 
             if (x == 0.0 && y == 0.0 && z == 0.0) {
-                double vx = -wheel_position_y;
-                double vy = +wheel_position_x;
+                command_joint_state_.velocity[i] = 0.0;
 
-                command_joint_state_.velocity[i]               = 0.0;
-                command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
+                if (steering_stop_mode_ == "turn") {
+                    double vx = -wheel_position_y;
+                    double vy = +wheel_position_x;
+
+                    command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
+                } else if (steering_stop_mode_ == "lock") {
+                    double vx = wheel_position_x;
+                    double vy = wheel_position_y;
+
+                    command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
+                } else if (steering_stop_mode_ == "hold") {
+                    // Keep the previous steering direction.
+                }
             } else {
                 double vx    = x - z * wheel_position_y;
                 double vy    = y + z * wheel_position_x;
