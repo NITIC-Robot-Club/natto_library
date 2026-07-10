@@ -25,10 +25,16 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
     tf_broadcaster_         = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     wheel_radius_  = this->declare_parameter<double> ("wheel_radius", 0.05);
+    timeout_sec_   = this->declare_parameter<double> ("timeout_sec", 0.1);
     chassis_type_  = this->declare_parameter<std::string> ("chassis_type", "");
     odom_frame_id_ = this->declare_parameter<std::string> ("odom_frame_id", "odom");
     base_frame_id_ = this->declare_parameter<std::string> ("base_frame_id", "base_link");
     publish_tf_    = this->declare_parameter<bool> ("publish_tf", false);
+
+    if (timeout_sec_ <= 0.0) {
+        RCLCPP_ERROR (this->get_logger (), "timeout_sec must be greater than zero.");
+        throw std::runtime_error ("Invalid parameter: timeout_sec must be greater than zero.");
+    }
 
     wheel_names_ = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
     num_wheels_  = wheel_names_.size ();
@@ -55,12 +61,28 @@ wheel_odometry::wheel_odometry (const rclcpp::NodeOptions &node_options) : Node 
 
     last_pose_.header.frame_id = odom_frame_id_;
     last_pose_.header.stamp    = this->now ();
+    joint_states_received_     = false;
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
 }
 
 void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
+    const rclcpp::Time current_stamp (msg->header.stamp);
+
+    if (!joint_states_received_) {
+        last_joint_state_stamp_ = current_stamp;
+        joint_states_received_  = true;
+        return;
+    }
+
+    const double delta_t = (current_stamp - last_joint_state_stamp_).seconds ();
+    if (delta_t <= 0.0 || delta_t > timeout_sec_) {
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "JointState timestamp gap or reversal detected (dt=%.3f sec); resynchronizing odometry.", delta_t);
+        last_joint_state_stamp_ = current_stamp;
+        return;
+    }
+
     double vx   = 0.0;
     double vy   = 0.0;
     double vyaw = 0.0;
@@ -210,7 +232,6 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
         vyaw = A[2][3];
     }
 
-    double delta_t   = (this->now () - last_pose_.header.stamp).seconds ();
     double delta_x   = vx * delta_t;
     double delta_y   = vy * delta_t;
     double delta_yaw = vyaw * delta_t;
@@ -225,12 +246,12 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
     last_pose_.pose.orientation.y = q.y ();
     last_pose_.pose.orientation.z = q.z ();
     last_pose_.pose.orientation.w = q.w ();
-    last_pose_.header.stamp       = this->now ();
+    last_pose_.header.stamp       = current_stamp;
     pose_publisher_->publish (last_pose_);
 
     geometry_msgs::msg::TwistStamped twist;
     twist.header.frame_id = base_frame_id_;
-    twist.header.stamp    = this->now ();
+    twist.header.stamp    = current_stamp;
     twist.twist.linear.x  = vx;
     twist.twist.linear.y  = vy;
     twist.twist.angular.z = vyaw;
@@ -239,14 +260,14 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
     nav_msgs::msg::Odometry odom;
     odom.header.frame_id = odom_frame_id_;
     odom.child_frame_id  = base_frame_id_;
-    odom.header.stamp    = this->now ();
+    odom.header.stamp    = current_stamp;
     odom.pose.pose       = last_pose_.pose;
     odom.twist.twist     = twist.twist;
     odometry_publisher_->publish (odom);
 
     if (publish_tf_) {
         geometry_msgs::msg::TransformStamped tf_msg;
-        tf_msg.header.stamp            = this->now ();
+        tf_msg.header.stamp            = current_stamp;
         tf_msg.header.frame_id         = odom_frame_id_;
         tf_msg.child_frame_id          = base_frame_id_;
         tf_msg.transform.translation.x = last_pose_.pose.position.x;
@@ -255,6 +276,8 @@ void wheel_odometry::joint_state_callback (const sensor_msgs::msg::JointState::S
         tf_msg.transform.rotation      = last_pose_.pose.orientation;
         tf_broadcaster_->sendTransform (tf_msg);
     }
+
+    last_joint_state_stamp_ = current_stamp;
 }
 
 }  // namespace wheel_odometry
