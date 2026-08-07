@@ -71,6 +71,7 @@ Mermaid形式の状態遷移図に基づいて状態遷移を管理
 | -             | -                                | -                       |
 | state_result  | natto_msgs/msg/StateResult       | 状態アクションの結果受信           |
 | force_set_state | std_msgs/msg/UInt64            | 強制的に状態を設定するための受信       |
+| run_sequence | std_msgs/msg/String            | `/<シーケンス名>/_entry`から開始する要求       |
 | state_graph    | natto_msgs/msg/StateGraph        | 状態遷移図の受信           |
 
 ## パブリッシャー
