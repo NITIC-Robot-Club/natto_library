@@ -187,11 +187,11 @@ void joint_state_simulator::timer_callback () {
 
             const double target_current = std::clamp (command_.effort[index], -joint_current_max_[i], joint_current_max_[i]);
             joint_current_[i] += (target_current - joint_current_[i]) * dt / joint_current_tau_[i];
-            joint_current_[i]  = std::clamp (joint_current_[i], -joint_current_max_[i], joint_current_max_[i]);
+            joint_current_[i] = std::clamp (joint_current_[i], -joint_current_max_[i], joint_current_max_[i]);
 
-            current_.effort[i]   = joint_current_[i];
+            current_.effort[i] = joint_current_[i];
             current_.velocity[i] += joint_current_[i] * joint_current_to_acceleration_[i] * dt;
-            current_.velocity[i]  = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
+            current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
             current_.position[i] += current_.velocity[i] * dt;
         }
     }
