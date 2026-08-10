@@ -6,6 +6,7 @@
 
         <composable_node pkg="natto_state_machine" plugin="state_machine::state_machine" name="state_machine" namespace="/behavior">
             <param name="state_timeout_sec" value="$(var state_timeout_sec)"/>
+            <remap from="run_sequence" to="/run_sequence"/>
         </composable_node>
 
         <composable_node pkg="natto_state_machine" plugin="default_action::default_action" name="default_action" namespace="/behavior">

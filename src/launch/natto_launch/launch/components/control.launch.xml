@@ -64,6 +64,7 @@
             <param from="$(var controller_param_path)"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
             <remap from="get_origin_joint_name" to="/get_origin_joint_name"/>
+            <remap from="run_sequence" to="/run_sequence"/>
         </composable_node>
 
         <!-- コマンド選択 -->
