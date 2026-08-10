@@ -23,11 +23,14 @@
 | wheel_base_names | string[] | {""} | ホイールベースジョイント名のリスト |
 | infinite_swerve_mode | bool | false | 無限ステアリングモード（swerveのみ） |
 | joint_names | string[] | {""} | ジョイント名のリスト |
-| control_modes | string[] | {""} | 各ジョイントの制御モード（"position"または"speed"） |
+| control_modes | string[] | {""} | 各ジョイントの制御モード（"position"、"speed"、または"current"） |
 | initial_positions | std::vector<double> | {0.0} | 各ジョイントの初期位置 |
 | joint_position_tau | std::vector<double> | {0.5} | 位置制御の時定数 |
 | joint_velocity_tau | std::vector<double> | {0.1} | 速度制御の時定数 |
 | joint_velocity_max | std::vector<double> | {10.0} | 各ジョイントの最大速度 |
+| joint_current_tau | std::vector<double> | {0.1} | 電流制御の時定数 |
+| joint_current_max | std::vector<double> | {10.0} | 各ジョイントの最大電流指令 |
+| joint_current_to_acceleration | std::vector<double> | {1.0} | 電流から加速度への変換係数 |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
@@ -39,6 +42,8 @@
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | /command_joint_states | sensor_msgs/msg/JointState | コマンドジョイント状態 |
+
+`current` モードでは、`JointState.effort` を電流指令として使用します。指令には一次遅れを適用し、`joint_current_to_acceleration` で加速度へ変換します。実効電流は、シミュレートされた `JointState.effort` として出力されます。
 
 # lidar_simulator
 2D LiDARセンサーの動作を模擬します。
