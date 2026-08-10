@@ -14,6 +14,7 @@ wheel_odometryノードはジョイント状態からオドメトリを計算し
 | - | - | - | - |
 | chassis_type | string | "" | シャーシタイプ（"swerve"または"omni"） |
 | wheel_radius | double | 0.05 | ホイールの半径（m） |
+| timeout_sec | double | 0.1 | JointStateのstamp間隔がこの値を超えた場合にオドメトリを再同期するまでの秒数 |
 | wheel_names | string[] | {""} | ホイールジョイント名のリスト |
 | wheel_base_names | string[] | {""} | ホイールベースジョイント名のリスト |
 | odom_frame_id | string | "odom" | オドメトリのフレームID |
