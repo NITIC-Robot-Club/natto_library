@@ -15,6 +15,7 @@
             <remap from="current_pose" to="/localization/current_pose"/>
             <remap from="joint_states" to="/joint_states"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
+            <remap from="get_origin_joint_name" to="/get_origin_joint_name"/>
             <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
             <param from="$(var joint_rule_path)"/>
             <param name="reverse_y" value="$(var reverse_y)"/>
