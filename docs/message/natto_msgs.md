@@ -14,6 +14,19 @@
 | is_extended | bool | 拡張フレームフラグ |
 | is_rtr | bool | リモート送信要求フラグ |
 
+### JointControlType.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| joint_name | string | 対象ジョイント名 |
+| control_type | uint8 | 制御方式（CURRENT=0, SPEED=1, POSITION=2, DUTY=3） |
+
+### OriginStatus.msg
+| フィールド名 | 型 | 説明 |
+| - | - | - |
+| joint_name | string | 対象ジョイント名 |
+| status | uint8 | 原点取得状態（STARTED=0, SUCCEEDED=1, FAILED=2） |
+| reason | uint8 | 失敗理由（REASON_NONE=0, REASON_TIMEOUT=1, REASON_MOTOR_TIMEOUT=2, REASON_UNSUPPORTED=3） |
+
 ### Circle.msg
 | フィールド名 | 型 | 説明 |
 | - | - | - |
