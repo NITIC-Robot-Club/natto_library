@@ -28,7 +28,6 @@
 | joint_position_tau | std::vector<double> | {0.5} | 位置制御の時定数 |
 | joint_velocity_tau | std::vector<double> | {0.1} | 速度制御の時定数 |
 | joint_velocity_max | std::vector<double> | {10.0} | 各ジョイントの最大速度 |
-| joint_current_tau | std::vector<double> | {0.1} | 電流制御の時定数 |
 | max_efforts | std::vector<double> | {}（未指定時は全ジョイント20.0） | 各ジョイントの最大effort |
 
 ## パブリッシャー
@@ -42,7 +41,7 @@
 | - | - | - |
 | /command_joint_states | sensor_msgs/msg/JointState | コマンドジョイント状態 |
 
-`current` モードでは、`JointState.effort` を電流指令として使用します。指令には一次遅れを適用します。加速度は、速度制御の `joint_velocity_max / joint_velocity_tau` を最高加速度とみなし、`max_efforts` に対して比例するように算出します。実効電流は、シミュレートされた `JointState.effort` として出力されます。
+`current` モードでは、`JointState.effort` を電流指令として使用します。電流指令は一次遅れなしで即時に反映されます。加速度は、速度制御の `joint_velocity_max / joint_velocity_tau` を最高加速度とみなし、`max_efforts` に対して比例するように算出します。実効電流は、シミュレートされた `JointState.effort` として出力されます。
 
 `max_efforts` を空配列または未指定にした場合は、全ジョイントに `20.0` を使用します。値を指定する場合はジョイント数と同じ要素数が必要です。
 
