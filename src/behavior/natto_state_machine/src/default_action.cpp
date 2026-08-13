@@ -20,6 +20,7 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     state_result_publisher_      = this->create_publisher<natto_msgs::msg::StateResult> ("state_result", 10);
     goal_publisher_              = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_       = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
+    origin_get_publisher_        = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
     state_action_subscriber_     = this->create_subscription<natto_msgs::msg::StateAction> ("state_action", 10, std::bind (&default_action::state_action_callback, this, std::placeholders::_1));
     goal_result_subscriber_      = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&default_action::goal_result_callback, this, std::placeholders::_1));
     current_pose_subscriber_     = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) { current_pose_ = msg->pose; });
@@ -84,12 +85,12 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
                     goal_pose_.position.y = -goal_pose_.position.y + reverse_y_offset_;
                 }
             } else if (msg->arguments_names[i] == "yaw") {
-                tf2::Quaternion q;
+                double yaw = std::stod (msg->arguments_values[i]) * M_PI / 180.0;
                 if (reverse_y_) {
-                    q.setRPY (0.0, 0.0, -std::stod (msg->arguments_values[i]) * M_PI / 180.0);
-                } else {
-                    q.setRPY (0.0, 0.0, std::stod (msg->arguments_values[i]) * M_PI / 180.0);
+                    yaw *= -1;
                 }
+                tf2::Quaternion q;
+                q.setRPY (0.0, 0.0, yaw);
                 goal_pose_.orientation = tf2::toMsg (q);
             }
         }
@@ -154,6 +155,32 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         result.state_id    = joint_state_id_;
         result.success     = true;
         result.action_name = "set_joint_velocity";
+        state_result_publisher_->publish (result);
+    } else if (msg->action_name == "get_origin") {
+        std::string joint_name;
+        for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
+            if (msg->arguments_names[i] == "joint_name" || msg->arguments_names[i] == "joint") {
+                joint_name = msg->arguments_values[i];
+                if (joint_name.size () >= 2 && ((joint_name.front () == '\'' && joint_name.back () == '\'') || (joint_name.front () == '"' && joint_name.back () == '"'))) {
+                    joint_name = joint_name.substr (1, joint_name.size () - 2);
+                }
+                break;
+            }
+        }
+
+        natto_msgs::msg::StateResult result;
+        result.state_id    = msg->state_id;
+        result.action_name = "get_origin";
+        if (joint_name.empty ()) {
+            RCLCPP_WARN (this->get_logger (), "get_origin requires a joint_name argument.");
+            result.success = false;
+        } else {
+            std_msgs::msg::String origin_get_msg;
+            origin_get_msg.data = joint_name;
+            origin_get_publisher_->publish (origin_get_msg);
+            result.success = true;
+            RCLCPP_INFO (this->get_logger (), "Requested origin for joint '%s'.", joint_name.c_str ());
+        }
         state_result_publisher_->publish (result);
     }
 }

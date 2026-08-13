@@ -21,6 +21,7 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
     state_action_publisher_     = this->create_publisher<natto_msgs::msg::StateAction> ("state_action", 10);
     state_graph_subscriber_     = this->create_subscription<natto_msgs::msg::StateGraph> ("state_graph", rclcpp::QoS (1).transient_local ().reliable (), std::bind (&state_machine::state_graph_callback, this, std::placeholders::_1));
     state_result_subscriber_    = this->create_subscription<natto_msgs::msg::StateResult> ("state_result", 10, std::bind (&state_machine::state_result_callback, this, std::placeholders::_1));
+    run_sequence_subscriber_    = this->create_subscription<std_msgs::msg::String> ("run_sequence", 10, std::bind (&state_machine::run_sequence_callback, this, std::placeholders::_1));
     force_set_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt64> ("force_set_state", 10, std::bind (&state_machine::force_set_state_callback, this, std::placeholders::_1));
 
     double frequency   = this->declare_parameter<double> ("frequency", 10.0);
@@ -41,6 +42,27 @@ uint64_t state_machine::get_state_id_by_name (const std::string &state_name) {
     }
     RCLCPP_ERROR (this->get_logger (), "State name '%s' not found in state graph.", state_name.c_str ());
     return 0;
+}
+
+bool state_machine::has_running_state () const {
+    const std::string exit_suffix = "/_exit";
+    for (const auto state_id : current_state_ids_) {
+        const auto state_it = std::find_if (state_graph_.states.begin (), state_graph_.states.end (), [state_id] (const auto &state) { return state.state_id == state_id; });
+        if (state_it == state_graph_.states.end ()) {
+            continue;
+        }
+
+        const bool is_entry_or_exit = state_it->state_name == "/_entry" || state_it->state_name == "/_exit" ||
+                                      (state_it->state_name.size () >= exit_suffix.size () && state_it->state_name.compare (state_it->state_name.size () - exit_suffix.size (), exit_suffix.size (), exit_suffix) == 0);
+        if (is_entry_or_exit) {
+            const bool has_outgoing_transition = std::any_of (state_graph_.transitions.begin (), state_graph_.transitions.end (), [state_id] (const auto &transition) { return transition.from_state_id == state_id; });
+            if (!has_outgoing_transition) {
+                continue;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 void state_machine::state_graph_callback (const natto_msgs::msg::StateGraph::SharedPtr msg) {
@@ -89,6 +111,38 @@ void state_machine::force_set_state_callback (const std_msgs::msg::UInt64::Share
 
     current_state_ids_.clear ();
     current_state_ids_.push_back (msg->data);
+}
+
+void state_machine::run_sequence_callback (const std_msgs::msg::String::SharedPtr msg) {
+    if (msg->data.empty ()) {
+        RCLCPP_WARN (this->get_logger (), "Received an empty sequence name.");
+        return;
+    }
+
+    if (sequence_running_) {
+        RCLCPP_WARN (this->get_logger (), "Sequence '%s' is already running. Ignored '%s'.", active_sequence_name_.c_str (), msg->data.c_str ());
+        return;
+    }
+    if (has_running_state ()) {
+        RCLCPP_WARN (this->get_logger (), "State machine is already running another state graph. Ignored sequence '%s'.", msg->data.c_str ());
+        return;
+    }
+
+    const std::string entry_name = "/" + msg->data + "/_entry";
+    const uint64_t    entry_id   = get_state_id_by_name (entry_name);
+    if (entry_id == 0) {
+        RCLCPP_WARN (this->get_logger (), "Sequence '%s' was not found. Expected state '%s'.", msg->data.c_str (), entry_name.c_str ());
+        return;
+    }
+
+    current_state_ids_.clear ();
+    current_state_ids_.push_back (entry_id);
+    current_state_results_[entry_id] = false;
+    action_timeout_counts_[entry_id] = 0;
+    active_sequence_name_            = msg->data;
+    sequence_running_                = true;
+
+    RCLCPP_INFO (this->get_logger (), "Starting sequence '%s'.", active_sequence_name_.c_str ());
 }
 
 void state_machine::timer_callback () {
@@ -204,6 +258,16 @@ void state_machine::timer_callback () {
         }
     }
     current_state_ids_ = next_state_ids;
+
+    if (sequence_running_) {
+        const std::string exit_name = "/" + active_sequence_name_ + "/_exit";
+        const auto        exit_it   = std::find_if (state_graph_.states.begin (), state_graph_.states.end (), [&exit_name] (const auto &state) { return state.state_name == exit_name; });
+        if (exit_it != state_graph_.states.end () && current_state_ids_.size () == 1 && current_state_ids_.front () == exit_it->state_id) {
+            RCLCPP_INFO (this->get_logger (), "Sequence '%s' finished.", active_sequence_name_.c_str ());
+            sequence_running_ = false;
+            active_sequence_name_.clear ();
+        }
+    }
 }
 
 }  // namespace state_machine

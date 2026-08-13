@@ -23,6 +23,7 @@
 #include "natto_msgs/msg/state_result.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace default_action {
@@ -60,6 +61,7 @@ class default_action : public rclcpp::Node {
     rclcpp::Publisher<natto_msgs::msg::StateResult>::SharedPtr       state_result_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr       joint_state_publisher_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr              origin_get_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr    joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateAction>::SharedPtr    state_action_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr             goal_result_subscriber_;

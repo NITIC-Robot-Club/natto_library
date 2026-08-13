@@ -21,6 +21,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     joint_state_publisher_      = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     allow_auto_drive_publisher_ = this->create_publisher<std_msgs::msg::Bool> ("allow_auto_drive", 10);
     origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 100);
+    sequence_publisher_         = this->create_publisher<std_msgs::msg::String> ("run_sequence", 10);
     joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 10, std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
 
     RCLCPP_INFO (this->get_logger (), "button_manager node has been initialized.");
@@ -91,6 +92,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         button_mode_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".mode", "none"));
         std::string button_function_legacy = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none");
         auto        button_functions       = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".functions", std::vector<std::string>{});
+        sequence_name_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".sequence_name", ""));
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
         std::string              joint_name_legacy      = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", "");
@@ -172,7 +174,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             auto pub_alw  = get_bool_at (publish_always_values, entry, false);
             auto pri      = get_int_at (priority_values, entry, priority_default);
 
-            if (function != "none" && function != "power" && function != "allow_auto_drive" && function != "joint_position" && function != "joint_speed" && function != "get_origin") {
+            if (function != "none" && function != "power" && function != "allow_auto_drive" && function != "joint_position" && function != "joint_speed" && function != "get_origin" && function != "run_sequence") {
                 RCLCPP_WARN (this->get_logger (), "button_%zu.functions[%zu]: '%s' is invalid. selected 'none'.", i, entry, function.c_str ());
                 function = "none";
             }
@@ -231,6 +233,15 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
                     throw std::runtime_error ("invalid parameter");
                 }
                 RCLCPP_INFO (this->get_logger (), "button_%zu.get_origin target[%zu]: %s", i, entry, jn.c_str ());
+            } else if (function == "run_sequence") {
+                if (button_mode_[i] != "positive_edge") {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.run_sequence requires mode 'positive_edge'.", i);
+                }
+                if (sequence_name_[i].empty ()) {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.sequence_name is empty.", i);
+                    throw std::runtime_error ("invalid parameter");
+                }
+                RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence: %s", i, sequence_name_[i].c_str ());
             }
         }
     }
@@ -504,6 +515,92 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
         return false;
     };
 
+    const auto has_any_active_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (!last_toggle_state_[k][e]) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto has_lower_priority_active_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        const auto  target_priority = priority_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (!last_toggle_state_[k][e]) {
+                    continue;
+                }
+                if (priority_[k][e] >= target_priority) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto has_lower_priority_inactive_toggle_same_joint = [this] (size_t button_index, size_t entry_index) {
+        const auto &target_function = button_function_[button_index][entry_index];
+        const auto &target_joint    = joint_name_[button_index][entry_index];
+        const auto  target_priority = priority_[button_index][entry_index];
+        for (size_t k = 0; k < num_button_; k++) {
+            if (button_mode_[k] != "toggle") {
+                continue;
+            }
+            for (size_t e = 0; e < button_function_[k].size (); e++) {
+                if (k == button_index && e == entry_index) {
+                    continue;
+                }
+                if (button_function_[k][e] != target_function) {
+                    continue;
+                }
+                if (joint_name_[k][e] != target_joint) {
+                    continue;
+                }
+                if (last_toggle_state_[k][e]) {
+                    continue;
+                }
+                if (priority_[k][e] >= target_priority) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (size_t i = 0; i < num_button_; i++) {
         if (i >= msg->buttons.size ()) {
             RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 5000, "Received joy message has no button_%zu", i);
@@ -566,8 +663,17 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                         last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
                     }
                     if (last_toggle_state_[i][entry]) {
+                        if (has_lower_priority_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.position[index] = position_on_[i][entry];
                     } else {
+                        if (has_any_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
+                        if (has_lower_priority_inactive_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.position[index] = position_off_[i][entry];
                     }
                 } else if (button_mode_[i] == "toggle_on") {
@@ -602,8 +708,17 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                         last_toggle_state_[i][entry] = !last_toggle_state_[i][entry];
                     }
                     if (last_toggle_state_[i][entry]) {
+                        if (has_lower_priority_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.velocity[index] = speed_on_[i][entry];
                     } else {
+                        if (has_any_active_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
+                        if (has_lower_priority_inactive_toggle_same_joint (i, entry)) {
+                            continue;
+                        }
                         command_joint_state_msg_.velocity[index] = speed_off_[i][entry];
                     }
                 } else if (button_mode_[i] == "toggle_on") {
@@ -634,6 +749,12 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                         origin_get_msg.data = joint_name_[i][entry];
                         origin_get_publisher_->publish (origin_get_msg);
                     }
+                }
+            } else if (button_function_[i][entry] == "run_sequence") {
+                if (button_mode_[i] == "positive_edge" && msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    std_msgs::msg::String sequence_msg;
+                    sequence_msg.data = sequence_name_[i];
+                    sequence_publisher_->publish (sequence_msg);
                 }
             }
         }

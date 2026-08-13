@@ -34,6 +34,7 @@ class button_manager : public rclcpp::Node {
     size_t                                num_button_;
     std::vector<std::string>              button_mode_;
     std::vector<std::vector<std::string>> button_function_;
+    std::vector<std::string>              sequence_name_;
     std::vector<std::vector<std::string>> joint_name_;
     std::vector<std::vector<double>>      position_on_;
     std::vector<std::vector<double>>      position_off_;
@@ -65,6 +66,7 @@ class button_manager : public rclcpp::Node {
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr          allow_auto_drive_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        origin_get_publisher_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        sequence_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr     joy_subscriber_;
 };
 }  // namespace button_manager

@@ -26,21 +26,36 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
+#include <array>
+#include <mutex>
+#include <string>
+#include <vector>
+
 namespace pointcloud2_merger {
 class pointcloud2_merger : public rclcpp::Node {
    public:
     pointcloud2_merger (const rclcpp::NodeOptions &node_options);
 
    private:
-    std::string frame_id_;
-    std::size_t num_lidars_;
+    enum class merge_mode_t {
+        merge,
+        passthrough,
+    };
+
+    std::string  frame_id_;
+    merge_mode_t merge_mode_;
+    std::size_t  num_lidars_;
 
     geometry_msgs::msg::PolygonStamped         footprint_;
     std::vector<sensor_msgs::msg::PointCloud2> latest_pointclouds_;
+    mutable std::mutex                         mutex_;
 
-    void footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
-    bool check_footprint (double x, double y);
-    void publish_pointcloud2 ();
+    void                                     footprint_callback (const geometry_msgs::msg::PolygonStamped::SharedPtr msg);
+    bool                                     check_footprint (double x, double y, const std::vector<geometry_msgs::msg::Point32> &footprint_points_tf) const;
+    std::vector<geometry_msgs::msg::Point32> get_transformed_footprint () const;
+    std::vector<std::array<float, 3>>        transform_and_filter_points (const sensor_msgs::msg::PointCloud2 &pc, const std::vector<geometry_msgs::msg::Point32> &footprint_points_tf) const;
+    sensor_msgs::msg::PointCloud2            build_pointcloud2 (const std::vector<std::array<float, 3>> &points, const std::string &frame_id, const rclcpp::Time &stamp) const;
+    void                                     publish_pointcloud2 ();
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

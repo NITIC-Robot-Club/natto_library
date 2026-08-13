@@ -36,16 +36,19 @@ class wheel_odometry : public rclcpp::Node {
 
    private:
     double      wheel_radius_;
+    double      timeout_sec_;
     size_t      num_wheels_;
     std::string odom_frame_id_;
     std::string base_frame_id_;
     std::string chassis_type_;
     bool        publish_tf_;
+    bool        joint_states_received_;
 
     std::vector<std::string> wheel_names_;
     std::vector<std::string> wheel_base_names_;
 
     geometry_msgs::msg::PoseStamped last_pose_;
+    rclcpp::Time                    last_joint_state_stamp_;
 
     void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
 

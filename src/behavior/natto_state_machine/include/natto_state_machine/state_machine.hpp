@@ -21,6 +21,7 @@
 #include "natto_msgs/msg/state_action.hpp"
 #include "natto_msgs/msg/state_graph.hpp"
 #include "natto_msgs/msg/state_result.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int64.hpp"
 
 #include <fstream>
@@ -43,21 +44,26 @@ class state_machine : public rclcpp::Node {
     std::vector<uint64_t>                     current_state_ids_;
     std::vector<std::string>                  scope_stack_;
     std::unordered_map<std::string, uint64_t> state_name_to_id_;
+    std::string                               active_sequence_name_;
+    bool                                      sequence_running_ = false;
 
     uint64_t timeout_count_;
     uint64_t next_state_id_ = 1;
 
     uint64_t get_state_id_by_name (const std::string &state_name);
+    bool     has_running_state () const;
 
     void state_graph_callback (const natto_msgs::msg::StateGraph::SharedPtr msg);
     void state_result_callback (const natto_msgs::msg::StateResult::SharedPtr msg);
     void force_set_state_callback (const std_msgs::msg::UInt64::SharedPtr msg);
+    void run_sequence_callback (const std_msgs::msg::String::SharedPtr msg);
 
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateAction>::SharedPtr    state_action_publisher_;
     rclcpp::Subscription<natto_msgs::msg::StateGraph>::SharedPtr  state_graph_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateResult>::SharedPtr state_result_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr        run_sequence_subscriber_;
     rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr        force_set_state_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
 };

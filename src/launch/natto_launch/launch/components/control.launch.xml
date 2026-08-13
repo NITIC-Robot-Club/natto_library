@@ -64,6 +64,7 @@
             <param from="$(var controller_param_path)"/>
             <remap from="allow_auto_drive" to="/controller/allow_auto_drive"/>
             <remap from="get_origin_joint_name" to="/get_origin_joint_name"/>
+            <remap from="run_sequence" to="/run_sequence"/>
         </composable_node>
 
         <!-- コマンド選択 -->
@@ -72,7 +73,10 @@
             <remap from="manual_twist" to="/controller/command_velocity"/>
             <remap from="auto_twist" to="/control/command_velocity"/>
             <remap from="selected_twist" to="/command_velocity"/>
+            <remap from="controller_orientation" to="/controller/orientation"/>
+            <remap from="current_pose" to="/localization/current_pose"/>
             <param name="initial_allow_auto_drive" value="$(var initial_allow_auto_drive)"/>
+            <param name="enable_heading_control" value="$(var enable_heading_control)"/>
         </composable_node>
     </node_container>
 

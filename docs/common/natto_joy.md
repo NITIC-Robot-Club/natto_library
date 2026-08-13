@@ -9,14 +9,16 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 - 自動運転許可/禁止: `allow_auto_drive`
 - ジョイントの位置・速度制御: `joint_position`, `joint_speed`
 - ジョイントのオリジン取得: `get_origin`
+- 状態シーケンスの開始: `run_sequence`
 
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
 | num_button | int | 0 | 管理するボタン数 |
 | button_N.mode | string | "none" | ボタンNの動作モード（"toggle", "toggle_on", "toggle_off", "hold", "positive_edge", "none"） |
-| button_N.function | string | "none" | ボタンNの機能（"power", "allow_auto_drive", "joint_position", "joint_speed", "get_origin", "none"） |
+| button_N.function | string | "none" | ボタンNの機能（"power", "allow_auto_drive", "joint_position", "joint_speed", "get_origin", "run_sequence", "none"） |
 | button_N.functions | string[] | [] | ボタンNの機能リスト（`function` より優先）。1ボタンで複数機能を実行可能 |
+| button_N.sequence_name | string | "" | `run_sequence`で開始する状態state名（`/<name>/_entry`を検索） |
 | button_N.joint_name | string | "" | 旧仕様: ボタンNが制御するジョイント名（単一エントリ時） |
 | button_N.joint_names | string[] | [] | 複数エントリ時のジョイント名リスト（`functions` と同じ添字で対応） |
 | button_N.position_on | double | 1.0 | 単一エントリ時のON目標位置 |
@@ -69,6 +71,7 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | allow_auto_drive | std_msgs/msg/Bool | 自動運転の許可状態 |
 | joint_states | sensor_msgs/msg/JointState | ボタン操作によるジョイント目標状態 |
 | get_origin_joint_name | std_msgs/msg/String | オリジン取得するジョイント名 |
+| run_sequence | std_msgs/msg/String | 開始する状態シーケンス名 |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
@@ -87,6 +90,18 @@ button_0:
 	position_ons: [0.0, 1.0]
 	position_offs: [0.0, 0.0]
 ```
+
+### `run_sequence` の使用例
+
+```yaml
+button_0:
+  mode: "positive_edge"
+  function: "run_sequence"
+  sequence_name: "joint_cycle"
+```
+
+`sequence_name`は、Mermaidの`state joint_cycle { ... }`で定義したstate名に対応します。
+実行中のシーケンスがある場合、次のシーケンス開始要求は無視されます。
 
 # joy_to_twist
 joy_to_twistノードは、ジョイスティックの入力を受け取り、ロボットの移動コマンド（geometry_msgs/msg/TwistStamped型）に変換してパブリッシュします。
