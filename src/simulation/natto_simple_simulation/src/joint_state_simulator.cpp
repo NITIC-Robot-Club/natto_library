@@ -106,7 +106,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         throw std::runtime_error ("joint_velocity_max size must be equal to number of joints.");
     }
 
-    max_efforts_ = this->declare_parameter<std::vector<double>> ("max_efforts", std::vector<double> {});
+    max_efforts_ = this->declare_parameter<std::vector<double>> ("max_efforts", std::vector<double>{});
     if (max_efforts_.empty ()) {
         max_efforts_.assign (num_joints_, 20.0);
     } else if (max_efforts_.size () != num_joints_) {
@@ -186,10 +186,10 @@ void joint_state_simulator::timer_callback () {
             }
 
             const double target_current = std::clamp (command_.effort[index], -max_efforts_[i], max_efforts_[i]);
-            joint_current_[i] = target_current;
+            joint_current_[i]           = target_current;
 
-            current_.effort[i] = joint_current_[i];
-            const double max_acceleration = joint_velocity_max_[i] / joint_velocity_tau_[i];
+            current_.effort[i]                   = joint_current_[i];
+            const double max_acceleration        = joint_velocity_max_[i] / joint_velocity_tau_[i];
             const double acceleration_per_effort = max_acceleration / max_efforts_[i];
             current_.velocity[i] += joint_current_[i] * acceleration_per_effort * dt;
             current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
