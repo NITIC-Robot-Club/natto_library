@@ -59,8 +59,7 @@ class joint_state_simulator : public rclcpp::Node {
     std::vector<double>      joint_velocity_max_;
     std::vector<double>      joint_current_;
     std::vector<double>      joint_current_tau_;
-    std::vector<double>      joint_current_max_;
-    std::vector<double>      joint_current_to_acceleration_;
+    std::vector<double>      max_efforts_;
 
     sensor_msgs::msg::JointState command_;
     sensor_msgs::msg::JointState current_;

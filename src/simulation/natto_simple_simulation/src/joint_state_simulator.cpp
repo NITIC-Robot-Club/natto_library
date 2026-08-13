@@ -106,19 +106,23 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         throw std::runtime_error ("joint_velocity_max size must be equal to number of joints.");
     }
 
-    joint_current_tau_             = this->declare_parameter<std::vector<double>> ("joint_current_tau", std::vector<double> (num_joints_, 0.1));
-    joint_current_max_             = this->declare_parameter<std::vector<double>> ("joint_current_max", std::vector<double> (num_joints_, 10.0));
-    joint_current_to_acceleration_ = this->declare_parameter<std::vector<double>> ("joint_current_to_acceleration", std::vector<double> (num_joints_, 1.0));
-    if (joint_current_tau_.size () != num_joints_ || joint_current_max_.size () != num_joints_ || joint_current_to_acceleration_.size () != num_joints_) {
-        RCLCPP_ERROR (this->get_logger (), "Current control parameter sizes must be equal to number of joints.");
-        throw std::runtime_error ("Current control parameter sizes must be equal to number of joints.");
+    joint_current_tau_ = this->declare_parameter<std::vector<double>> ("joint_current_tau", std::vector<double> (num_joints_, 0.1));
+    max_efforts_       = this->declare_parameter<std::vector<double>> ("max_efforts", std::vector<double> {});
+    if (max_efforts_.empty ()) {
+        max_efforts_.assign (num_joints_, 20.0);
+    } else if (max_efforts_.size () != num_joints_) {
+        RCLCPP_ERROR (this->get_logger (), "max_efforts size must be equal to number of joints.");
+        throw std::runtime_error ("max_efforts size must be equal to number of joints.");
     }
     for (size_t i = 0; i < num_joints_; i++) {
         if (joint_current_tau_[i] <= 0.0) {
             throw std::runtime_error ("joint_current_tau must be positive.");
         }
-        if (joint_current_max_[i] < 0.0) {
-            throw std::runtime_error ("joint_current_max must not be negative.");
+        if (max_efforts_[i] <= 0.0) {
+            throw std::runtime_error ("max_efforts must be positive.");
+        }
+        if (joint_velocity_tau_[i] <= 0.0) {
+            throw std::runtime_error ("joint_velocity_tau must be positive.");
         }
     }
 
@@ -185,12 +189,14 @@ void joint_state_simulator::timer_callback () {
                 continue;
             }
 
-            const double target_current = std::clamp (command_.effort[index], -joint_current_max_[i], joint_current_max_[i]);
+            const double target_current = std::clamp (command_.effort[index], -max_efforts_[i], max_efforts_[i]);
             joint_current_[i] += (target_current - joint_current_[i]) * dt / joint_current_tau_[i];
-            joint_current_[i] = std::clamp (joint_current_[i], -joint_current_max_[i], joint_current_max_[i]);
+            joint_current_[i] = std::clamp (joint_current_[i], -max_efforts_[i], max_efforts_[i]);
 
             current_.effort[i] = joint_current_[i];
-            current_.velocity[i] += joint_current_[i] * joint_current_to_acceleration_[i] * dt;
+            const double max_acceleration = joint_velocity_max_[i] / joint_velocity_tau_[i];
+            const double acceleration_per_effort = max_acceleration / max_efforts_[i];
+            current_.velocity[i] += joint_current_[i] * acceleration_per_effort * dt;
             current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
             current_.position[i] += current_.velocity[i] * dt;
         }
