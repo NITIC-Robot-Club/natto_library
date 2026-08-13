@@ -77,7 +77,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         throw std::runtime_error ("control_modes size must be equal to number of joints.");
     }
     for (size_t i = 0; i < num_joints_; i++) {
-        if (control_modes_[i] != "position" && control_modes_[i] != "speed") {
+        if (control_modes_[i] != "position" && control_modes_[i] != "speed" && control_modes_[i] != "current") {
             RCLCPP_ERROR (this->get_logger (), "Unsupported control_mode: %s", control_modes_[i].c_str ());
             throw std::runtime_error ("Unsupported control_mode: " + control_modes_[i]);
         }
@@ -107,10 +107,27 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
         throw std::runtime_error ("joint_velocity_max size must be equal to number of joints.");
     }
 
+    max_efforts_ = this->declare_parameter<std::vector<double>> ("max_efforts", std::vector<double>{});
+    if (max_efforts_.empty ()) {
+        max_efforts_.assign (num_joints_, 20.0);
+    } else if (max_efforts_.size () != num_joints_) {
+        RCLCPP_ERROR (this->get_logger (), "max_efforts size must be equal to number of joints.");
+        throw std::runtime_error ("max_efforts size must be equal to number of joints.");
+    }
+    for (size_t i = 0; i < num_joints_; i++) {
+        if (max_efforts_[i] <= 0.0) {
+            throw std::runtime_error ("max_efforts must be positive.");
+        }
+        if (joint_velocity_tau_[i] <= 0.0) {
+            throw std::runtime_error ("joint_velocity_tau must be positive.");
+        }
+    }
+
     current_.name     = joint_names_;
     current_.position = initial_positions_;
     current_.velocity.resize (joint_names_.size (), 0.0);
     current_.effort.resize (joint_names_.size (), 0.0);
+    joint_current_.resize (joint_names_.size (), 0.0);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -164,6 +181,20 @@ void joint_state_simulator::timer_callback () {
             current_.velocity[i] += acceleration / frequency_;
             current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
             current_.position[i] += current_.velocity[i] / frequency_;
+        } else if (control_modes_[i] == "current") {
+            if (index >= command_.effort.size ()) {
+                continue;
+            }
+
+            const double target_current = std::clamp (command_.effort[index], -max_efforts_[i], max_efforts_[i]);
+            joint_current_[i]           = target_current;
+
+            current_.effort[i]                   = joint_current_[i];
+            const double max_acceleration        = joint_velocity_max_[i] / joint_velocity_tau_[i];
+            const double acceleration_per_effort = max_acceleration / max_efforts_[i];
+            current_.velocity[i] += joint_current_[i] * acceleration_per_effort * dt;
+            current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
+            current_.position[i] += current_.velocity[i] * dt;
         }
     }
 
