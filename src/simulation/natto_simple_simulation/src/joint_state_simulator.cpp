@@ -40,6 +40,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
 
     if (reverse_y_) {
         current_pose_.pose.position.y = -current_pose_.pose.position.y + reverse_y_offset_;
+        initial_pose_yaw_ *= -1.0;
     }
 
     tf2::Quaternion q;
