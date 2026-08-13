@@ -32,6 +32,7 @@ class chassis_calculator : public rclcpp::Node {
 
    private:
     std::string chassis_type_;
+    std::string steering_stop_mode_;
     bool        infinite_swerve_mode_;
     double      wheel_radius_;
     size_t      num_wheels_;
