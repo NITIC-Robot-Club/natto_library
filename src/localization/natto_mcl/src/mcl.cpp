@@ -91,6 +91,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
 
     if (reverse_y_) {
         initial_pose_y_ = -initial_pose_y_ + reverse_y_offset_;
+        initial_pose_yaw_deg_ *= -1.0;
     }
 
     if (use_odom_tf_) {
