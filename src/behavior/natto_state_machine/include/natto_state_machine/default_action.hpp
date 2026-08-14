@@ -19,6 +19,7 @@
 #include "tf2/utils.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "natto_msgs/msg/joint_control_type.hpp"
 #include "natto_msgs/msg/state_action.hpp"
 #include "natto_msgs/msg/state_result.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
@@ -26,12 +27,22 @@
 #include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
 namespace default_action {
 class default_action : public rclcpp::Node {
    public:
     default_action (const rclcpp::NodeOptions &node_options);
 
    private:
+    struct control_type_change_t {
+        std::string joint_name;
+        uint8_t     control_type = 0;
+    };
+
     double                        frequency_;
     bool                          allow_auto_drive_;
     std::map<std::string, double> joint_tolerances_;
@@ -54,11 +65,14 @@ class default_action : public rclcpp::Node {
     bool     joint_state_sent_;
 
     void state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void publish_set_control_type_result (uint64_t state_id, bool success);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);
     void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateResult>::SharedPtr       state_result_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::JointControlType>::SharedPtr  joint_control_type_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr       joint_state_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr              origin_get_publisher_;
