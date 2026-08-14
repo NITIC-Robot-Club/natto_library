@@ -73,12 +73,12 @@ class joint_state_simulator : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr    joint_state_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr command_joint_state_subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr         joint_state_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr      simulation_pose_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      command_joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::JointControlType>::SharedPtr joint_control_type_subscriber_;
-    rclcpp::TimerBase::SharedPtr                                  timer_;
-    std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
+    rclcpp::TimerBase::SharedPtr                                       timer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster>                     tf_broadcaster_;
 };
 }  // namespace joint_state_simulator
 

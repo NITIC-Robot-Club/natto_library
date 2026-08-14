@@ -181,9 +181,9 @@ void joint_state_simulator::joint_control_type_callback (const natto_msgs::msg::
         return;
     }
 
-    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    const size_t      index         = static_cast<size_t> (std::distance (joint_names_.begin (), it));
     const std::string previous_mode = control_modes_[index];
-    control_modes_[index]            = new_mode;
+    control_modes_[index]           = new_mode;
 
     if (previous_mode != new_mode) {
         RCLCPP_INFO (this->get_logger (), "Joint '%s': control mode changed from '%s' to '%s'", msg->joint_name.c_str (), previous_mode.c_str (), new_mode.c_str ());
