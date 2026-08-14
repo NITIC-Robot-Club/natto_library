@@ -14,18 +14,41 @@
 
 #include "natto_state_machine/default_action.hpp"
 
+#include <algorithm>
+#include <functional>
+
+namespace {
+
+std::string remove_quotes (const std::string &value) {
+    if (value.size () >= 2 && value.front () == '"' && value.back () == '"') {
+        return value.substr (1, value.size () - 2);
+    }
+    return value;
+}
+
+std::optional<uint8_t> control_type_from_string (const std::string &value) {
+    if (value == "current") return natto_msgs::msg::JointControlType::CURRENT;
+    if (value == "speed") return natto_msgs::msg::JointControlType::SPEED;
+    if (value == "position") return natto_msgs::msg::JointControlType::POSITION;
+    if (value == "duty") return natto_msgs::msg::JointControlType::DUTY;
+    return std::nullopt;
+}
+
+}  // namespace
+
 namespace default_action {
 
 default_action::default_action (const rclcpp::NodeOptions &node_options) : Node ("default_action", rclcpp::NodeOptions (node_options).allow_undeclared_parameters (true).automatically_declare_parameters_from_overrides (true)) {
-    state_result_publisher_      = this->create_publisher<natto_msgs::msg::StateResult> ("state_result", 10);
-    goal_publisher_              = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
-    joint_state_publisher_       = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
-    origin_get_publisher_        = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
-    state_action_subscriber_     = this->create_subscription<natto_msgs::msg::StateAction> ("state_action", 10, std::bind (&default_action::state_action_callback, this, std::placeholders::_1));
-    goal_result_subscriber_      = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&default_action::goal_result_callback, this, std::placeholders::_1));
-    current_pose_subscriber_     = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) { current_pose_ = msg->pose; });
-    joint_state_subscriber_      = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&default_action::joint_state_callback, this, std::placeholders::_1));
-    allow_auto_drive_subscriber_ = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, [this] (const std_msgs::msg::Bool::SharedPtr msg) { allow_auto_drive_ = msg->data; });
+    state_result_publisher_       = this->create_publisher<natto_msgs::msg::StateResult> ("state_result", 10);
+    joint_control_type_publisher_ = this->create_publisher<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10);
+    goal_publisher_               = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
+    joint_state_publisher_        = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
+    origin_get_publisher_         = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
+    state_action_subscriber_      = this->create_subscription<natto_msgs::msg::StateAction> ("state_action", 10, std::bind (&default_action::state_action_callback, this, std::placeholders::_1));
+    goal_result_subscriber_       = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&default_action::goal_result_callback, this, std::placeholders::_1));
+    current_pose_subscriber_      = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) { current_pose_ = msg->pose; });
+    joint_state_subscriber_       = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&default_action::joint_state_callback, this, std::placeholders::_1));
+    allow_auto_drive_subscriber_  = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, [this] (const std_msgs::msg::Bool::SharedPtr msg) { allow_auto_drive_ = msg->data; });
 
     xy_tolerance_m_    = this->declare_parameter<double> ("xy_tolerance_m", 0.2);
     yaw_tolerance_deg_ = this->declare_parameter<double> ("yaw_tolerance_deg", 10.0);
@@ -156,6 +179,8 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         result.success     = true;
         result.action_name = "set_joint_velocity";
         state_result_publisher_->publish (result);
+    } else if (msg->action_name == "set_control_type") {
+        handle_set_control_type (msg);
     } else if (msg->action_name == "get_origin") {
         std::string joint_name;
         for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
@@ -183,6 +208,55 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         }
         state_result_publisher_->publish (result);
     }
+}
+
+void default_action::handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg) {
+    if (msg->arguments_names.size () != msg->arguments_values.size () || msg->arguments_names.empty ()) {
+        RCLCPP_WARN (this->get_logger (), "Invalid set_control_type arguments: names and values must be non-empty and have the same size.");
+        publish_set_control_type_result (msg->state_id, false);
+        return;
+    }
+
+    std::vector<control_type_change_t> changes;
+    changes.reserve (msg->arguments_names.size ());
+
+    for (size_t i = 0; i < msg->arguments_names.size (); ++i) {
+        const std::string joint_name = msg->arguments_names[i];
+        const std::string value      = remove_quotes (msg->arguments_values[i]);
+
+        if (joint_name.empty () || std::find_if (changes.begin (), changes.end (), [&joint_name] (const auto &change) { return change.joint_name == joint_name; }) != changes.end ()) {
+            RCLCPP_WARN (this->get_logger (), "Invalid or duplicated joint name in set_control_type: '%s'", joint_name.c_str ());
+            publish_set_control_type_result (msg->state_id, false);
+            return;
+        }
+
+        const auto control_type = control_type_from_string (value);
+        if (!control_type) {
+            RCLCPP_WARN (this->get_logger (), "Unknown control type '%s' for joint '%s'", value.c_str (), joint_name.c_str ());
+            publish_set_control_type_result (msg->state_id, false);
+            return;
+        }
+
+        changes.push_back ({joint_name, *control_type});
+    }
+
+    for (const auto &change : changes) {
+        natto_msgs::msg::JointControlType control_type;
+        control_type.joint_name   = change.joint_name;
+        control_type.control_type = change.control_type;
+        joint_control_type_publisher_->publish (control_type);
+    }
+
+    publish_set_control_type_result (msg->state_id, true);
+    RCLCPP_INFO (this->get_logger (), "Published control type changes for %zu joints.", changes.size ());
+}
+
+void default_action::publish_set_control_type_result (uint64_t state_id, bool success) {
+    natto_msgs::msg::StateResult result;
+    result.state_id    = state_id;
+    result.action_name = "set_control_type";
+    result.success     = success;
+    state_result_publisher_->publish (result);
 }
 
 void default_action::goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg) {

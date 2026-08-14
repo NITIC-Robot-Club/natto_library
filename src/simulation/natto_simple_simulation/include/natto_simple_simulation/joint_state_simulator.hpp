@@ -24,6 +24,7 @@
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "natto_msgs/msg/joint_control_type.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -67,15 +68,17 @@ class joint_state_simulator : public rclcpp::Node {
 
     void timer_callback ();
     void command_joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
+    void joint_control_type_callback (const natto_msgs::msg::JointControlType::SharedPtr msg);
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr    joint_state_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr simulation_pose_publisher_;
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr command_joint_state_subscriber_;
-    rclcpp::TimerBase::SharedPtr                                  timer_;
-    std::shared_ptr<tf2_ros::TransformBroadcaster>                tf_broadcaster_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr         joint_state_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr      simulation_pose_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      command_joint_state_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::JointControlType>::SharedPtr joint_control_type_subscriber_;
+    rclcpp::TimerBase::SharedPtr                                       timer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster>                     tf_broadcaster_;
 };
 }  // namespace joint_state_simulator
 
