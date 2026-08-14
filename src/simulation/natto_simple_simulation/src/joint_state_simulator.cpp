@@ -20,6 +20,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     simulation_pose_publisher_      = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
     command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
+    joint_control_type_subscriber_  = this->create_subscription<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10, std::bind (&joint_state_simulator::joint_control_type_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
@@ -154,6 +155,41 @@ void joint_state_simulator::command_joint_state_callback (const sensor_msgs::msg
     command_ = *msg;
 }
 
+void joint_state_simulator::joint_control_type_callback (const natto_msgs::msg::JointControlType::SharedPtr msg) {
+    std::string new_mode;
+    switch (msg->control_type) {
+        case natto_msgs::msg::JointControlType::POSITION:
+            new_mode = "position";
+            break;
+        case natto_msgs::msg::JointControlType::SPEED:
+            new_mode = "speed";
+            break;
+        case natto_msgs::msg::JointControlType::CURRENT:
+            new_mode = "current";
+            break;
+        case natto_msgs::msg::JointControlType::DUTY:
+            RCLCPP_WARN (this->get_logger (), "DUTY control is not supported by simulator. joint='%s'", msg->joint_name.c_str ());
+            return;
+        default:
+            RCLCPP_WARN (this->get_logger (), "Unknown control type=%u for joint='%s'", msg->control_type, msg->joint_name.c_str ());
+            return;
+    }
+
+    const auto it = std::find (joint_names_.begin (), joint_names_.end (), msg->joint_name);
+    if (it == joint_names_.end ()) {
+        RCLCPP_WARN (this->get_logger (), "Unknown joint='%s'", msg->joint_name.c_str ());
+        return;
+    }
+
+    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    const std::string previous_mode = control_modes_[index];
+    control_modes_[index]            = new_mode;
+
+    if (previous_mode != new_mode) {
+        RCLCPP_INFO (this->get_logger (), "Joint '%s': control mode changed from '%s' to '%s'", msg->joint_name.c_str (), previous_mode.c_str (), new_mode.c_str ());
+    }
+}
+
 void joint_state_simulator::timer_callback () {
     const double dt = 1.0 / frequency_;
 
@@ -167,6 +203,11 @@ void joint_state_simulator::timer_callback () {
         size_t index = static_cast<size_t> (std::distance (command_.name.begin (), it));
 
         if (control_modes_[i] == "position") {
+            if (index >= command_.position.size ()) {
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Missing position command for joint '%s'", joint_names_[i].c_str ());
+                continue;
+            }
+
             const double target_position  = command_.position[index];
             const double error            = target_position - current_.position[i];
             double       command_velocity = error / joint_position_tau_[i];
@@ -175,6 +216,11 @@ void joint_state_simulator::timer_callback () {
             current_.velocity[i] = command_velocity;
             current_.position[i] += command_velocity * dt;
         } else if (control_modes_[i] == "speed") {
+            if (index >= command_.velocity.size ()) {
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Missing velocity command for joint '%s'", joint_names_[i].c_str ());
+                continue;
+            }
+
             const double target_velocity = command_.velocity[index];
             const double acceleration    = (target_velocity - current_.velocity[i]) / joint_velocity_tau_[i];
 
@@ -183,6 +229,8 @@ void joint_state_simulator::timer_callback () {
             current_.position[i] += current_.velocity[i] / frequency_;
         } else if (control_modes_[i] == "current") {
             if (index >= command_.effort.size ()) {
+                current_.effort[i] = 0.0;
+                RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 3000, "Missing effort command for joint '%s'", joint_names_[i].c_str ());
                 continue;
             }
 
@@ -195,6 +243,12 @@ void joint_state_simulator::timer_callback () {
             current_.velocity[i] += joint_current_[i] * acceleration_per_effort * dt;
             current_.velocity[i] = std::clamp (current_.velocity[i], -joint_velocity_max_[i], joint_velocity_max_[i]);
             current_.position[i] += current_.velocity[i] * dt;
+        } else {
+            current_.effort[i] = 0.0;
+        }
+
+        if (control_modes_[i] != "current") {
+            current_.effort[i] = 0.0;
         }
     }
 
