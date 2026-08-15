@@ -43,8 +43,6 @@ class joint_state_simulator : public rclcpp::Node {
     size_t      num_wheels_;
     size_t      num_joints_;
     double      frequency_;
-    double      origin_speed_;
-
     std::vector<std::string> wheel_names_;
     std::vector<std::string> wheel_base_names_;
 

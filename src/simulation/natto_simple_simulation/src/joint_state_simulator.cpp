@@ -30,11 +30,6 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     wheel_names_         = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
     wheel_radius_        = this->declare_parameter<double> ("wheel_radius", 0.05);
     frequency_           = this->declare_parameter<double> ("frequency", 1000.0);
-    origin_speed_        = this->declare_parameter<double> ("origin_speed", 1.0);
-    if (origin_speed_ <= 0.0) {
-        RCLCPP_ERROR (this->get_logger (), "origin_speed must be positive.");
-        throw std::runtime_error ("origin_speed must be positive.");
-    }
 
     initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
@@ -145,7 +140,6 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     RCLCPP_INFO (this->get_logger (), "joint_state_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
-    RCLCPP_INFO (this->get_logger (), "origin_speed: %.2f rad/s", origin_speed_);
     RCLCPP_INFO (this->get_logger (), "initial pose: (%f, %f, %f)", initial_pose_x_, initial_pose_y_, initial_pose_yaw_);
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
@@ -235,7 +229,7 @@ void joint_state_simulator::timer_callback () {
             const double target_position  = initial_positions_[i];
             const double error            = target_position - current_.position[i];
             double       command_velocity = error / joint_position_tau_[i];
-            command_velocity              = std::clamp (command_velocity, -origin_speed_, origin_speed_);
+            command_velocity              = std::clamp (command_velocity, -joint_velocity_max_[i], joint_velocity_max_[i]);
             const double next_position    = current_.position[i] + command_velocity * dt;
 
             if (std::abs (error) <= origin_tolerance || (target_position - current_.position[i]) * (target_position - next_position) <= 0.0) {
