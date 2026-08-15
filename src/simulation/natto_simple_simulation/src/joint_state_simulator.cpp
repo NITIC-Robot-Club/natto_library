@@ -19,8 +19,10 @@ namespace joint_state_simulator {
 joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_options) : Node ("joint_state_simulator", node_options) {
     joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     simulation_pose_publisher_      = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
+    origin_status_publisher_        = this->create_publisher<natto_msgs::msg::OriginStatus> ("origin_status", 10);
     command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     joint_control_type_subscriber_  = this->create_subscription<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10, std::bind (&joint_state_simulator::joint_control_type_callback, this, std::placeholders::_1));
+    origin_get_subscriber_          = this->create_subscription<std_msgs::msg::String> ("/get_origin_joint_name", 10, std::bind (&joint_state_simulator::origin_get_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
@@ -28,6 +30,11 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     wheel_names_         = this->declare_parameter<std::vector<std::string>> ("wheel_names", {""});
     wheel_radius_        = this->declare_parameter<double> ("wheel_radius", 0.05);
     frequency_           = this->declare_parameter<double> ("frequency", 1000.0);
+    origin_speed_        = this->declare_parameter<double> ("origin_speed", 1.0);
+    if (origin_speed_ <= 0.0) {
+        RCLCPP_ERROR (this->get_logger (), "origin_speed must be positive.");
+        throw std::runtime_error ("origin_speed must be positive.");
+    }
 
     initial_pose_x_   = this->declare_parameter<double> ("initial_pose_x", 0.0);
     initial_pose_y_   = this->declare_parameter<double> ("initial_pose_y", 0.0);
@@ -129,6 +136,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     current_.velocity.resize (joint_names_.size (), 0.0);
     current_.effort.resize (joint_names_.size (), 0.0);
     joint_current_.resize (joint_names_.size (), 0.0);
+    origin_active_.assign (joint_names_.size (), false);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -137,6 +145,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     RCLCPP_INFO (this->get_logger (), "joint_state_simulator node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "chassis_type: %s", chassis_type_.c_str ());
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency_);
+    RCLCPP_INFO (this->get_logger (), "origin_speed: %.2f rad/s", origin_speed_);
     RCLCPP_INFO (this->get_logger (), "initial pose: (%f, %f, %f)", initial_pose_x_, initial_pose_y_, initial_pose_yaw_);
     RCLCPP_INFO (this->get_logger (), "wheel_radius: %.2f m", wheel_radius_);
     RCLCPP_INFO (this->get_logger (), "num_wheels: %zu", num_wheels_);
@@ -190,10 +199,55 @@ void joint_state_simulator::joint_control_type_callback (const natto_msgs::msg::
     }
 }
 
+void joint_state_simulator::origin_get_callback (const std_msgs::msg::String::SharedPtr msg) {
+    const bool any_origin_active = std::any_of (origin_active_.begin (), origin_active_.end (), [] (const bool active) { return active; });
+    if (any_origin_active) {
+        RCLCPP_WARN (this->get_logger (), "Ignoring origin request for '%s' while another origin request is active.", msg->data.c_str ());
+        return;
+    }
+
+    const auto it = std::find (joint_names_.begin (), joint_names_.end (), msg->data);
+    if (it == joint_names_.end ()) {
+        RCLCPP_WARN (this->get_logger (), "Unsupported origin request for unknown joint '%s'.", msg->data.c_str ());
+        publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::FAILED, natto_msgs::msg::OriginStatus::REASON_UNSUPPORTED);
+        return;
+    }
+
+    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    origin_active_[index] = true;
+    publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::STARTED, natto_msgs::msg::OriginStatus::REASON_NONE);
+}
+
+void joint_state_simulator::publish_origin_status (const std::string &joint_name, uint8_t status, uint8_t reason) {
+    natto_msgs::msg::OriginStatus msg;
+    msg.joint_name = joint_name;
+    msg.status     = status;
+    msg.reason     = reason;
+    origin_status_publisher_->publish (msg);
+}
+
 void joint_state_simulator::timer_callback () {
     const double dt = 1.0 / frequency_;
 
     for (size_t i = 0; i < num_joints_; i++) {
+        if (origin_active_[i]) {
+            const double target_position  = initial_positions_[i];
+            const double error            = target_position - current_.position[i];
+            double       command_velocity = error / joint_position_tau_[i];
+            command_velocity              = std::clamp (command_velocity, -origin_speed_, origin_speed_);
+
+            if (std::abs (error) <= std::abs (command_velocity * dt)) {
+                current_.position[i] = target_position;
+                current_.velocity[i] = 0.0;
+                origin_active_[i]    = false;
+                publish_origin_status (joint_names_[i], natto_msgs::msg::OriginStatus::SUCCEEDED, natto_msgs::msg::OriginStatus::REASON_NONE);
+            } else {
+                current_.velocity[i] = command_velocity;
+                current_.position[i] += command_velocity * dt;
+            }
+            continue;
+        }
+
         auto it = std::find (command_.name.begin (), command_.name.end (), joint_names_[i]);
 
         if (it == command_.name.end ()) {

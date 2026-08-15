@@ -29,21 +29,26 @@
 | joint_velocity_tau | std::vector<double> | {0.1} | 速度制御の時定数 |
 | joint_velocity_max | std::vector<double> | {10.0} | 各ジョイントの最大速度 |
 | max_efforts | std::vector<double> | {}（未指定時は全ジョイント20.0） | 各ジョイントの最大effort |
+| origin_speed | double | 1.0 | 擬似原点取得時の移動速度（rad/s）。0以下は起動エラー |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | /joint_states | sensor_msgs/msg/JointState | シミュレートされたジョイント状態 |
 | /simulation_pose | geometry_msgs/msg/PoseStamped | ロボットの現在の位置と姿勢 |
+| /simulation/origin_status | natto_msgs/msg/OriginStatus | 擬似原点取得の状態 |
 
 ## サブスクライバー
 | トピック名 | メッセージ型 | 説明 |
 | - | - | - |
 | /command_joint_states | sensor_msgs/msg/JointState | コマンドジョイント状態 |
+| /get_origin_joint_name | std_msgs/msg/String | 原点取得対象のジョイント名 |
 
 `current` モードでは、`JointState.effort` を電流指令として使用します。電流指令は一次遅れなしで即時に反映されます。加速度は、速度制御の `joint_velocity_max / joint_velocity_tau` を最高加速度とみなし、`max_efforts` に対して比例するように算出します。実効電流は、シミュレートされた `JointState.effort` として出力されます。
 
 `max_efforts` を空配列または未指定にした場合は、全ジョイントに `20.0` を使用します。値を指定する場合はジョイント数と同じ要素数が必要です。
+
+`/get_origin_joint_name` を受信すると、対象ジョイントを一時的にposition制御相当で `initial_positions` の値まで移動します。移動中は通常の制御指令を無視し、到達後に `/simulation/origin_status` へ `STARTED`、`SUCCEEDED` を通知します。存在しないジョイント名の場合は `FAILED / REASON_UNSUPPORTED` を通知します。原点取得中の新しい要求は無視します。
 
 # lidar_simulator
 2D LiDARセンサーの動作を模擬します。
