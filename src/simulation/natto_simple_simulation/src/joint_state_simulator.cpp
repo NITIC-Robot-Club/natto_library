@@ -228,6 +228,7 @@ void joint_state_simulator::publish_origin_status (const std::string &joint_name
 
 void joint_state_simulator::timer_callback () {
     const double dt = 1.0 / frequency_;
+    constexpr double origin_tolerance = 1.0e-6;
 
     for (size_t i = 0; i < num_joints_; i++) {
         if (origin_active_[i]) {
@@ -235,15 +236,16 @@ void joint_state_simulator::timer_callback () {
             const double error            = target_position - current_.position[i];
             double       command_velocity = error / joint_position_tau_[i];
             command_velocity              = std::clamp (command_velocity, -origin_speed_, origin_speed_);
+            const double next_position    = current_.position[i] + command_velocity * dt;
 
-            if (std::abs (error) <= std::abs (command_velocity * dt)) {
+            if (std::abs (error) <= origin_tolerance || (target_position - current_.position[i]) * (target_position - next_position) <= 0.0) {
                 current_.position[i] = target_position;
                 current_.velocity[i] = 0.0;
                 origin_active_[i]    = false;
                 publish_origin_status (joint_names_[i], natto_msgs::msg::OriginStatus::SUCCEEDED, natto_msgs::msg::OriginStatus::REASON_NONE);
             } else {
                 current_.velocity[i] = command_velocity;
-                current_.position[i] += command_velocity * dt;
+                current_.position[i] = next_position;
             }
             continue;
         }
