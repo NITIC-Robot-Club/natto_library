@@ -84,7 +84,7 @@ class joint_state_simulator : public rclcpp::Node {
     rclcpp::Publisher<natto_msgs::msg::OriginStatus>::SharedPtr        origin_status_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      command_joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::JointControlType>::SharedPtr joint_control_type_subscriber_;
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr              origin_get_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr             origin_get_subscriber_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                     tf_broadcaster_;
 };

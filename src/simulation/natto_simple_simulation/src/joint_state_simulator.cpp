@@ -213,7 +213,7 @@ void joint_state_simulator::origin_get_callback (const std_msgs::msg::String::Sh
         return;
     }
 
-    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    const size_t index    = static_cast<size_t> (std::distance (joint_names_.begin (), it));
     origin_active_[index] = true;
     publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::STARTED, natto_msgs::msg::OriginStatus::REASON_NONE);
 }
@@ -227,7 +227,7 @@ void joint_state_simulator::publish_origin_status (const std::string &joint_name
 }
 
 void joint_state_simulator::timer_callback () {
-    const double dt = 1.0 / frequency_;
+    const double     dt               = 1.0 / frequency_;
     constexpr double origin_tolerance = 1.0e-6;
 
     for (size_t i = 0; i < num_joints_; i++) {
