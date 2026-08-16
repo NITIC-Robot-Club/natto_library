@@ -65,7 +65,12 @@ class default_action : public rclcpp::Node {
     bool     joint_state_sent_;
 
     void state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_set_pose (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_wait (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_set_joint_position (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_set_joint_velocity (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_get_origin (const natto_msgs::msg::StateAction::SharedPtr msg);
     void publish_set_control_type_result (uint64_t state_id, bool success);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);
     void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);

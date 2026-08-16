@@ -194,12 +194,6 @@ void joint_state_simulator::joint_control_type_callback (const natto_msgs::msg::
 }
 
 void joint_state_simulator::origin_get_callback (const std_msgs::msg::String::SharedPtr msg) {
-    const bool any_origin_active = std::any_of (origin_active_.begin (), origin_active_.end (), [] (const bool active) { return active; });
-    if (any_origin_active) {
-        RCLCPP_WARN (this->get_logger (), "Ignoring origin request for '%s' while another origin request is active.", msg->data.c_str ());
-        return;
-    }
-
     const auto it = std::find (joint_names_.begin (), joint_names_.end (), msg->data);
     if (it == joint_names_.end ()) {
         RCLCPP_WARN (this->get_logger (), "Unsupported origin request for unknown joint '%s'.", msg->data.c_str ());
