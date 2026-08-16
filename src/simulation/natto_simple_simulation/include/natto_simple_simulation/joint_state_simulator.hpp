@@ -25,7 +25,9 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "natto_msgs/msg/joint_control_type.hpp"
+#include "natto_msgs/msg/origin_status.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace joint_state_simulator {
@@ -34,14 +36,13 @@ class joint_state_simulator : public rclcpp::Node {
     joint_state_simulator (const rclcpp::NodeOptions &node_options);
 
    private:
-    std::string chassis_type_;
-    std::string simulation_frame_id_;
-    bool        infinite_swerve_mode_;
-    double      wheel_radius_;
-    size_t      num_wheels_;
-    size_t      num_joints_;
-    double      frequency_;
-
+    std::string              chassis_type_;
+    std::string              simulation_frame_id_;
+    bool                     infinite_swerve_mode_;
+    double                   wheel_radius_;
+    size_t                   num_wheels_;
+    size_t                   num_joints_;
+    double                   frequency_;
     std::vector<std::string> wheel_names_;
     std::vector<std::string> wheel_base_names_;
 
@@ -60,6 +61,7 @@ class joint_state_simulator : public rclcpp::Node {
     std::vector<double>      joint_velocity_max_;
     std::vector<double>      joint_current_;
     std::vector<double>      max_efforts_;
+    std::vector<bool>        origin_active_;
 
     sensor_msgs::msg::JointState command_;
     sensor_msgs::msg::JointState current_;
@@ -69,14 +71,18 @@ class joint_state_simulator : public rclcpp::Node {
     void timer_callback ();
     void command_joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
     void joint_control_type_callback (const natto_msgs::msg::JointControlType::SharedPtr msg);
+    void origin_get_callback (const std_msgs::msg::String::SharedPtr msg);
+    void publish_origin_status (const std::string &joint_name, uint8_t status, uint8_t reason);
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr         joint_state_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr      simulation_pose_publisher_;
+    rclcpp::Publisher<natto_msgs::msg::OriginStatus>::SharedPtr        origin_status_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      command_joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::JointControlType>::SharedPtr joint_control_type_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr             origin_get_subscriber_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                     tf_broadcaster_;
 };

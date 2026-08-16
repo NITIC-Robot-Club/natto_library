@@ -19,8 +19,10 @@ namespace joint_state_simulator {
 joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_options) : Node ("joint_state_simulator", node_options) {
     joint_state_publisher_          = this->create_publisher<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS ());
     simulation_pose_publisher_      = this->create_publisher<geometry_msgs::msg::PoseStamped> ("simulation_pose", 10);
+    origin_status_publisher_        = this->create_publisher<natto_msgs::msg::OriginStatus> ("origin_status", 10);
     command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     joint_control_type_subscriber_  = this->create_subscription<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10, std::bind (&joint_state_simulator::joint_control_type_callback, this, std::placeholders::_1));
+    origin_get_subscriber_          = this->create_subscription<std_msgs::msg::String> ("/get_origin_joint_name", 10, std::bind (&joint_state_simulator::origin_get_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
@@ -129,6 +131,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     current_.velocity.resize (joint_names_.size (), 0.0);
     current_.effort.resize (joint_names_.size (), 0.0);
     joint_current_.resize (joint_names_.size (), 0.0);
+    origin_active_.assign (joint_names_.size (), false);
 
     tf_buffer_   = std::make_unique<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -190,10 +193,51 @@ void joint_state_simulator::joint_control_type_callback (const natto_msgs::msg::
     }
 }
 
+void joint_state_simulator::origin_get_callback (const std_msgs::msg::String::SharedPtr msg) {
+    const auto it = std::find (joint_names_.begin (), joint_names_.end (), msg->data);
+    if (it == joint_names_.end ()) {
+        RCLCPP_WARN (this->get_logger (), "Unsupported origin request for unknown joint '%s'.", msg->data.c_str ());
+        publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::FAILED, natto_msgs::msg::OriginStatus::REASON_UNSUPPORTED);
+        return;
+    }
+
+    const size_t index    = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    origin_active_[index] = true;
+    publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::STARTED, natto_msgs::msg::OriginStatus::REASON_NONE);
+}
+
+void joint_state_simulator::publish_origin_status (const std::string &joint_name, uint8_t status, uint8_t reason) {
+    natto_msgs::msg::OriginStatus msg;
+    msg.joint_name = joint_name;
+    msg.status     = status;
+    msg.reason     = reason;
+    origin_status_publisher_->publish (msg);
+}
+
 void joint_state_simulator::timer_callback () {
-    const double dt = 1.0 / frequency_;
+    const double     dt               = 1.0 / frequency_;
+    constexpr double origin_tolerance = 1.0e-6;
 
     for (size_t i = 0; i < num_joints_; i++) {
+        if (origin_active_[i]) {
+            const double target_position  = initial_positions_[i];
+            const double error            = target_position - current_.position[i];
+            double       command_velocity = error / joint_position_tau_[i];
+            command_velocity              = std::clamp (command_velocity, -joint_velocity_max_[i], joint_velocity_max_[i]);
+            const double next_position    = current_.position[i] + command_velocity * dt;
+
+            if (std::abs (error) <= origin_tolerance || (target_position - current_.position[i]) * (target_position - next_position) <= 0.0) {
+                current_.position[i] = target_position;
+                current_.velocity[i] = 0.0;
+                origin_active_[i]    = false;
+                publish_origin_status (joint_names_[i], natto_msgs::msg::OriginStatus::SUCCEEDED, natto_msgs::msg::OriginStatus::REASON_NONE);
+            } else {
+                current_.velocity[i] = command_velocity;
+                current_.position[i] = next_position;
+            }
+            continue;
+        }
+
         auto it = std::find (command_.name.begin (), command_.name.end (), joint_names_[i]);
 
         if (it == command_.name.end ()) {
