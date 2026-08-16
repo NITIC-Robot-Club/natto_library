@@ -20,6 +20,7 @@
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "natto_msgs/msg/joint_control_type.hpp"
+#include "natto_msgs/msg/origin_status.hpp"
 #include "natto_msgs/msg/state_action.hpp"
 #include "natto_msgs/msg/state_result.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
@@ -28,6 +29,7 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -41,6 +43,12 @@ class default_action : public rclcpp::Node {
     struct control_type_change_t {
         std::string joint_name;
         uint8_t     control_type = 0;
+    };
+
+    struct origin_request_t {
+        std::string joint_name;
+        uint8_t     required_status = natto_msgs::msg::OriginStatus::SUCCEEDED;
+        bool        completed       = false;
     };
 
     double                        frequency_;
@@ -64,6 +72,10 @@ class default_action : public rclcpp::Node {
     uint64_t joint_state_id_;
     bool     joint_state_sent_;
 
+    uint64_t                      origin_state_id_;
+    bool                          origin_action_active_;
+    std::vector<origin_request_t> origin_requests_;
+
     void state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_set_pose (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_wait (const natto_msgs::msg::StateAction::SharedPtr msg);
@@ -72,8 +84,10 @@ class default_action : public rclcpp::Node {
     void handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_get_origin (const natto_msgs::msg::StateAction::SharedPtr msg);
     void publish_set_control_type_result (uint64_t state_id, bool success);
+    void publish_get_origin_result (bool success);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);
     void joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
+    void origin_status_callback (const natto_msgs::msg::OriginStatus::SharedPtr msg);
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateResult>::SharedPtr       state_result_publisher_;
@@ -84,6 +98,7 @@ class default_action : public rclcpp::Node {
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr    joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateAction>::SharedPtr    state_action_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr             goal_result_subscriber_;
+    rclcpp::Subscription<natto_msgs::msg::OriginStatus>::SharedPtr   origin_status_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr             allow_auto_drive_subscriber_;
     rclcpp::TimerBase::SharedPtr                                     timer_;

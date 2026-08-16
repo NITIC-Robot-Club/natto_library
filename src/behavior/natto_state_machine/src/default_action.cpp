@@ -14,30 +14,7 @@
 
 #include "natto_state_machine/default_action.hpp"
 
-#include <algorithm>
 #include <functional>
-
-namespace default_action {
-namespace detail {
-
-std::string remove_quotes (const std::string &value) {
-    if (value.size () >= 2 && value.front () == '"' && value.back () == '"') {
-        return value.substr (1, value.size () - 2);
-    }
-    return value;
-}
-
-std::optional<uint8_t> control_type_from_string (const std::string &value) {
-    if (value == "current") return natto_msgs::msg::JointControlType::CURRENT;
-    if (value == "speed") return natto_msgs::msg::JointControlType::SPEED;
-    if (value == "position") return natto_msgs::msg::JointControlType::POSITION;
-    if (value == "duty") return natto_msgs::msg::JointControlType::DUTY;
-    return std::nullopt;
-}
-
-}  // namespace detail
-
-}  // namespace default_action
 
 namespace default_action {
 
@@ -47,6 +24,7 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     goal_publisher_               = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_        = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
     origin_get_publisher_         = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
+    origin_status_subscriber_     = this->create_subscription<natto_msgs::msg::OriginStatus> ("origin_status", 10, std::bind (&default_action::origin_status_callback, this, std::placeholders::_1));
     state_action_subscriber_      = this->create_subscription<natto_msgs::msg::StateAction> ("state_action", 10, std::bind (&default_action::state_action_callback, this, std::placeholders::_1));
     goal_result_subscriber_       = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&default_action::goal_result_callback, this, std::placeholders::_1));
     current_pose_subscriber_      = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) { current_pose_ = msg->pose; });
@@ -95,9 +73,10 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %.3f", reverse_y_offset_);
 
-    set_pose_goal_sent_ = false;
-    joint_state_sent_   = false;
-    wait_started_       = false;
+    set_pose_goal_sent_   = false;
+    joint_state_sent_     = false;
+    wait_started_         = false;
+    origin_action_active_ = false;
 }
 
 void default_action::state_action_callback (const natto_msgs::msg::StateAction::SharedPtr msg) {
@@ -113,38 +92,7 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         handle_set_control_type (msg);
     } else if (msg->action_name == "get_origin") {
         handle_get_origin (msg);
-    } else {
-        RCLCPP_WARN (this->get_logger (), "Unknown action '%s'.", msg->action_name.c_str ());
     }
-}
-
-void default_action::handle_set_pose (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
-        if (msg->arguments_names[i] == "x") {
-            goal_pose_.position.x = std::stod (msg->arguments_values[i]);
-        } else if (msg->arguments_names[i] == "y") {
-            goal_pose_.position.y = std::stod (msg->arguments_values[i]);
-            if (reverse_y_) {
-                goal_pose_.position.y = -goal_pose_.position.y + reverse_y_offset_;
-            }
-        } else if (msg->arguments_names[i] == "yaw") {
-            double yaw = std::stod (msg->arguments_values[i]) * M_PI / 180.0;
-            if (reverse_y_) {
-                yaw *= -1;
-            }
-            tf2::Quaternion q;
-            q.setRPY (0.0, 0.0, yaw);
-            goal_pose_.orientation = tf2::toMsg (q);
-        }
-    }
-
-    geometry_msgs::msg::PoseStamped goal;
-    goal.header.stamp    = this->now ();
-    goal.header.frame_id = "map";
-    goal.pose            = goal_pose_;
-    goal_publisher_->publish (goal);
-    set_pose_state_id_  = msg->state_id;
-    set_pose_goal_sent_ = true;
 }
 
 void default_action::handle_wait (const natto_msgs::msg::StateAction::SharedPtr msg) {
@@ -158,197 +106,6 @@ void default_action::handle_wait (const natto_msgs::msg::StateAction::SharedPtr 
             wait_duration_sec_ = std::stod (msg->arguments_values[i]);
         }
     }
-}
-
-void default_action::handle_set_joint_position (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    joint_state_id_   = msg->state_id;
-    joint_state_sent_ = true;
-    command_joint_state_.name.clear ();
-    command_joint_state_.position.clear ();
-    command_joint_state_.velocity.clear ();
-    for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
-        size_t j;
-        for (j = 0; j < command_joint_state_.name.size (); j++) {
-            if (msg->arguments_names[i] == command_joint_state_.name[j]) {
-                command_joint_state_.position[j] = std::stod (msg->arguments_values[i]);
-            }
-        }
-        if (j == command_joint_state_.name.size ()) {
-            command_joint_state_.name.push_back (msg->arguments_names[i]);
-            command_joint_state_.position.push_back (std::stod (msg->arguments_values[i]));
-            command_joint_state_.velocity.push_back (0.0);
-        }
-    }
-}
-
-void default_action::handle_set_joint_velocity (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    joint_state_id_   = msg->state_id;
-    joint_state_sent_ = false;
-    command_joint_state_.name.clear ();
-    command_joint_state_.position.clear ();
-    command_joint_state_.velocity.clear ();
-    for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
-        size_t j;
-        for (j = 0; j < command_joint_state_.name.size (); j++) {
-            if (msg->arguments_names[i] == command_joint_state_.name[j]) {
-                command_joint_state_.velocity[j] = std::stod (msg->arguments_values[i]);
-            }
-        }
-        if (j == command_joint_state_.name.size ()) {
-            command_joint_state_.name.push_back (msg->arguments_names[i]);
-            command_joint_state_.position.push_back (0.0);
-            command_joint_state_.velocity.push_back (std::stod (msg->arguments_values[i]));
-        }
-    }
-
-    natto_msgs::msg::StateResult result;
-    result.state_id    = joint_state_id_;
-    result.success     = true;
-    result.action_name = "set_joint_velocity";
-    state_result_publisher_->publish (result);
-}
-
-void default_action::handle_get_origin (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    std::vector<std::string> joint_names;
-    for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); i++) {
-        if (msg->arguments_names[i] == "joint_name" || msg->arguments_names[i] == "joint") {
-            std::string joint_name = msg->arguments_values[i];
-            if (joint_name.size () >= 2 && ((joint_name.front () == '\'' && joint_name.back () == '\'') || (joint_name.front () == '"' && joint_name.back () == '"'))) {
-                joint_name = joint_name.substr (1, joint_name.size () - 2);
-            }
-            if (!joint_name.empty ()) {
-                joint_names.push_back (joint_name);
-            }
-        }
-    }
-
-    natto_msgs::msg::StateResult result;
-    result.state_id    = msg->state_id;
-    result.action_name = "get_origin";
-    if (joint_names.empty ()) {
-        RCLCPP_WARN (this->get_logger (), "get_origin requires a joint_name argument.");
-        result.success = false;
-    } else {
-        for (const auto &joint_name : joint_names) {
-            std_msgs::msg::String origin_get_msg;
-            origin_get_msg.data = joint_name;
-            origin_get_publisher_->publish (origin_get_msg);
-        }
-        result.success = true;
-        RCLCPP_INFO (this->get_logger (), "Requested origin for %zu joints.", joint_names.size ());
-    }
-    state_result_publisher_->publish (result);
-}
-
-void default_action::handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    if (msg->arguments_names.size () != msg->arguments_values.size () || msg->arguments_names.empty ()) {
-        RCLCPP_WARN (this->get_logger (), "Invalid set_control_type arguments: names and values must be non-empty and have the same size.");
-        publish_set_control_type_result (msg->state_id, false);
-        return;
-    }
-
-    std::vector<control_type_change_t> changes;
-    changes.reserve (msg->arguments_names.size ());
-
-    for (size_t i = 0; i < msg->arguments_names.size (); ++i) {
-        const std::string joint_name = msg->arguments_names[i];
-        const std::string value      = detail::remove_quotes (msg->arguments_values[i]);
-
-        if (joint_name.empty () || std::find_if (changes.begin (), changes.end (), [&joint_name] (const auto &change) { return change.joint_name == joint_name; }) != changes.end ()) {
-            RCLCPP_WARN (this->get_logger (), "Invalid or duplicated joint name in set_control_type: '%s'", joint_name.c_str ());
-            publish_set_control_type_result (msg->state_id, false);
-            return;
-        }
-
-        const auto control_type = detail::control_type_from_string (value);
-        if (!control_type) {
-            RCLCPP_WARN (this->get_logger (), "Unknown control type '%s' for joint '%s'", value.c_str (), joint_name.c_str ());
-            publish_set_control_type_result (msg->state_id, false);
-            return;
-        }
-
-        changes.push_back ({joint_name, *control_type});
-    }
-
-    for (const auto &change : changes) {
-        natto_msgs::msg::JointControlType control_type;
-        control_type.joint_name   = change.joint_name;
-        control_type.control_type = change.control_type;
-        joint_control_type_publisher_->publish (control_type);
-    }
-
-    publish_set_control_type_result (msg->state_id, true);
-    RCLCPP_INFO (this->get_logger (), "Published control type changes for %zu joints.", changes.size ());
-}
-
-void default_action::publish_set_control_type_result (uint64_t state_id, bool success) {
-    natto_msgs::msg::StateResult result;
-    result.state_id    = state_id;
-    result.action_name = "set_control_type";
-    result.success     = success;
-    state_result_publisher_->publish (result);
-}
-
-void default_action::goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg) {
-    if (!set_pose_goal_sent_) {
-        return;
-    }
-    bool position_reached = false;
-    bool yaw_reached      = false;
-
-    double dx       = goal_pose_.position.x - current_pose_.position.x;
-    double dy       = goal_pose_.position.y - current_pose_.position.y;
-    double distance = sqrt (dx * dx + dy * dy);
-    if (distance <= xy_tolerance_m_) {
-        position_reached = true;
-    }
-
-    double goal_yaw    = tf2::getYaw (goal_pose_.orientation);
-    double current_yaw = tf2::getYaw (current_pose_.orientation);
-    double yaw_diff    = fabs (goal_yaw - current_yaw);
-    if (yaw_diff > M_PI) {
-        yaw_diff = 2.0 * M_PI - yaw_diff;
-    }
-    if (yaw_diff <= yaw_tolerance_deg_ * M_PI / 180.0) {
-        yaw_reached = true;
-    }
-
-    natto_msgs::msg::StateResult result;
-    result.state_id    = set_pose_state_id_;
-    result.success     = msg->data && position_reached && yaw_reached;
-    result.action_name = "set_pose";
-    state_result_publisher_->publish (result);
-
-    if (result.success) {
-        set_pose_goal_sent_ = false;
-    }
-}
-
-void default_action::joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
-    if (!joint_state_sent_) {
-        return;
-    }
-    bool reached = true;
-    for (size_t i = 0; i < msg->name.size (); i++) {
-        for (size_t j = 0; j < command_joint_state_.name.size (); j++) {
-            if (msg->name[i] == command_joint_state_.name[j]) {
-                auto   it_tol = joint_tolerances_.find (msg->name[i]);
-                double tol    = 0.01;
-                if (it_tol != joint_tolerances_.end ()) {
-                    tol = it_tol->second;
-                }
-                if (fabs (msg->position[i] - command_joint_state_.position[j]) > tol) {
-                    reached = false;
-                    RCLCPP_INFO (this->get_logger (), "Joint %s not reached: current=%.4f, command=%.4f, tol=%.4f", msg->name[i].c_str (), msg->position[i], command_joint_state_.position[j], tol);
-                }
-            }
-        }
-    }
-    natto_msgs::msg::StateResult result;
-    result.state_id    = joint_state_id_;
-    result.success     = reached;
-    result.action_name = "set_joint_position";
-    state_result_publisher_->publish (result);
 }
 
 void default_action::timer_callback () {

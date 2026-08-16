@@ -5,7 +5,13 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 ament_auto_add_library(${PROJECT_NAME} SHARED
-    DIRECTORY src
+    src/control_type_action.cpp
+    src/default_action.cpp
+    src/joint_action.cpp
+    src/mermaid_loader.cpp
+    src/origin_action.cpp
+    src/pose_action.cpp
+    src/state_machine.cpp
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
