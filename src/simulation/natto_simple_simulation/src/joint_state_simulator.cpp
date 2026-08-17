@@ -214,8 +214,8 @@ void joint_state_simulator::origin_cancel_callback (const std_msgs::msg::String:
         return;
     }
 
-    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
-    origin_active_[index] = false;
+    const size_t index       = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    origin_active_[index]    = false;
     current_.velocity[index] = 0.0;
     RCLCPP_WARN (this->get_logger (), "Cancelled origin operation for joint '%s'.", msg->data.c_str ());
 }

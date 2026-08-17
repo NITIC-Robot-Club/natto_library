@@ -764,7 +764,7 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                 }
             } else if (button_function_[i][entry] == "cancel_sequence") {
                 if (button_mode_[i] == "positive_edge" && msg->buttons[i] == 1 && last_button_state_[i] == 0) {
-                    cancel_sequence_publisher_->publish (std_msgs::msg::Empty {});
+                    cancel_sequence_publisher_->publish (std_msgs::msg::Empty{});
                 }
             }
         }
