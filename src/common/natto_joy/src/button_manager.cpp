@@ -22,6 +22,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     allow_auto_drive_publisher_ = this->create_publisher<std_msgs::msg::Bool> ("allow_auto_drive", 10);
     origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 100);
     sequence_publisher_         = this->create_publisher<std_msgs::msg::String> ("run_sequence", 10);
+    cancel_sequence_publisher_  = this->create_publisher<std_msgs::msg::Empty> ("cancel_sequence", 10);
     joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 10, std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
 
     RCLCPP_INFO (this->get_logger (), "button_manager node has been initialized.");
@@ -174,7 +175,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
             auto pub_alw  = get_bool_at (publish_always_values, entry, false);
             auto pri      = get_int_at (priority_values, entry, priority_default);
 
-            if (function != "none" && function != "power" && function != "allow_auto_drive" && function != "joint_position" && function != "joint_speed" && function != "get_origin" && function != "run_sequence") {
+            if (function != "none" && function != "power" && function != "allow_auto_drive" && function != "joint_position" && function != "joint_speed" && function != "get_origin" && function != "run_sequence" && function != "cancel_sequence") {
                 RCLCPP_WARN (this->get_logger (), "button_%zu.functions[%zu]: '%s' is invalid. selected 'none'.", i, entry, function.c_str ());
                 function = "none";
             }
@@ -242,6 +243,11 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
                     throw std::runtime_error ("invalid parameter");
                 }
                 RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence: %s", i, sequence_name_[i].c_str ());
+            } else if (function == "cancel_sequence") {
+                if (button_mode_[i] != "positive_edge") {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.cancel_sequence requires mode 'positive_edge'.", i);
+                }
+                RCLCPP_INFO (this->get_logger (), "button_%zu.cancel_sequence", i);
             }
         }
     }
@@ -755,6 +761,10 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     std_msgs::msg::String sequence_msg;
                     sequence_msg.data = sequence_name_[i];
                     sequence_publisher_->publish (sequence_msg);
+                }
+            } else if (button_function_[i][entry] == "cancel_sequence") {
+                if (button_mode_[i] == "positive_edge" && msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                    cancel_sequence_publisher_->publish (std_msgs::msg::Empty {});
                 }
             }
         }

@@ -23,6 +23,7 @@ joint_state_simulator::joint_state_simulator (const rclcpp::NodeOptions &node_op
     command_joint_state_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS (), std::bind (&joint_state_simulator::command_joint_state_callback, this, std::placeholders::_1));
     joint_control_type_subscriber_  = this->create_subscription<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10, std::bind (&joint_state_simulator::joint_control_type_callback, this, std::placeholders::_1));
     origin_get_subscriber_          = this->create_subscription<std_msgs::msg::String> ("/get_origin_joint_name", 10, std::bind (&joint_state_simulator::origin_get_callback, this, std::placeholders::_1));
+    origin_cancel_subscriber_       = this->create_subscription<std_msgs::msg::String> ("/cancel_origin_joint_name", 10, std::bind (&joint_state_simulator::origin_cancel_callback, this, std::placeholders::_1));
     tf_broadcaster_                 = std::make_shared<tf2_ros::TransformBroadcaster> (this);
 
     chassis_type_        = this->declare_parameter<std::string> ("chassis_type", "");
@@ -204,6 +205,19 @@ void joint_state_simulator::origin_get_callback (const std_msgs::msg::String::Sh
     const size_t index    = static_cast<size_t> (std::distance (joint_names_.begin (), it));
     origin_active_[index] = true;
     publish_origin_status (msg->data, natto_msgs::msg::OriginStatus::STARTED, natto_msgs::msg::OriginStatus::REASON_NONE);
+}
+
+void joint_state_simulator::origin_cancel_callback (const std_msgs::msg::String::SharedPtr msg) {
+    const auto it = std::find (joint_names_.begin (), joint_names_.end (), msg->data);
+    if (it == joint_names_.end ()) {
+        RCLCPP_WARN (this->get_logger (), "Unsupported origin cancel for unknown joint '%s'.", msg->data.c_str ());
+        return;
+    }
+
+    const size_t index = static_cast<size_t> (std::distance (joint_names_.begin (), it));
+    origin_active_[index] = false;
+    current_.velocity[index] = 0.0;
+    RCLCPP_WARN (this->get_logger (), "Cancelled origin operation for joint '%s'.", msg->data.c_str ());
 }
 
 void joint_state_simulator::publish_origin_status (const std::string &joint_name, uint8_t status, uint8_t reason) {

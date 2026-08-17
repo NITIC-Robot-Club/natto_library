@@ -24,12 +24,14 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     goal_publisher_               = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_        = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
     origin_get_publisher_         = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
+    origin_cancel_publisher_      = this->create_publisher<std_msgs::msg::String> ("cancel_origin_joint_name", 10);
     origin_status_subscriber_     = this->create_subscription<natto_msgs::msg::OriginStatus> ("origin_status", 10, std::bind (&default_action::origin_status_callback, this, std::placeholders::_1));
     state_action_subscriber_      = this->create_subscription<natto_msgs::msg::StateAction> ("state_action", 10, std::bind (&default_action::state_action_callback, this, std::placeholders::_1));
     goal_result_subscriber_       = this->create_subscription<std_msgs::msg::Bool> ("goal_reached", 10, std::bind (&default_action::goal_result_callback, this, std::placeholders::_1));
     current_pose_subscriber_      = this->create_subscription<geometry_msgs::msg::PoseStamped> ("current_pose", 10, [this] (const geometry_msgs::msg::PoseStamped::SharedPtr msg) { current_pose_ = msg->pose; });
     joint_state_subscriber_       = this->create_subscription<sensor_msgs::msg::JointState> ("joint_states", rclcpp::SensorDataQoS (), std::bind (&default_action::joint_state_callback, this, std::placeholders::_1));
     allow_auto_drive_subscriber_  = this->create_subscription<std_msgs::msg::Bool> ("allow_auto_drive", 10, [this] (const std_msgs::msg::Bool::SharedPtr msg) { allow_auto_drive_ = msg->data; });
+    cancel_sequence_subscriber_   = this->create_subscription<std_msgs::msg::Empty> ("cancel_sequence", 10, std::bind (&default_action::cancel_sequence_callback, this, std::placeholders::_1));
 
     xy_tolerance_m_    = this->declare_parameter<double> ("xy_tolerance_m", 0.2);
     yaw_tolerance_deg_ = this->declare_parameter<double> ("yaw_tolerance_deg", 10.0);
@@ -93,6 +95,27 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
     } else if (msg->action_name == "get_origin") {
         handle_get_origin (msg);
     }
+}
+
+void default_action::cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr) {
+    if (origin_action_active_) {
+        for (const auto &request : origin_requests_) {
+            std_msgs::msg::String cancel_msg;
+            cancel_msg.data = request.joint_name;
+            origin_cancel_publisher_->publish (cancel_msg);
+        }
+        origin_action_active_ = false;
+        origin_requests_.clear ();
+    }
+
+    set_pose_goal_sent_ = false;
+    wait_started_       = false;
+    joint_state_sent_   = false;
+    command_joint_state_.name.clear ();
+    command_joint_state_.position.clear ();
+    command_joint_state_.velocity.clear ();
+    command_joint_state_.effort.clear ();
+    RCLCPP_WARN (this->get_logger (), "Cancelled active default actions.");
 }
 
 void default_action::handle_wait (const natto_msgs::msg::StateAction::SharedPtr msg) {

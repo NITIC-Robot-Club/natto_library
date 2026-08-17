@@ -72,6 +72,7 @@ class joint_state_simulator : public rclcpp::Node {
     void command_joint_state_callback (const sensor_msgs::msg::JointState::SharedPtr msg);
     void joint_control_type_callback (const natto_msgs::msg::JointControlType::SharedPtr msg);
     void origin_get_callback (const std_msgs::msg::String::SharedPtr msg);
+    void origin_cancel_callback (const std_msgs::msg::String::SharedPtr msg);
     void publish_origin_status (const std::string &joint_name, uint8_t status, uint8_t reason);
 
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
@@ -83,6 +84,7 @@ class joint_state_simulator : public rclcpp::Node {
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr      command_joint_state_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::JointControlType>::SharedPtr joint_control_type_subscriber_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr             origin_get_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr             origin_cancel_subscriber_;
     rclcpp::TimerBase::SharedPtr                                       timer_;
     std::shared_ptr<tf2_ros::TransformBroadcaster>                     tf_broadcaster_;
 };
