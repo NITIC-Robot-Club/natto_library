@@ -22,6 +22,7 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
     state_graph_subscriber_     = this->create_subscription<natto_msgs::msg::StateGraph> ("state_graph", rclcpp::QoS (1).transient_local ().reliable (), std::bind (&state_machine::state_graph_callback, this, std::placeholders::_1));
     state_result_subscriber_    = this->create_subscription<natto_msgs::msg::StateResult> ("state_result", 10, std::bind (&state_machine::state_result_callback, this, std::placeholders::_1));
     run_sequence_subscriber_    = this->create_subscription<std_msgs::msg::String> ("run_sequence", 10, std::bind (&state_machine::run_sequence_callback, this, std::placeholders::_1));
+    cancel_sequence_subscriber_ = this->create_subscription<std_msgs::msg::Empty> ("cancel_sequence", 10, std::bind (&state_machine::cancel_sequence_callback, this, std::placeholders::_1));
     force_set_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt64> ("force_set_state", 10, std::bind (&state_machine::force_set_state_callback, this, std::placeholders::_1));
 
     double frequency   = this->declare_parameter<double> ("frequency", 10.0);
@@ -111,6 +112,25 @@ void state_machine::force_set_state_callback (const std_msgs::msg::UInt64::Share
 
     current_state_ids_.clear ();
     current_state_ids_.push_back (msg->data);
+}
+
+void state_machine::cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr) {
+    if (!sequence_running_ && !has_running_state ()) {
+        return;
+    }
+
+    RCLCPP_WARN (this->get_logger (), "Cancelling sequence '%s'.", active_sequence_name_.c_str ());
+
+    sequence_running_ = false;
+    active_sequence_name_.clear ();
+    current_state_results_.assign (current_state_results_.size (), false);
+    action_timeout_counts_.assign (action_timeout_counts_.size (), 0);
+    current_state_ids_.clear ();
+
+    const auto entry_it = std::find_if (state_graph_.states.begin (), state_graph_.states.end (), [] (const auto &state) { return state.state_name == "/_entry"; });
+    if (entry_it != state_graph_.states.end ()) {
+        current_state_ids_.push_back (entry_it->state_id);
+    }
 }
 
 void state_machine::run_sequence_callback (const std_msgs::msg::String::SharedPtr msg) {

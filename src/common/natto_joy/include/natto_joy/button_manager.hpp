@@ -20,6 +20,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
 
 #include <algorithm>
@@ -67,6 +68,7 @@ class button_manager : public rclcpp::Node {
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        origin_get_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        sequence_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr         cancel_sequence_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr     joy_subscriber_;
 };
 }  // namespace button_manager

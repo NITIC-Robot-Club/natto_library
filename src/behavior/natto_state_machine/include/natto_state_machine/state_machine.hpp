@@ -21,6 +21,7 @@
 #include "natto_msgs/msg/state_action.hpp"
 #include "natto_msgs/msg/state_graph.hpp"
 #include "natto_msgs/msg/state_result.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int64.hpp"
 
@@ -56,6 +57,7 @@ class state_machine : public rclcpp::Node {
     void state_graph_callback (const natto_msgs::msg::StateGraph::SharedPtr msg);
     void state_result_callback (const natto_msgs::msg::StateResult::SharedPtr msg);
     void force_set_state_callback (const std_msgs::msg::UInt64::SharedPtr msg);
+    void cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr msg);
     void run_sequence_callback (const std_msgs::msg::String::SharedPtr msg);
 
     void timer_callback ();
@@ -64,6 +66,7 @@ class state_machine : public rclcpp::Node {
     rclcpp::Subscription<natto_msgs::msg::StateGraph>::SharedPtr  state_graph_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateResult>::SharedPtr state_result_subscriber_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr        run_sequence_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr         cancel_sequence_subscriber_;
     rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr        force_set_state_subscriber_;
     rclcpp::TimerBase::SharedPtr                                  timer_;
 };
