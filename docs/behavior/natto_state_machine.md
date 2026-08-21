@@ -65,6 +65,21 @@ Mermaid形式の状態遷移図に基づいて状態遷移を管理
 | -                   | -     | -          | -                           |
 | frequency        | double    | 10.0         | タイマーの周波数（Hz）            |
 | state_timeout_sec | double   | 1.0          | アクションのタイムアウト時間       |
+| retry_action_on_timeout | bool | false | タイムアウト時にアクションを再発行するか |
+
+`retry_action_on_timeout` は起動時に設定するパラメータです。デフォルトは `false` で、タイムアウト時はアクションを再発行せず WARN ログを出します。
+
+再発行を有効にする場合：
+
+```bash
+ros2 launch natto_launch natto.launch.xml retry_action_on_timeout:=true
+```
+
+再発行を無効にする場合：
+
+```bash
+ros2 launch natto_launch natto.launch.xml retry_action_on_timeout:=false
+```
 
 ## サブスクライバー
 | トピック名     | メッセージ型                      | 説明                     |

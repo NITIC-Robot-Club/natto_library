@@ -19,6 +19,7 @@ namespace state_machine {
 
 state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("state_machine", node_options) {
     state_action_publisher_     = this->create_publisher<natto_msgs::msg::StateAction> ("state_action", 10);
+    cancel_sequence_publisher_  = this->create_publisher<std_msgs::msg::Empty> ("cancel_sequence", 10);
     state_graph_subscriber_     = this->create_subscription<natto_msgs::msg::StateGraph> ("state_graph", rclcpp::QoS (1).transient_local ().reliable (), std::bind (&state_machine::state_graph_callback, this, std::placeholders::_1));
     state_result_subscriber_    = this->create_subscription<natto_msgs::msg::StateResult> ("state_result", 10, std::bind (&state_machine::state_result_callback, this, std::placeholders::_1));
     run_sequence_subscriber_    = this->create_subscription<std_msgs::msg::String> ("run_sequence", 10, std::bind (&state_machine::run_sequence_callback, this, std::placeholders::_1));
@@ -27,12 +28,28 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
 
     double frequency   = this->declare_parameter<double> ("frequency", 10.0);
     double timeout_sec = this->declare_parameter<double> ("state_timeout_sec", 1.0);
+    retry_action_on_timeout_ = this->declare_parameter<bool> ("retry_action_on_timeout", false);
+    const auto sequence_timeout_names = this->declare_parameter<std::vector<std::string>> ("sequence_timeout_names", std::vector<std::string>{});
+    const auto sequence_timeout_secs  = this->declare_parameter<std::vector<double>> ("sequence_timeout_secs", std::vector<double>{});
+    if (sequence_timeout_names.size () != sequence_timeout_secs.size ()) {
+        RCLCPP_WARN (this->get_logger (), "sequence_timeout_names and sequence_timeout_secs must have the same size. Sequence timeouts are disabled for mismatched entries.");
+    }
+    const auto timeout_size = std::min (sequence_timeout_names.size (), sequence_timeout_secs.size ());
+    for (size_t i = 0; i < timeout_size; ++i) {
+        if (sequence_timeout_secs[i] <= 0.0) {
+            RCLCPP_WARN (this->get_logger (), "Ignoring non-positive timeout %.3f for sequence '%s'.", sequence_timeout_secs[i], sequence_timeout_names[i].c_str ());
+            continue;
+        }
+        sequence_timeout_sec_[sequence_timeout_names[i]] = sequence_timeout_secs[i];
+        RCLCPP_INFO (this->get_logger (), "sequence timeout: %s = %.3f sec", sequence_timeout_names[i].c_str (), sequence_timeout_secs[i]);
+    }
     timeout_count_     = static_cast<uint64_t> (frequency * timeout_sec);
     timer_             = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&state_machine::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "state_machine node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
     RCLCPP_INFO (this->get_logger (), "state_timeout_sec: %.2f sec -> %lu counts", timeout_sec, timeout_count_);
+    RCLCPP_INFO (this->get_logger (), "retry_action_on_timeout: %s", retry_action_on_timeout_ ? "true" : "false");
 }
 
 uint64_t state_machine::get_state_id_by_name (const std::string &state_name) {
@@ -76,6 +93,8 @@ void state_machine::state_graph_callback (const natto_msgs::msg::StateGraph::Sha
 
     const auto required_size = state_graph_.states.empty () ? 0 : static_cast<size_t> (max_state_id + 1);
     current_state_results_.assign (required_size, false);
+    action_started_.assign (required_size, false);
+    action_timeout_warned_.assign (required_size, false);
     action_timeout_counts_.assign (required_size, 0);
 
     current_state_ids_.erase (std::remove_if (current_state_ids_.begin (), current_state_ids_.end (), [required_size] (uint64_t id) { return id >= required_size; }), current_state_ids_.end ());
@@ -119,11 +138,21 @@ void state_machine::cancel_sequence_callback (const std_msgs::msg::Empty::Shared
         return;
     }
 
-    RCLCPP_WARN (this->get_logger (), "Cancelling sequence '%s'.", active_sequence_name_.c_str ());
+    cancel_active_sequence ("manual", false);
+}
+
+void state_machine::cancel_active_sequence (const std::string &reason, bool publish_cancel) {
+    RCLCPP_WARN (this->get_logger (), "Cancelling sequence '%s' (%s).", active_sequence_name_.c_str (), reason.c_str ());
+
+    if (publish_cancel) {
+        cancel_sequence_publisher_->publish (std_msgs::msg::Empty {});
+    }
 
     sequence_running_ = false;
     active_sequence_name_.clear ();
     current_state_results_.assign (current_state_results_.size (), false);
+    action_started_.assign (action_started_.size (), false);
+    action_timeout_warned_.assign (action_timeout_warned_.size (), false);
     action_timeout_counts_.assign (action_timeout_counts_.size (), 0);
     current_state_ids_.clear ();
 
@@ -158,8 +187,11 @@ void state_machine::run_sequence_callback (const std_msgs::msg::String::SharedPt
     current_state_ids_.clear ();
     current_state_ids_.push_back (entry_id);
     current_state_results_[entry_id] = false;
+    action_started_[entry_id]         = false;
+    action_timeout_warned_[entry_id]  = false;
     action_timeout_counts_[entry_id] = 0;
     active_sequence_name_            = msg->data;
+    sequence_started_at_             = this->now ();
     sequence_running_                = true;
 
     RCLCPP_INFO (this->get_logger (), "Starting sequence '%s'.", active_sequence_name_.c_str ());
@@ -176,6 +208,14 @@ void state_machine::timer_callback () {
             current_state_ids_.push_back (entry_it->state_id);
         } else {
             RCLCPP_ERROR_THROTTLE (this->get_logger (), *this->get_clock (), 5000, "Entry state '/_entry' not found in state graph");
+            return;
+        }
+    }
+
+    if (sequence_running_) {
+        const auto timeout_it = sequence_timeout_sec_.find (active_sequence_name_);
+        if (timeout_it != sequence_timeout_sec_.end () && (this->now () - sequence_started_at_).seconds () >= timeout_it->second) {
+            cancel_active_sequence ("timeout", true);
             return;
         }
     }
@@ -211,38 +251,50 @@ void state_machine::timer_callback () {
             if (transition.from_state_id != state_id || transition.condition.empty ()) continue;
 
             if (action_timeout_counts_[state_id] == 0) {
-                natto_msgs::msg::StateAction action;
-                action.state_id = state_id;
+                if (action_started_[state_id] && !retry_action_on_timeout_) {
+                    if (!action_timeout_warned_[state_id]) {
+                        RCLCPP_WARN (
+                            this->get_logger (),
+                            "Action for state ID %lu timed out. "
+                            "Retry is disabled; action will not be republished.",
+                            state_id);
+                        action_timeout_warned_[state_id] = true;
+                    }
+                } else {
+                    natto_msgs::msg::StateAction action;
+                    action.state_id = state_id;
 
-                std::regex  action_regex (R"(^\s*([a-zA-Z0-9_]+)\((.*)\)\s*$)");
-                std::smatch match;
-                if (std::regex_match (transition.condition, match, action_regex)) {
-                    action.action_name   = match[1];
-                    std::string args_str = match[2];
+                    std::regex  action_regex (R"(^\s*([a-zA-Z0-9_]+)\((.*)\)\s*$)");
+                    std::smatch match;
+                    if (std::regex_match (transition.condition, match, action_regex)) {
+                        action.action_name   = match[1];
+                        std::string args_str = match[2];
 
-                    std::regex        arg_regex (R"(\s*([^=]+)\s*=\s*(.+)\s*)");
-                    std::stringstream ss (args_str);
-                    std::string       token;
-                    while (std::getline (ss, token, ',')) {
-                        std::smatch arg_match;
-                        if (std::regex_match (token, arg_match, arg_regex)) {
-                            std::string name  = arg_match[1];
-                            std::string value = arg_match[2];
-                            name.erase (0, name.find_first_not_of (" \t"));
-                            name.erase (name.find_last_not_of (" \t") + 1);
-                            if (!value.empty () && value[0] != '\'' && value[0] != '"') {
-                                value.erase (remove_if (value.begin (), value.end (), ::isspace), value.end ());
+                        std::regex        arg_regex (R"(\s*([^=]+)\s*=\s*(.+)\s*)");
+                        std::stringstream ss (args_str);
+                        std::string       token;
+                        while (std::getline (ss, token, ',')) {
+                            std::smatch arg_match;
+                            if (std::regex_match (token, arg_match, arg_regex)) {
+                                std::string name  = arg_match[1];
+                                std::string value = arg_match[2];
+                                name.erase (0, name.find_first_not_of (" \t"));
+                                name.erase (name.find_last_not_of (" \t") + 1);
+                                if (!value.empty () && value[0] != '\'' && value[0] != '"') {
+                                    value.erase (remove_if (value.begin (), value.end (), ::isspace), value.end ());
+                                }
+                                action.arguments_names.push_back (name);
+                                action.arguments_values.push_back (value);
                             }
-                            action.arguments_names.push_back (name);
-                            action.arguments_values.push_back (value);
                         }
                     }
+
+                    state_action_publisher_->publish (action);
+                    action_started_[state_id] = true;
+                    action_timeout_counts_[state_id] = timeout_count_;
+
+                    RCLCPP_INFO (this->get_logger (), "Publishing action '%s' for state ID %lu", action.action_name.c_str (), state_id);
                 }
-
-                state_action_publisher_->publish (action);
-                action_timeout_counts_[state_id] = timeout_count_;
-
-                RCLCPP_INFO (this->get_logger (), "Publishing action '%s' for state ID %lu", action.action_name.c_str (), state_id);
             }
         }
 
@@ -269,6 +321,8 @@ void state_machine::timer_callback () {
 
                     if (transition.to_state_id < current_state_results_.size () && transition.to_state_id < action_timeout_counts_.size ()) {
                         current_state_results_[transition.to_state_id] = false;
+                        action_started_[transition.to_state_id] = false;
+                        action_timeout_warned_[transition.to_state_id] = false;
                         action_timeout_counts_[transition.to_state_id] = 0;
                     } else {
                         RCLCPP_ERROR_THROTTLE (this->get_logger (), *this->get_clock (), 5000, "Transition target state id %lu out of bounds", transition.to_state_id);

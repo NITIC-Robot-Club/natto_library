@@ -9,6 +9,7 @@
     <arg name="initial_allow_auto_drive" default="false"/>
     <arg name="enable_heading_control" default="false"/>
     <arg name="state_timeout_sec" default="3.0"/>
+    <arg name="retry_action_on_timeout" default="false"/>
     <arg name="fps" default="30.0"/>
     <arg name="use_dark_rviz" default="true"/>
     <arg name="controller_max_xy_speed_m_s" default="2.0"/>

@@ -41,14 +41,19 @@ class state_machine : public rclcpp::Node {
     natto_msgs::msg::StateGraph state_graph_;
 
     std::vector<bool>                         current_state_results_;
+    std::vector<bool>                         action_started_;
+    std::vector<bool>                         action_timeout_warned_;
     std::vector<uint64_t>                     action_timeout_counts_;
     std::vector<uint64_t>                     current_state_ids_;
     std::vector<std::string>                  scope_stack_;
     std::unordered_map<std::string, uint64_t> state_name_to_id_;
+    std::unordered_map<std::string, double>   sequence_timeout_sec_;
     std::string                               active_sequence_name_;
     bool                                      sequence_running_ = false;
+    rclcpp::Time                              sequence_started_at_;
 
     uint64_t timeout_count_;
+    bool     retry_action_on_timeout_ = true;
     uint64_t next_state_id_ = 1;
 
     uint64_t get_state_id_by_name (const std::string &state_name);
@@ -59,10 +64,12 @@ class state_machine : public rclcpp::Node {
     void force_set_state_callback (const std_msgs::msg::UInt64::SharedPtr msg);
     void cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr msg);
     void run_sequence_callback (const std_msgs::msg::String::SharedPtr msg);
+    void cancel_active_sequence (const std::string &reason, bool publish_cancel);
 
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateAction>::SharedPtr    state_action_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr             cancel_sequence_publisher_;
     rclcpp::Subscription<natto_msgs::msg::StateGraph>::SharedPtr  state_graph_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateResult>::SharedPtr state_result_subscriber_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr        run_sequence_subscriber_;
