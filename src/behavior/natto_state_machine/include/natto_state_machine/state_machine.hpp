@@ -54,7 +54,7 @@ class state_machine : public rclcpp::Node {
 
     uint64_t timeout_count_;
     bool     retry_action_on_timeout_ = true;
-    uint64_t next_state_id_ = 1;
+    uint64_t next_state_id_           = 1;
 
     uint64_t get_state_id_by_name (const std::string &state_name);
     bool     has_running_state () const;
@@ -69,7 +69,7 @@ class state_machine : public rclcpp::Node {
     void timer_callback ();
 
     rclcpp::Publisher<natto_msgs::msg::StateAction>::SharedPtr    state_action_publisher_;
-    rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr             cancel_sequence_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr            cancel_sequence_publisher_;
     rclcpp::Subscription<natto_msgs::msg::StateGraph>::SharedPtr  state_graph_subscriber_;
     rclcpp::Subscription<natto_msgs::msg::StateResult>::SharedPtr state_result_subscriber_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr        run_sequence_subscriber_;

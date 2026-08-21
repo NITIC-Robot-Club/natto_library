@@ -26,9 +26,9 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
     cancel_sequence_subscriber_ = this->create_subscription<std_msgs::msg::Empty> ("cancel_sequence", 10, std::bind (&state_machine::cancel_sequence_callback, this, std::placeholders::_1));
     force_set_state_subscriber_ = this->create_subscription<std_msgs::msg::UInt64> ("force_set_state", 10, std::bind (&state_machine::force_set_state_callback, this, std::placeholders::_1));
 
-    double frequency   = this->declare_parameter<double> ("frequency", 10.0);
-    double timeout_sec = this->declare_parameter<double> ("state_timeout_sec", 1.0);
-    retry_action_on_timeout_ = this->declare_parameter<bool> ("retry_action_on_timeout", false);
+    double frequency                  = this->declare_parameter<double> ("frequency", 10.0);
+    double timeout_sec                = this->declare_parameter<double> ("state_timeout_sec", 1.0);
+    retry_action_on_timeout_          = this->declare_parameter<bool> ("retry_action_on_timeout", false);
     const auto sequence_timeout_names = this->declare_parameter<std::vector<std::string>> ("sequence_timeout_names", std::vector<std::string>{});
     const auto sequence_timeout_secs  = this->declare_parameter<std::vector<double>> ("sequence_timeout_secs", std::vector<double>{});
     if (sequence_timeout_names.size () != sequence_timeout_secs.size ()) {
@@ -43,8 +43,8 @@ state_machine::state_machine (const rclcpp::NodeOptions &node_options) : Node ("
         sequence_timeout_sec_[sequence_timeout_names[i]] = sequence_timeout_secs[i];
         RCLCPP_INFO (this->get_logger (), "sequence timeout: %s = %.3f sec", sequence_timeout_names[i].c_str (), sequence_timeout_secs[i]);
     }
-    timeout_count_     = static_cast<uint64_t> (frequency * timeout_sec);
-    timer_             = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&state_machine::timer_callback, this));
+    timeout_count_ = static_cast<uint64_t> (frequency * timeout_sec);
+    timer_         = this->create_wall_timer (std::chrono::duration (std::chrono::duration<double> (1.0 / frequency)), std::bind (&state_machine::timer_callback, this));
 
     RCLCPP_INFO (this->get_logger (), "state_machine node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "frequency: %.2f Hz", frequency);
@@ -145,7 +145,7 @@ void state_machine::cancel_active_sequence (const std::string &reason, bool publ
     RCLCPP_WARN (this->get_logger (), "Cancelling sequence '%s' (%s).", active_sequence_name_.c_str (), reason.c_str ());
 
     if (publish_cancel) {
-        cancel_sequence_publisher_->publish (std_msgs::msg::Empty {});
+        cancel_sequence_publisher_->publish (std_msgs::msg::Empty{});
     }
 
     sequence_running_ = false;
@@ -187,8 +187,8 @@ void state_machine::run_sequence_callback (const std_msgs::msg::String::SharedPt
     current_state_ids_.clear ();
     current_state_ids_.push_back (entry_id);
     current_state_results_[entry_id] = false;
-    action_started_[entry_id]         = false;
-    action_timeout_warned_[entry_id]  = false;
+    action_started_[entry_id]        = false;
+    action_timeout_warned_[entry_id] = false;
     action_timeout_counts_[entry_id] = 0;
     active_sequence_name_            = msg->data;
     sequence_started_at_             = this->now ();
@@ -290,7 +290,7 @@ void state_machine::timer_callback () {
                     }
 
                     state_action_publisher_->publish (action);
-                    action_started_[state_id] = true;
+                    action_started_[state_id]        = true;
                     action_timeout_counts_[state_id] = timeout_count_;
 
                     RCLCPP_INFO (this->get_logger (), "Publishing action '%s' for state ID %lu", action.action_name.c_str (), state_id);
@@ -321,7 +321,7 @@ void state_machine::timer_callback () {
 
                     if (transition.to_state_id < current_state_results_.size () && transition.to_state_id < action_timeout_counts_.size ()) {
                         current_state_results_[transition.to_state_id] = false;
-                        action_started_[transition.to_state_id] = false;
+                        action_started_[transition.to_state_id]        = false;
                         action_timeout_warned_[transition.to_state_id] = false;
                         action_timeout_counts_[transition.to_state_id] = 0;
                     } else {
