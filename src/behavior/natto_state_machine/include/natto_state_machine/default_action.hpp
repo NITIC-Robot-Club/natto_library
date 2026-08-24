@@ -85,6 +85,7 @@ class default_action : public rclcpp::Node {
     void handle_set_joint_velocity (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_get_origin (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_poweroff (const natto_msgs::msg::StateAction::SharedPtr msg);
     void publish_set_control_type_result (uint64_t state_id, bool success);
     void publish_get_origin_result (bool success);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);
@@ -96,6 +97,7 @@ class default_action : public rclcpp::Node {
     rclcpp::Publisher<natto_msgs::msg::JointControlType>::SharedPtr  joint_control_type_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr    goal_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr       joint_state_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                power_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr              origin_get_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr              origin_cancel_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr    joint_state_subscriber_;

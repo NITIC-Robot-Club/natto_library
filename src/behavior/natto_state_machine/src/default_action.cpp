@@ -23,6 +23,7 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     joint_control_type_publisher_ = this->create_publisher<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10);
     goal_publisher_               = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_        = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
+    power_publisher_              = this->create_publisher<std_msgs::msg::Bool> ("power", 10);
     origin_get_publisher_         = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
     origin_cancel_publisher_      = this->create_publisher<std_msgs::msg::String> ("cancel_origin_joint_name", 10);
     origin_status_subscriber_     = this->create_subscription<natto_msgs::msg::OriginStatus> ("origin_status", 10, std::bind (&default_action::origin_status_callback, this, std::placeholders::_1));
@@ -94,7 +95,21 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         handle_set_control_type (msg);
     } else if (msg->action_name == "get_origin") {
         handle_get_origin (msg);
+    } else if (msg->action_name == "poweroff") {
+        handle_poweroff (msg);
     }
+}
+
+void default_action::handle_poweroff (const natto_msgs::msg::StateAction::SharedPtr msg) {
+    std_msgs::msg::Bool power_msg;
+    power_msg.data = false;
+    power_publisher_->publish (power_msg);
+
+    natto_msgs::msg::StateResult result;
+    result.state_id    = msg->state_id;
+    result.success     = true;
+    result.action_name = "poweroff";
+    state_result_publisher_->publish (result);
 }
 
 void default_action::cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr) {
