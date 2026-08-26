@@ -62,6 +62,7 @@ class button_manager : public rclcpp::Node {
     sensor_msgs::msg::JointState command_joint_state_msg_, command_joint_state_always_msg_;
 
     void joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg);
+    void power_callback (const std_msgs::msg::Bool::SharedPtr msg);
 
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr          power_publisher_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr          allow_auto_drive_publisher_;
@@ -70,6 +71,7 @@ class button_manager : public rclcpp::Node {
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr        sequence_publisher_;
     rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr         cancel_sequence_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr     joy_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr       power_subscriber_;
 };
 }  // namespace button_manager
 
