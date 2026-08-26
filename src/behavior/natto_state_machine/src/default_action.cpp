@@ -100,18 +100,6 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
     }
 }
 
-void default_action::handle_poweroff (const natto_msgs::msg::StateAction::SharedPtr msg) {
-    std_msgs::msg::Bool power_msg;
-    power_msg.data = false;
-    power_publisher_->publish (power_msg);
-
-    natto_msgs::msg::StateResult result;
-    result.state_id    = msg->state_id;
-    result.success     = true;
-    result.action_name = "poweroff";
-    state_result_publisher_->publish (result);
-}
-
 void default_action::cancel_sequence_callback (const std_msgs::msg::Empty::SharedPtr) {
     if (origin_action_active_) {
         for (const auto &request : origin_requests_) {
