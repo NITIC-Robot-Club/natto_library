@@ -85,7 +85,7 @@ class default_action : public rclcpp::Node {
     void handle_set_joint_velocity (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_set_control_type (const natto_msgs::msg::StateAction::SharedPtr msg);
     void handle_get_origin (const natto_msgs::msg::StateAction::SharedPtr msg);
-    void handle_poweroff (const natto_msgs::msg::StateAction::SharedPtr msg);
+    void handle_power (const natto_msgs::msg::StateAction::SharedPtr msg);
     void publish_set_control_type_result (uint64_t state_id, bool success);
     void publish_get_origin_result (bool success);
     void goal_result_callback (const std_msgs::msg::Bool::SharedPtr msg);

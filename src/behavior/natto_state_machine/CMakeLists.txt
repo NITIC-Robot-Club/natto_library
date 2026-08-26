@@ -7,7 +7,7 @@ ament_auto_find_build_dependencies()
 ament_auto_add_library(${PROJECT_NAME} SHARED
     src/control_type_action.cpp
     src/default_action.cpp
-    src/handle_poweroff.cpp
+    src/handle_power.cpp
     src/joint_action.cpp
     src/mermaid_loader.cpp
     src/origin_action.cpp

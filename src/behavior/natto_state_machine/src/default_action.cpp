@@ -95,8 +95,8 @@ void default_action::state_action_callback (const natto_msgs::msg::StateAction::
         handle_set_control_type (msg);
     } else if (msg->action_name == "get_origin") {
         handle_get_origin (msg);
-    } else if (msg->action_name == "poweroff") {
-        handle_poweroff (msg);
+    } else if (msg->action_name == "set_power" || msg->action_name == "poweroff") {
+        handle_power (msg);
     }
 }
 
