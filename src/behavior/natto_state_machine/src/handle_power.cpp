@@ -18,19 +18,19 @@ namespace default_action {
 
 void default_action::handle_power (const natto_msgs::msg::StateAction::SharedPtr msg) {
     std_msgs::msg::Bool power_msg;
-    bool power            = false;
-    bool power_specified = false;
+    bool                power           = false;
+    bool                power_specified = false;
 
     for (size_t i = 0; i < msg->arguments_names.size () && i < msg->arguments_values.size (); ++i) {
         if (msg->arguments_names[i] != "power") {
             continue;
         }
         if (msg->arguments_values[i] == "true" || msg->arguments_values[i] == "1") {
-            power            = true;
-            power_specified  = true;
+            power           = true;
+            power_specified = true;
         } else if (msg->arguments_values[i] == "false" || msg->arguments_values[i] == "0") {
-            power            = false;
-            power_specified  = true;
+            power           = false;
+            power_specified = true;
         }
     }
 
