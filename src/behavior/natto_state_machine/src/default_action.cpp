@@ -23,7 +23,7 @@ default_action::default_action (const rclcpp::NodeOptions &node_options) : Node 
     joint_control_type_publisher_ = this->create_publisher<natto_msgs::msg::JointControlType> ("/set_joint_control_type", 10);
     goal_publisher_               = this->create_publisher<geometry_msgs::msg::PoseStamped> ("goal_pose", 10);
     joint_state_publisher_        = this->create_publisher<sensor_msgs::msg::JointState> ("command_joint_states", rclcpp::SensorDataQoS ());
-    set_power_publisher_              = this->create_publisher<std_msgs::msg::Bool> ("set_power", 10);
+    set_power_publisher_          = this->create_publisher<std_msgs::msg::Bool> ("set_power", 10);
     origin_get_publisher_         = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 10);
     origin_cancel_publisher_      = this->create_publisher<std_msgs::msg::String> ("cancel_origin_joint_name", 10);
     origin_status_subscriber_     = this->create_subscription<natto_msgs::msg::OriginStatus> ("origin_status", 10, std::bind (&default_action::origin_status_callback, this, std::placeholders::_1));
