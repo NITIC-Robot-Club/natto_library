@@ -31,6 +31,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     RCLCPP_INFO (this->get_logger (), "num_button: %zu", num_button_);
 
     last_button_state_.resize (num_button_, 0);
+    sequence_toggle_state_.resize (num_button_, false);
     button_joint_state_index_.resize (num_button_);
     button_joint_enabled_.resize (num_button_);
 
@@ -95,6 +96,8 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
         std::string button_function_legacy = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".function", "none");
         auto        button_functions       = this->declare_parameter<std::vector<std::string>> ("button_" + std::to_string (i) + ".functions", std::vector<std::string>{});
         sequence_name_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".sequence_name", ""));
+        sequence_name_on_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".sequence_name_on", ""));
+        sequence_name_off_.push_back (this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".sequence_name_off", ""));
         RCLCPP_INFO (this->get_logger (), "button_%zu.mode: %s", i, button_mode_[i].c_str ());
 
         std::string              joint_name_legacy      = this->declare_parameter<std::string> ("button_" + std::to_string (i) + ".joint_name", "");
@@ -236,14 +239,22 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
                 }
                 RCLCPP_INFO (this->get_logger (), "button_%zu.get_origin target[%zu]: %s", i, entry, jn.c_str ());
             } else if (function == "run_sequence") {
-                if (button_mode_[i] != "positive_edge") {
-                    RCLCPP_WARN (this->get_logger (), "button_%zu.run_sequence requires mode 'positive_edge'.", i);
+                if (button_mode_[i] == "positive_edge") {
+                    if (sequence_name_[i].empty ()) {
+                        RCLCPP_WARN (this->get_logger (), "button_%zu.sequence_name is empty.", i);
+                        throw std::runtime_error ("invalid parameter");
+                    }
+                    RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence: %s", i, sequence_name_[i].c_str ());
+                } else if (button_mode_[i] == "toggle") {
+                    if (sequence_name_on_[i].empty () || sequence_name_off_[i].empty ()) {
+                        RCLCPP_WARN (this->get_logger (), "button_%zu.toggle requires sequence_name_on and sequence_name_off.", i);
+                        throw std::runtime_error ("invalid parameter");
+                    }
+                    RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence on: %s", i, sequence_name_on_[i].c_str ());
+                    RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence off: %s", i, sequence_name_off_[i].c_str ());
+                } else {
+                    RCLCPP_WARN (this->get_logger (), "button_%zu.run_sequence supports only mode 'positive_edge' or 'toggle'.", i);
                 }
-                if (sequence_name_[i].empty ()) {
-                    RCLCPP_WARN (this->get_logger (), "button_%zu.sequence_name is empty.", i);
-                    throw std::runtime_error ("invalid parameter");
-                }
-                RCLCPP_INFO (this->get_logger (), "button_%zu.run_sequence: %s", i, sequence_name_[i].c_str ());
             } else if (function == "cancel_sequence") {
                 if (button_mode_[i] != "positive_edge") {
                     RCLCPP_WARN (this->get_logger (), "button_%zu.cancel_sequence requires mode 'positive_edge'.", i);
@@ -762,9 +773,15 @@ void button_manager::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                     }
                 }
             } else if (button_function_[i][entry] == "run_sequence") {
-                if (button_mode_[i] == "positive_edge" && msg->buttons[i] == 1 && last_button_state_[i] == 0) {
+                if (msg->buttons[i] == 1 && last_button_state_[i] == 0 && button_mode_[i] == "positive_edge") {
                     std_msgs::msg::String sequence_msg;
                     sequence_msg.data = sequence_name_[i];
+                    sequence_publisher_->publish (sequence_msg);
+                } else if (msg->buttons[i] == 1 && last_button_state_[i] == 0 && button_mode_[i] == "toggle") {
+                    sequence_toggle_state_[i] = !sequence_toggle_state_[i];
+
+                    std_msgs::msg::String sequence_msg;
+                    sequence_msg.data = sequence_toggle_state_[i] ? sequence_name_on_[i] : sequence_name_off_[i];
                     sequence_publisher_->publish (sequence_msg);
                 }
             } else if (button_function_[i][entry] == "cancel_sequence") {

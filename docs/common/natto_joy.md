@@ -19,6 +19,8 @@ button_managerノードは、ジョイスティックのボタン入力を管理
 | button_N.function | string | "none" | ボタンNの機能（"power", "allow_auto_drive", "joint_position", "joint_speed", "get_origin", "run_sequence", "none"） |
 | button_N.functions | string[] | [] | ボタンNの機能リスト（`function` より優先）。1ボタンで複数機能を実行可能 |
 | button_N.sequence_name | string | "" | `run_sequence`で開始する状態state名（`/<name>/_entry`を検索） |
+| button_N.sequence_name_on | string | "" | `run_sequence`の`toggle`時にON側で開始する状態state名 |
+| button_N.sequence_name_off | string | "" | `run_sequence`の`toggle`時にOFF側で開始する状態state名 |
 | button_N.joint_name | string | "" | 旧仕様: ボタンNが制御するジョイント名（単一エントリ時） |
 | button_N.joint_names | string[] | [] | 複数エントリ時のジョイント名リスト（`functions` と同じ添字で対応） |
 | button_N.position_on | double | 1.0 | 単一エントリ時のON目標位置 |
