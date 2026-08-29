@@ -143,7 +143,7 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
         if (need_clamp) {
             auto it_fixed = std::find (fixed_command.name.begin (), fixed_command.name.end (), rule.then_condition.joint_name);
             if (it_fixed != fixed_command.name.end ()) {
-                size_t index                  = static_cast<size_t> (std::distance (fixed_command.name.begin (), it_fixed));
+                size_t index = static_cast<size_t> (std::distance (fixed_command.name.begin (), it_fixed));
                 if (index < fixed_command.position.size ()) {
                     double value                  = fixed_command.position[index];
                     fixed_command.position[index] = std::clamp (value, rule.then_condition.min, rule.then_condition.max);
