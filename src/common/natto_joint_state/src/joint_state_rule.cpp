@@ -149,9 +149,6 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
                     fixed_command.position[index] = std::clamp (value, rule.then_condition.min, rule.then_condition.max);
                 }
 
-                // For velocity-controlled joints, only block motion further outside
-                // the allowed range.  Motion toward (or within) the range remains
-                // available so that the joint can recover from outside the range.
                 if (fixed_command.velocity.size () < fixed_command.name.size ()) {
                     fixed_command.velocity.resize (fixed_command.name.size (), 0.0);
                 }
