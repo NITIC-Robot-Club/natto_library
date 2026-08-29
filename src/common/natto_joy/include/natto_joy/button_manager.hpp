@@ -36,6 +36,9 @@ class button_manager : public rclcpp::Node {
     std::vector<std::string>              button_mode_;
     std::vector<std::vector<std::string>> button_function_;
     std::vector<std::string>              sequence_name_;
+    std::vector<std::string>              sequence_name_on_;
+    std::vector<std::string>              sequence_name_off_;
+    std::vector<bool>                     sequence_toggle_state_;
     std::vector<std::vector<std::string>> joint_name_;
     std::vector<std::vector<double>>      position_on_;
     std::vector<std::vector<double>>      position_off_;
