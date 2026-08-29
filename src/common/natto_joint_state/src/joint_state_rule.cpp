@@ -162,8 +162,8 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
                         if (current_index < current_joint_states_->position.size ()) {
                             double current_position = current_joint_states_->position[current_index];
                             double velocity         = fixed_command.velocity[index];
-                            bool outward_at_min      = current_position <= rule.then_condition.min && velocity < 0.0;
-                            bool outward_at_max      = current_position >= rule.then_condition.max && velocity > 0.0;
+                            bool   outward_at_min   = current_position <= rule.then_condition.min && velocity < 0.0;
+                            bool   outward_at_max   = current_position >= rule.then_condition.max && velocity > 0.0;
                             if (outward_at_min || outward_at_max) {
                                 fixed_command.velocity[index] = 0.0;
                             }
