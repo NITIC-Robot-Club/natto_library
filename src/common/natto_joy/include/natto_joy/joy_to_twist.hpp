@@ -12,9 +12,10 @@ class joy_to_twist : public rclcpp::Node {
     joy_to_twist (const rclcpp::NodeOptions &node_options);
 
    private:
+    double max_xy_speed_m_s_;
     double slow_max_xy_speed_m_s_;
-    double fast_max_xy_speed_m_s_;
     double max_yaw_speed_rad_s_;
+    double slow_max_yaw_speed_rad_s_;
     int    left_stick_release_button_;
     int    left_stick_x_axis_;
     int    left_stick_y_axis_;
