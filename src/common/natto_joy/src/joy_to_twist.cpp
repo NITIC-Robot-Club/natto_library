@@ -1,7 +1,5 @@
 #include "natto_joy/joy_to_twist.hpp"
 
-#include <cmath>
-
 namespace joy_to_twist {
 
 joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("joy_to_twist", node_options) {
