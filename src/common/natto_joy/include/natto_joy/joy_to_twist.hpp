@@ -16,6 +16,7 @@ class joy_to_twist : public rclcpp::Node {
     double slow_max_xy_speed_m_s_;
     double max_yaw_speed_rad_s_;
     double slow_max_yaw_speed_rad_s_;
+    bool   enable_speed_limit_release_         = false;
     int    left_stick_release_button_;
     int    left_stick_x_axis_;
     int    left_stick_y_axis_;

@@ -119,6 +119,7 @@ joy_to_twistノードは、ジョイスティックの入力を受け取り、�
 | slow_max_xy_speed_m_s | double | max_xy_speed_m_s | 通常時の前後・左右移動の最大速度 (m/s) |
 | max_yaw_speed_rad_s | double | 3.1415 | 回転の最大速度 (rad/s) |
 | slow_max_yaw_speed_rad_s | double | max_yaw_speed_rad_s | 通常時の回転の最大速度 (rad/s) |
+| enable_speed_limit_release | bool | true | 押し込みによる速度制限解除を有効にするか |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
