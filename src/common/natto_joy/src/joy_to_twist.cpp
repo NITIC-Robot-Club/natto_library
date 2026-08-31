@@ -53,25 +53,26 @@ void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
             motion_seen_since_release_ = motion_seen_since_release_ || motion_is_moving;
 >>>>>>> Stashed changes
 
-            if (motion_seen_since_release_ && motion_is_stopped) {
-                speed_limit_release_active_ = false;
-            }
+        if (motion_seen_since_release_ && motion_is_stopped) {
+            speed_limit_release_active_ = false;
         }
-    } else {
-        speed_limit_release_active_ = false;
     }
-    last_release_button_pressed_ = release_button_pressed;
+}
+else {
+    speed_limit_release_active_ = false;
+}
+last_release_button_pressed_ = release_button_pressed;
 
-    geometry_msgs::msg::TwistStamped twist_msg;
-    twist_msg.header.stamp    = this->now ();
-    twist_msg.header.frame_id = "command/base_link";
-    const bool   use_slow_speed = enable_speed_limit_release_ && !speed_limit_release_active_;
-    const double xy_speed       = use_slow_speed ? slow_max_xy_speed_m_s_ : max_xy_speed_m_s_;
-    const double yaw_speed      = use_slow_speed ? slow_max_yaw_speed_rad_s_ : max_yaw_speed_rad_s_;
-    twist_msg.twist.linear.x  = msg->axes[1] * xy_speed;
-    twist_msg.twist.linear.y  = msg->axes[0] * xy_speed;
-    twist_msg.twist.angular.z = msg->axes[2] * yaw_speed;
-    twist_publisher_->publish (twist_msg);
+geometry_msgs::msg::TwistStamped twist_msg;
+twist_msg.header.stamp      = this->now ();
+twist_msg.header.frame_id   = "command/base_link";
+const bool   use_slow_speed = enable_speed_limit_release_ && !speed_limit_release_active_;
+const double xy_speed       = use_slow_speed ? slow_max_xy_speed_m_s_ : max_xy_speed_m_s_;
+const double yaw_speed      = use_slow_speed ? slow_max_yaw_speed_rad_s_ : max_yaw_speed_rad_s_;
+twist_msg.twist.linear.x    = msg->axes[1] * xy_speed;
+twist_msg.twist.linear.y    = msg->axes[0] * xy_speed;
+twist_msg.twist.angular.z   = msg->axes[2] * yaw_speed;
+twist_publisher_->publish (twist_msg);
 }
 
 }  // namespace joy_to_twist
