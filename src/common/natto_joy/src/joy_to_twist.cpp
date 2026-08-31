@@ -31,14 +31,14 @@ void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
                                       (std::abs (msg->axes[static_cast<size_t> (left_stick_x_axis_)]) > left_stick_motion_threshold_ || std::abs (msg->axes[static_cast<size_t> (left_stick_y_axis_)]) > left_stick_motion_threshold_);
     const bool left_stick_is_stopped = left_stick_x_axis_ >= 0 && left_stick_y_axis_ >= 0 && static_cast<size_t> (left_stick_x_axis_) < msg->axes.size () && static_cast<size_t> (left_stick_y_axis_) < msg->axes.size () &&
                                        std::abs (msg->axes[static_cast<size_t> (left_stick_x_axis_)]) <= left_stick_motion_threshold_ && std::abs (msg->axes[static_cast<size_t> (left_stick_y_axis_)]) <= left_stick_motion_threshold_;
-    const bool yaw_is_moving                 = msg->axes.size () > 2 && std::abs (msg->axes[2]) > left_stick_motion_threshold_;
-    const bool yaw_is_stopped                = msg->axes.size () > 2 && std::abs (msg->axes[2]) <= left_stick_motion_threshold_;
-    const bool motion_is_moving              = left_stick_is_moving || yaw_is_moving;
-    const bool motion_is_stopped             = left_stick_is_stopped && yaw_is_stopped;
+    const bool yaw_is_moving     = msg->axes.size () > 2 && std::abs (msg->axes[2]) > left_stick_motion_threshold_;
+    const bool yaw_is_stopped    = msg->axes.size () > 2 && std::abs (msg->axes[2]) <= left_stick_motion_threshold_;
+    const bool motion_is_moving  = left_stick_is_moving || yaw_is_moving;
+    const bool motion_is_stopped = left_stick_is_stopped && yaw_is_stopped;
 
     if (release_button_positive_edge) {
-        speed_limit_release_active_           = true;
-        motion_seen_since_release_ = motion_is_moving;
+        speed_limit_release_active_ = true;
+        motion_seen_since_release_  = motion_is_moving;
     } else if (speed_limit_release_active_) {
         motion_seen_since_release_ = motion_seen_since_release_ || motion_is_moving;
 
