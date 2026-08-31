@@ -112,11 +112,27 @@ joy_to_twistノードは、ジョイスティックの入力を受け取り、�
 - sensor_msgs/msg/Joy型のジョイスティック入力を受信
 - geometry_msgs/msg/TwistStamped型の移動コマンドをパブリッシュ
 
+### 速度制限解除モード
+`enable_speed_limit_release` が `true` の場合、以下の条件で速度制限解除モードになります。
+
+- `left_stick_release_button` で指定したボタン（デフォルトはボタン7）を、押していない状態から押す
+- ボタン押下時に速度制限解除モードが有効になり、XY移動と旋回に `max_*` の速度を使用する
+
+速度制限解除モードから低速モードに戻る条件は以下です。
+
+- ボタン押下後に、左スティックまたは旋回を一度以上操作する
+- 左スティックの左右・前後入力と旋回入力がすべて `left_stick_motion_threshold` 以下になる（デフォルトは `0.1`）
+
+`enable_speed_limit_release` が `false` の場合は、`slow_*` パラメータを使用せず、押し込みによる速度切り替えも行いません。常に `max_*` の速度を使用します。
+
 ## パラメーター
 | パラメーター名 | 型 | デフォルト値 | 説明 |
 | - | - | - | - |
-| max_xy_speed_m_s | double | 2.0 | 前後・左右移動の最大速度 (m/s) |
-| max_yaw_speed_rad_s | double | 3.1415 | 回転の最大速度 (rad/s) |
+| max_xy_speed_m_s | double | 2.0 | 速度制限解除時の前後・左右移動の最大速度 (m/s) |
+| slow_max_xy_speed_m_s | double | 1.0　| 通常時の前後・左右移動の最大速度 (m/s) |
+| max_yaw_speed_rad_s | double | 6.2830| 速度制限解除時の回転の最大速度 (rad/s) |
+| slow_max_yaw_speed_rad_s | double | 3.1415| 通常時の回転最大速度（rad/s）| 
+| enable_speed_limit_release | bool | true | 押し込みによる速度制限解除を有効にするか |
 
 ## パブリッシャー
 | トピック名 | メッセージ型 | 説明 |
