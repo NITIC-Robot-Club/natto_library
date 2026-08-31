@@ -1,12 +1,12 @@
 #ifndef __JOY_TO_TWIST_HPP__
 #define __JOY_TO_TWIST_HPP__
 
-#include <cmath>
-
 #include "rclcpp/rclcpp.hpp"
 
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+
+#include <cmath>
 
 namespace joy_to_twist {
 class joy_to_twist : public rclcpp::Node {
