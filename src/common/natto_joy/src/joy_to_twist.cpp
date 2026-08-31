@@ -38,20 +38,12 @@ void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
     const bool motion_is_moving  = left_stick_is_moving || yaw_is_moving;
     const bool motion_is_stopped = left_stick_is_stopped && yaw_is_stopped;
 
-<<<<<<< Updated upstream
-    if (release_button_positive_edge) {
-        speed_limit_release_active_ = true;
-        motion_seen_since_release_  = motion_is_moving;
-    } else if (speed_limit_release_active_) {
-        motion_seen_since_release_ = motion_seen_since_release_ || motion_is_moving;
-=======
     if (enable_speed_limit_release_) {
         if (release_button_positive_edge) {
             speed_limit_release_active_ = true;
             motion_seen_since_release_  = motion_is_moving;
         } else if (speed_limit_release_active_) {
             motion_seen_since_release_ = motion_seen_since_release_ || motion_is_moving;
->>>>>>> Stashed changes
 
         if (motion_seen_since_release_ && motion_is_stopped) {
             speed_limit_release_active_ = false;
