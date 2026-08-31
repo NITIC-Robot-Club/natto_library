@@ -21,7 +21,7 @@ class joy_to_twist : public rclcpp::Node {
     int    left_stick_y_axis_;
     double left_stick_motion_threshold_;
     bool   speed_limit_release_active_           = false;
-    bool   left_stick_motion_seen_since_release_ = false;
+    bool   motion_seen_since_release_           = false;
     bool   last_release_button_pressed_          = false;
 
     void joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg);
