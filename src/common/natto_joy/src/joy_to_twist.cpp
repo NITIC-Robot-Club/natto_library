@@ -9,9 +9,9 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("jo
     joy_subscriber_  = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 1, std::bind (&joy_to_twist::joy_callback, this, std::placeholders::_1));
 
     max_xy_speed_m_s_            = this->declare_parameter<double> ("max_xy_speed_m_s", 2.0);
-    slow_max_xy_speed_m_s_       = this->declare_parameter<double> ("slow_max_xy_speed_m_s", max_xy_speed_m_s_);
-    max_yaw_speed_rad_s_         = this->declare_parameter<double> ("max_yaw_speed_rad_s", 3.1415);
-    slow_max_yaw_speed_rad_s_    = this->declare_parameter<double> ("slow_max_yaw_speed_rad_s", max_yaw_speed_rad_s_);
+    slow_max_xy_speed_m_s_       = this->declare_parameter<double> ("slow_max_xy_speed_m_s", 1.0);
+    max_yaw_speed_rad_s_         = this->declare_parameter<double> ("max_yaw_speed_rad_s", 6.2830);
+    slow_max_yaw_speed_rad_s_    = this->declare_parameter<double> ("slow_max_yaw_speed_rad_s", 3.1415);
     left_stick_release_button_   = static_cast<int> (this->declare_parameter<int> ("left_stick_release_button", 7));
     left_stick_x_axis_           = static_cast<int> (this->declare_parameter<int> ("left_stick_x_axis", 0));
     left_stick_y_axis_           = static_cast<int> (this->declare_parameter<int> ("left_stick_y_axis", 1));
