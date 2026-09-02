@@ -74,11 +74,9 @@ void default_action::handle_get_origin (const natto_msgs::msg::StateAction::Shar
 
         origin_request_t request;
         if (argument_name == "joint_name" || argument_name == "joint") {
-            // Keep the old joint_name=<name> syntax. Waiting for SUCCEEDED is the safe legacy default.
             request.joint_name      = argument_value;
             request.required_status = natto_msgs::msg::OriginStatus::SUCCEEDED;
         } else {
-            // New syntax: get_origin(joint_name=started|succeeded).
             request.joint_name = argument_name;
             if (argument_value == "started" || argument_value == "start" || argument_value == "need_start") {
                 request.required_status = natto_msgs::msg::OriginStatus::STARTED;

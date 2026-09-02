@@ -111,8 +111,6 @@ void chassis_calculator::command_velocity_callback (const geometry_msgs::msg::Tw
                     double vy = wheel_position_y;
 
                     command_joint_state_.position[i + num_wheels_] = std::atan2 (vy, vx);
-                } else if (steering_stop_mode_ == "hold") {
-                    // Keep the previous steering direction.
                 }
             } else {
                 double vx    = x - z * wheel_position_y;
