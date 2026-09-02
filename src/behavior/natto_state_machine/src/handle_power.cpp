@@ -34,7 +34,6 @@ void default_action::handle_power (const natto_msgs::msg::StateAction::SharedPtr
         }
     }
 
-    // Keep poweroff() compatible while migrating state graphs to set_power(power=false).
     if (msg->action_name == "poweroff") {
         power_specified = true;
         power           = false;
