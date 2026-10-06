@@ -56,7 +56,8 @@ void laser_filter::scan_callback (const sensor_msgs::msg::LaserScan::SharedPtr m
             ranges[i] = std::numeric_limits<float>::quiet_NaN ();
         }
     }
-    out.header.stamp = this->now ();
+    // Keep the sensor acquisition time. Replacing it with callback time loses
+    // the relationship between this scan and wheel-odometry samples.
     publisher_->publish (out);
 }
 
