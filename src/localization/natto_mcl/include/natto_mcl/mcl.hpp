@@ -32,7 +32,13 @@
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
+#include <deque>
+#include <mutex>
 #include <random>
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+
 
 namespace mcl {
 
@@ -66,6 +72,11 @@ class mcl : public rclcpp::Node {
     geometry_msgs::msg::TransformStamped last_map_to_odom_;
     bool                                 last_map_to_odom_valid_ = false;
     nav_msgs::msg::Odometry              last_odometry_, latest_odometry_;
+    nav_msgs::msg::Odometry              last_measurement_odometry_;
+    bool                                 has_last_measurement_odometry_ = false;
+    rclcpp::Time                         last_measurement_stamp_;
+    std::deque<nav_msgs::msg::Odometry>  odometry_history_;
+    std::mutex                           odometry_history_mutex_;
     std::vector<std::vector<uint8_t>>    likelihood_field_;
 
     std::vector<float> scan_x_, scan_y_;
@@ -76,6 +87,7 @@ class mcl : public rclcpp::Node {
     void initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
     void odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg);
     void timer_callback ();
+    bool odometry_at_stamp (const builtin_interfaces::msg::Time &stamp, nav_msgs::msg::Odometry &result);
 
     void   initialize_particles (double x, double y, double yaw);
     void   motion_update (double delta_x, double delta_y, double delta_yaw);
