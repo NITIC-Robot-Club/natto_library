@@ -143,9 +143,30 @@ void joint_state_rule::command_joint_states_callback (const sensor_msgs::msg::Jo
         if (need_clamp) {
             auto it_fixed = std::find (fixed_command.name.begin (), fixed_command.name.end (), rule.then_condition.joint_name);
             if (it_fixed != fixed_command.name.end ()) {
-                size_t index                  = static_cast<size_t> (std::distance (fixed_command.name.begin (), it_fixed));
-                double value                  = fixed_command.position[index];
-                fixed_command.position[index] = std::clamp (value, rule.then_condition.min, rule.then_condition.max);
+                size_t index = static_cast<size_t> (std::distance (fixed_command.name.begin (), it_fixed));
+                if (index < fixed_command.position.size ()) {
+                    double value                  = fixed_command.position[index];
+                    fixed_command.position[index] = std::clamp (value, rule.then_condition.min, rule.then_condition.max);
+                }
+
+                if (fixed_command.velocity.size () < fixed_command.name.size ()) {
+                    fixed_command.velocity.resize (fixed_command.name.size (), 0.0);
+                }
+                if (current_joint_states_) {
+                    auto it_current = std::find (current_joint_states_->name.begin (), current_joint_states_->name.end (), rule.then_condition.joint_name);
+                    if (it_current != current_joint_states_->name.end ()) {
+                        size_t current_index = static_cast<size_t> (std::distance (current_joint_states_->name.begin (), it_current));
+                        if (current_index < current_joint_states_->position.size ()) {
+                            double current_position = current_joint_states_->position[current_index];
+                            double velocity         = fixed_command.velocity[index];
+                            bool   outward_at_min   = current_position <= rule.then_condition.min && velocity < 0.0;
+                            bool   outward_at_max   = current_position >= rule.then_condition.max && velocity > 0.0;
+                            if (outward_at_min || outward_at_max) {
+                                fixed_command.velocity[index] = 0.0;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
