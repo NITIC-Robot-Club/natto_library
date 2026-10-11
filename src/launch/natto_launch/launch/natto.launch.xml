@@ -16,6 +16,7 @@
     <arg name="controller_max_yaw_speed_rad_s" default="6.0"/>
     <arg name="reverse_y" default="false"/>
     <arg name="reverse_y_offset" default="0.0"/>
+    <arg name="publish_likelihood_field" default="false"/>
 
     <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>
@@ -56,7 +57,9 @@
     <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)"/>
 
     <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)"/>
+    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
+        <arg name="publish_likelihood_field" value="$(var publish_likelihood_field)"/>
+    </include>
 
     <!-- コントロール -->
     <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)"/>

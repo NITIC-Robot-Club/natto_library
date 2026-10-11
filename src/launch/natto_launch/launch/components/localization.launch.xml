@@ -1,4 +1,5 @@
 <launch>
+    <arg name="publish_likelihood_field" default="false"/>
     <node_container pkg="rclcpp_components" exec="component_container" name="localization_container" namespace="localization">
         <!-- オドメトリ -->
         <composable_node pkg="natto_wheel_odometry" plugin="wheel_odometry::wheel_odometry" name="wheel_odometry" namespace="localization/wheel_odometry">
@@ -18,6 +19,7 @@
             <param name="use_odom_tf" value="$(var use_odom_tf)"/>
             <param name="reverse_y" value="$(var reverse_y)"/>
             <param name="reverse_y_offset" value="$(var reverse_y_offset)"/>
+            <param name="publish_likelihood_field" value="$(var publish_likelihood_field)"/>
         </composable_node>
     </node_container>
 </launch>

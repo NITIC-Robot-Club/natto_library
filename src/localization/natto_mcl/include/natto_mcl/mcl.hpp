@@ -60,12 +60,13 @@ class mcl : public rclcpp::Node {
     double      initial_pose_x_, initial_pose_y_, initial_pose_yaw_deg_;
     double      motion_noise_xx_, motion_noise_xy_, motion_noise_yy_, motion_noise_yaw_deg_;
     double      normal_noise_position_, normal_noise_orientation_deg_, expansion_radius_position_, expansion_radius_orientation_deg_;
-    double      laser_likelihood_max_dist_, transform_tolerance_;
+    double      laser_likelihood_max_dist_, transform_tolerance_, max_odom_extrapolation_sec_;
     double      resolution_, delta_t_;
     int         width_, height_;
     double      origin_x_, origin_y_;
     bool        reverse_y_;
     double      reverse_y_offset_;
+    bool        publish_likelihood_field_;
 
     std::vector<particle>                particles_;
     geometry_msgs::msg::Transform        last_odom_to_base_transform_;
@@ -75,6 +76,13 @@ class mcl : public rclcpp::Node {
     nav_msgs::msg::Odometry              last_measurement_odometry_;
     bool                                 has_last_measurement_odometry_ = false;
     rclcpp::Time                         last_measurement_stamp_;
+    geometry_msgs::msg::PoseWithCovariance latest_measurement_pose_;
+    nav_msgs::msg::Odometry                latest_measurement_pose_odometry_;
+    builtin_interfaces::msg::Time          latest_measurement_pose_stamp_;
+    bool                                    has_localization_measurement_ = false;
+    builtin_interfaces::msg::Time          last_current_pose_output_stamp_;
+    bool                                    has_current_pose_output_stamp_ = false;
+    std::mutex                              localization_state_mutex_;
     std::deque<nav_msgs::msg::Odometry>  odometry_history_;
     std::mutex                           odometry_history_mutex_;
     std::vector<std::vector<uint8_t>>    likelihood_field_;
@@ -87,6 +95,7 @@ class mcl : public rclcpp::Node {
     void initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
     void odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg);
     void timer_callback ();
+    void current_pose_timer_callback ();
     bool odometry_at_stamp (const builtin_interfaces::msg::Time &stamp, nav_msgs::msg::Odometry &result);
 
     void   initialize_particles (double x, double y, double yaw);
@@ -111,14 +120,18 @@ class mcl : public rclcpp::Node {
     size_t                                                      max_trajectory_length_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr                  pose_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr                  pose_at_scan_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr                    particles_publisher_;
+    rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr                     likelihood_field_publisher_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr                  occupancy_grid_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr                 pointcloud2_subscriber_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                       odometry_subscriber_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr    pose_with_covariance_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr    pose_with_covariance_at_scan_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_with_covariance_subscriber_;
 
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr current_pose_timer_;
 };
 }  // namespace mcl
 
