@@ -57,9 +57,7 @@
     <include file="$(find-pkg-share natto_launch)/launch/components/sensing.launch.xml" if="$(var launch_sensing)"/>
 
     <!-- 自己位置 -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)">
-        <arg name="publish_likelihood_field" value="$(var publish_likelihood_field)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/localization.launch.xml" if="$(var launch_localization)"/>
 
     <!-- コントロール -->
     <include file="$(find-pkg-share natto_launch)/launch/components/control.launch.xml" if="$(var launch_control)"/>
