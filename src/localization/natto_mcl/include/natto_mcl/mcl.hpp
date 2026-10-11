@@ -32,13 +32,12 @@
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-#include <deque>
-#include <mutex>
-#include <random>
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <iterator>
-
+#include <mutex>
+#include <random>
 
 namespace mcl {
 
@@ -68,24 +67,24 @@ class mcl : public rclcpp::Node {
     double      reverse_y_offset_;
     bool        publish_likelihood_field_;
 
-    std::vector<particle>                particles_;
-    geometry_msgs::msg::Transform        last_odom_to_base_transform_;
-    geometry_msgs::msg::TransformStamped last_map_to_odom_;
-    bool                                 last_map_to_odom_valid_ = false;
-    nav_msgs::msg::Odometry              last_odometry_, latest_odometry_;
-    nav_msgs::msg::Odometry              last_measurement_odometry_;
-    bool                                 has_last_measurement_odometry_ = false;
-    rclcpp::Time                         last_measurement_stamp_;
+    std::vector<particle>                  particles_;
+    geometry_msgs::msg::Transform          last_odom_to_base_transform_;
+    geometry_msgs::msg::TransformStamped   last_map_to_odom_;
+    bool                                   last_map_to_odom_valid_ = false;
+    nav_msgs::msg::Odometry                last_odometry_, latest_odometry_;
+    nav_msgs::msg::Odometry                last_measurement_odometry_;
+    bool                                   has_last_measurement_odometry_ = false;
+    rclcpp::Time                           last_measurement_stamp_;
     geometry_msgs::msg::PoseWithCovariance latest_measurement_pose_;
     nav_msgs::msg::Odometry                latest_measurement_pose_odometry_;
     builtin_interfaces::msg::Time          latest_measurement_pose_stamp_;
-    bool                                    has_localization_measurement_ = false;
+    bool                                   has_localization_measurement_ = false;
     builtin_interfaces::msg::Time          last_current_pose_output_stamp_;
-    bool                                    has_current_pose_output_stamp_ = false;
-    std::mutex                              localization_state_mutex_;
-    std::deque<nav_msgs::msg::Odometry>  odometry_history_;
-    std::mutex                           odometry_history_mutex_;
-    std::vector<std::vector<uint8_t>>    likelihood_field_;
+    bool                                   has_current_pose_output_stamp_ = false;
+    std::mutex                             localization_state_mutex_;
+    std::deque<nav_msgs::msg::Odometry>    odometry_history_;
+    std::mutex                             odometry_history_mutex_;
+    std::vector<std::vector<uint8_t>>      likelihood_field_;
 
     std::vector<float> scan_x_, scan_y_;
     int                scan_size_;
