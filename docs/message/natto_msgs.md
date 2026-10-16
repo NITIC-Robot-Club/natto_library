@@ -18,7 +18,7 @@
 | フィールド名 | 型 | 説明 |
 | - | - | - |
 | joint_name | string | 対象ジョイント名 |
-| control_type | uint8 | 制御方式（CURRENT=0, SPEED=1, POSITION=2, CONST_CURRENT=3, DUTY=4） |
+| control_type | uint8 | 制御方式（CURRENT=0, SPEED=1, POSITION=2, DUTY=3, CONST_CURRENT=4） |
 
 ### OriginStatus.msg
 | フィールド名 | 型 | 説明 |
