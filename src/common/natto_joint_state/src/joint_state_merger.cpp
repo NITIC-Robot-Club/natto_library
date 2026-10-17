@@ -38,7 +38,7 @@ joint_state_merger::joint_state_merger (const rclcpp::NodeOptions &node_options)
 
 void joint_state_merger::joint_states_callback (const sensor_msgs::msg::JointState::SharedPtr msg) {
     if (msg->name.empty ()) {
-        RCLCPP_WARN (this->get_logger (), "Received empty JointState name list. Ignored.");
+        // RCLCPP_WARN (this->get_logger (), "Received empty JointState name list. Ignored.");
         return;
     }
     if (!msg->position.empty () && msg->position.size () != msg->name.size ()) {
