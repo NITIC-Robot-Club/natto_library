@@ -1,5 +1,7 @@
 #include "natto_joy/joy_to_twist.hpp"
 
+#include <stdexcept>
+
 namespace joy_to_twist {
 
 joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("joy_to_twist", node_options) {
@@ -10,11 +12,20 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("jo
     slow_max_xy_speed_m_s_       = this->declare_parameter<double> ("slow_max_xy_speed_m_s", 1.0);
     max_yaw_speed_rad_s_         = this->declare_parameter<double> ("max_yaw_speed_rad_s", 6.2830);
     slow_max_yaw_speed_rad_s_    = this->declare_parameter<double> ("slow_max_yaw_speed_rad_s", 3.1415);
+    joy_timeout_sec_             = this->declare_parameter<double> ("joy_timeout_sec", joy_timeout_sec_);
     enable_speed_limit_release_  = this->declare_parameter<bool> ("enable_speed_limit_release", true);
     left_stick_release_button_   = static_cast<int> (this->declare_parameter<int> ("left_stick_release_button", 7));
     left_stick_x_axis_           = static_cast<int> (this->declare_parameter<int> ("left_stick_x_axis", 0));
     left_stick_y_axis_           = static_cast<int> (this->declare_parameter<int> ("left_stick_y_axis", 1));
     left_stick_motion_threshold_ = this->declare_parameter<double> ("left_stick_motion_threshold", 0.1);
+
+    if (!std::isfinite (joy_timeout_sec_) || joy_timeout_sec_ < 0.0) {
+        throw std::runtime_error ("joy_timeout_sec must be finite and non-negative.");
+    }
+    last_joy_received_time_ = std::chrono::steady_clock::now ();
+    if (joy_timeout_sec_ > 0.0) {
+        timeout_timer_ = this->create_wall_timer (std::chrono::milliseconds (10), std::bind (&joy_to_twist::timeout_callback, this));
+    }
 
     RCLCPP_INFO (this->get_logger (), "joy_to_twist node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "max_xy_speed_m_s: %.2f", max_xy_speed_m_s_);
@@ -22,9 +33,14 @@ joy_to_twist::joy_to_twist (const rclcpp::NodeOptions &node_options) : Node ("jo
     RCLCPP_INFO (this->get_logger (), "max_yaw_speed_rad_s: %.4f", max_yaw_speed_rad_s_);
     RCLCPP_INFO (this->get_logger (), "slow_max_yaw_speed_rad_s: %.4f", slow_max_yaw_speed_rad_s_);
     RCLCPP_INFO (this->get_logger (), "enable_speed_limit_release: %s", enable_speed_limit_release_ ? "true" : "false");
+    RCLCPP_INFO (this->get_logger (), "joy_timeout_sec: %.3f", joy_timeout_sec_);
 }
 
 void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock (timeout_mutex_);
+    last_joy_received_time_ = std::chrono::steady_clock::now ();
+    timeout_zero_published_ = false;
+
     const bool release_button_pressed       = left_stick_release_button_ >= 0 && static_cast<size_t> (left_stick_release_button_) < msg->buttons.size () && msg->buttons[static_cast<size_t> (left_stick_release_button_)] != 0;
     const bool release_button_positive_edge = release_button_pressed && !last_release_button_pressed_;
     const bool left_stick_is_moving         = left_stick_x_axis_ >= 0 && left_stick_y_axis_ >= 0 && static_cast<size_t> (left_stick_x_axis_) < msg->axes.size () && static_cast<size_t> (left_stick_y_axis_) < msg->axes.size () &&
@@ -62,6 +78,20 @@ void joy_to_twist::joy_callback (const sensor_msgs::msg::Joy::SharedPtr msg) {
     twist_msg.twist.linear.y    = msg->axes[0] * xy_speed;
     twist_msg.twist.angular.z   = msg->axes[2] * yaw_speed;
     twist_publisher_->publish (twist_msg);
+}
+
+void joy_to_twist::timeout_callback () {
+    std::lock_guard<std::mutex> lock (timeout_mutex_);
+    if (timeout_zero_published_ || std::chrono::steady_clock::now () - last_joy_received_time_ < std::chrono::duration<double> (joy_timeout_sec_)) {
+        return;
+    }
+
+    geometry_msgs::msg::TwistStamped stop_twist;
+    stop_twist.header.stamp    = this->now ();
+    stop_twist.header.frame_id = "command/base_link";
+    twist_publisher_->publish (stop_twist);
+    timeout_zero_published_ = true;
+    RCLCPP_WARN (this->get_logger (), "No joy message received for %.3f seconds; publishing a zero velocity command.", joy_timeout_sec_);
 }
 
 }  // namespace joy_to_twist
