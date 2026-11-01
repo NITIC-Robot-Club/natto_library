@@ -23,7 +23,7 @@ button_manager::button_manager (const rclcpp::NodeOptions &node_options) : Node 
     origin_get_publisher_       = this->create_publisher<std_msgs::msg::String> ("get_origin_joint_name", 100);
     sequence_publisher_         = this->create_publisher<std_msgs::msg::String> ("run_sequence", 10);
     cancel_sequence_publisher_  = this->create_publisher<std_msgs::msg::Empty> ("cancel_sequence", 10);
-    joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", 10, std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
+    joy_subscriber_             = this->create_subscription<sensor_msgs::msg::Joy> ("joy", rclcpp::SensorDataQoS (), std::bind (&button_manager::joy_callback, this, std::placeholders::_1));
     power_subscriber_           = this->create_subscription<std_msgs::msg::Bool> ("set_power", 10, std::bind (&button_manager::power_callback, this, std::placeholders::_1));
 
     RCLCPP_INFO (this->get_logger (), "button_manager node has been initialized.");

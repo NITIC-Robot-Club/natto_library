@@ -23,7 +23,5 @@
     </node_container>
 
     <!-- LiDARシミュレーター -->
-    <include file="$(find-pkg-share natto_launch)/launch/components/lidar_simulation.launch.py">
-        <arg name="lidar_param_path" value="$(var lidar_param_path)"/>
-    </include>
+    <include file="$(find-pkg-share natto_launch)/launch/components/lidar_simulation.launch.py"/>
 </launch>

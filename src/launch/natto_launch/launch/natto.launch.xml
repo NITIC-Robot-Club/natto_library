@@ -16,6 +16,7 @@
     <arg name="controller_max_yaw_speed_rad_s" default="6.0"/>
     <arg name="reverse_y" default="false"/>
     <arg name="reverse_y_offset" default="0.0"/>
+    <arg name="publish_likelihood_field" default="false"/>
 
     <arg name="urdf_path" default=""/>
     <arg name="chassis_param_path" default=""/>

@@ -14,22 +14,24 @@
 
 #include "natto_mcl/mcl.hpp"
 
+#include <stdexcept>
+
 namespace mcl {
 
 mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options), rng_ (std::random_device{}()) {
-    pose_publisher_                 = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
-    particles_publisher_            = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
-    pose_with_covariance_publisher_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped> ("pose_with_covariance", 10);
-    trajectory_publisher_           = this->create_publisher<geometry_msgs::msg::PoseArray> ("trajectory", 10);
+    pose_publisher_                         = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose", 10);
+    pose_at_scan_publisher_                 = this->create_publisher<geometry_msgs::msg::PoseStamped> ("pose_at_scan", 10);
+    particles_publisher_                    = this->create_publisher<geometry_msgs::msg::PoseArray> ("particles", 10);
+    pose_with_covariance_publisher_         = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped> ("pose_with_covariance", 10);
+    pose_with_covariance_at_scan_publisher_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped> ("pose_with_covariance_at_scan", 10);
+    trajectory_publisher_                   = this->create_publisher<geometry_msgs::msg::PoseArray> ("trajectory", 10);
 
     occupancy_grid_subscriber_ = this->create_subscription<nav_msgs::msg::OccupancyGrid> ("occupancy_grid", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable (), std::bind (&mcl::occupancy_grid_callback, this, std::placeholders::_1));
     pointcloud2_subscriber_    = this->create_subscription<sensor_msgs::msg::PointCloud2> ("pointcloud2", rclcpp::SensorDataQoS (), std::bind (&mcl::pointcloud2_callback, this, std::placeholders::_1));
     initial_pose_with_covariance_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped> ("initial_pose", 1, std::bind (&mcl::initial_pose_with_covariance_callback, this, std::placeholders::_1));
 
-    use_odom_tf_ = this->declare_parameter<bool> ("use_odom_tf", false);
-    if (!use_odom_tf_) {
-        odometry_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS (), std::bind (&mcl::odometry_callback, this, std::placeholders::_1));
-    }
+    use_odom_tf_         = this->declare_parameter<bool> ("use_odom_tf", false);
+    odometry_subscriber_ = this->create_subscription<nav_msgs::msg::Odometry> ("odometry", rclcpp::SensorDataQoS (), std::bind (&mcl::odometry_callback, this, std::placeholders::_1));
 
     tf_buffer_      = std::make_shared<tf2_ros::Buffer> (this->get_clock ());
     tf_listener_    = std::make_shared<tf2_ros::TransformListener> (*tf_buffer_);
@@ -39,6 +41,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     tf_buffer_->setCreateTimerInterface (timer_interface);
 
     double frequency                  = this->declare_parameter<double> ("frequency", 40.0);
+    double current_pose_frequency     = this->declare_parameter<double> ("current_pose_frequency", 100.0);
     map_frame_id_                     = this->declare_parameter<std::string> ("map_frame_id", "map");
     odom_frame_id_                    = this->declare_parameter<std::string> ("odom_frame_id", "odom");
     base_frame_id_                    = this->declare_parameter<std::string> ("base_frame_id", "base_link");
@@ -56,16 +59,23 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     expansion_radius_orientation_deg_ = this->declare_parameter<double> ("expansion_radius_orientation_deg", 30.0);
     laser_likelihood_max_dist_        = this->declare_parameter<double> ("laser_likelihood_max_dist", 0.2);
     transform_tolerance_              = this->declare_parameter<double> ("transform_tolerance", 0.2);
+    max_odom_extrapolation_sec_       = this->declare_parameter<double> ("max_odom_extrapolation_sec", 0.02);
+    if (!std::isfinite (max_odom_extrapolation_sec_) || max_odom_extrapolation_sec_ < 0.0) {
+        throw std::invalid_argument ("max_odom_extrapolation_sec must be finite and non-negative");
+    }
 
-    max_trajectory_length_ = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
-    reverse_y_             = this->declare_parameter<bool> ("reverse_y", false);
-    reverse_y_offset_      = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+    max_trajectory_length_      = static_cast<size_t> (this->declare_parameter<int> ("max_trajectory_length", 1000));
+    reverse_y_                  = this->declare_parameter<bool> ("reverse_y", false);
+    reverse_y_offset_           = this->declare_parameter<double> ("reverse_y_offset", 0.0);
+    publish_likelihood_field_   = this->declare_parameter<bool> ("publish_likelihood_field", false);
+    likelihood_field_publisher_ = this->create_publisher<nav_msgs::msg::OccupancyGrid> ("likelihood_field", rclcpp::QoS (rclcpp::KeepLast (1)).transient_local ().reliable ());
 
     trajectory_msg_.header.frame_id = map_frame_id_;
 
     RCLCPP_INFO (this->get_logger (), "mcl node has been initialized.");
     RCLCPP_INFO (this->get_logger (), "use_odom_tf: %s", use_odom_tf_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "frequency: %f", frequency);
+    RCLCPP_INFO (this->get_logger (), "current_pose_frequency: %f", current_pose_frequency);
     RCLCPP_INFO (this->get_logger (), "map_frame_id: %s", map_frame_id_.c_str ());
     if (use_odom_tf_) {
         RCLCPP_INFO (this->get_logger (), "odom_frame_id: %s", odom_frame_id_.c_str ());
@@ -85,9 +95,11 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
     RCLCPP_INFO (this->get_logger (), "expansion_radius_orientation_deg: %f", expansion_radius_orientation_deg_);
     RCLCPP_INFO (this->get_logger (), "laser_likelihood_max_dist: %f", laser_likelihood_max_dist_);
     RCLCPP_INFO (this->get_logger (), "transform_tolerance: %f", transform_tolerance_);
+    RCLCPP_INFO (this->get_logger (), "max_odom_extrapolation_sec: %f", max_odom_extrapolation_sec_);
     RCLCPP_INFO (this->get_logger (), "max_trajectory_length: %zu", max_trajectory_length_);
     RCLCPP_INFO (this->get_logger (), "reverse_y: %s", reverse_y_ ? "true" : "false");
     RCLCPP_INFO (this->get_logger (), "reverse_y_offset: %f", reverse_y_offset_);
+    RCLCPP_INFO (this->get_logger (), "publish_likelihood_field: %s", publish_likelihood_field_ ? "true" : "false");
 
     if (reverse_y_) {
         initial_pose_y_ = -initial_pose_y_ + reverse_y_offset_;
@@ -98,7 +110,7 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
         geometry_msgs::msg::TransformStamped map_to_odom;
         map_to_odom.header.frame_id         = map_frame_id_;
         map_to_odom.child_frame_id          = odom_frame_id_;
-        map_to_odom.header.stamp            = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
+        map_to_odom.header.stamp            = this->now ();
         map_to_odom.transform.translation.x = initial_pose_x_;
         map_to_odom.transform.translation.y = initial_pose_y_;
         map_to_odom.transform.translation.z = 0.0;
@@ -117,6 +129,10 @@ mcl::mcl (const rclcpp::NodeOptions &node_options) : Node ("mcl", node_options),
 
     delta_t_ = 1.0 / frequency;
     timer_   = this->create_wall_timer (std::chrono::duration<double> (delta_t_), std::bind (&mcl::timer_callback, this));
+    if (!std::isfinite (current_pose_frequency) || current_pose_frequency <= 0.0) {
+        throw std::invalid_argument ("current_pose_frequency must be finite and positive");
+    }
+    current_pose_timer_ = this->create_wall_timer (std::chrono::duration<double> (1.0 / current_pose_frequency), std::bind (&mcl::current_pose_timer_callback, this));
 }
 
 void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -162,9 +178,58 @@ void mcl::occupancy_grid_callback (const nav_msgs::msg::OccupancyGrid::SharedPtr
             }
         }
     }
+
+    if (publish_likelihood_field_) {
+        nav_msgs::msg::OccupancyGrid field_msg;
+        field_msg.header = msg->header;
+        field_msg.info   = msg->info;
+        field_msg.data.resize (msg->data.size (), 0);
+        for (int y = 0; y < height_; ++y) {
+            for (int x = 0; x < width_; ++x) {
+                const size_t index = static_cast<size_t> (y * width_ + x);
+                if (msg->data[index] < 0) {
+                    field_msg.data[index] = -1;
+                } else {
+                    const double likelihood = likelihood_field_[static_cast<size_t> (x)][static_cast<size_t> (y)];
+                    field_msg.data[index]   = static_cast<int8_t> (std::lround (likelihood * 100.0 / 255.0));
+                }
+            }
+        }
+        likelihood_field_publisher_->publish (field_msg);
+    }
 }
 
 void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+    nav_msgs::msg::Odometry odometry_at_scan;
+    const bool              has_odometry_at_scan = odometry_at_stamp (msg->header.stamp, odometry_at_scan);
+    if (has_odometry_at_scan) {
+        const rclcpp::Time scan_stamp (msg->header.stamp, this->get_clock ()->get_clock_type ());
+        if (!has_last_measurement_odometry_) {
+            last_measurement_odometry_     = odometry_at_scan;
+            last_measurement_stamp_        = scan_stamp;
+            has_last_measurement_odometry_ = true;
+        } else if (scan_stamp >= last_measurement_stamp_) {
+            const auto  &previous     = last_measurement_odometry_.pose.pose;
+            const auto  &current      = odometry_at_scan.pose.pose;
+            const double previous_yaw = tf2::getYaw (previous.orientation);
+            const double current_yaw  = tf2::getYaw (current.orientation);
+            const double delta_x_map  = current.position.x - previous.position.x;
+            const double delta_y_map  = current.position.y - previous.position.y;
+            const double delta_x      = std::cos (previous_yaw) * delta_x_map + std::sin (previous_yaw) * delta_y_map;
+            const double delta_y      = -std::sin (previous_yaw) * delta_x_map + std::cos (previous_yaw) * delta_y_map;
+            double       delta_yaw    = current_yaw - previous_yaw;
+            while (delta_yaw > M_PI) delta_yaw -= 2.0 * M_PI;
+            while (delta_yaw < -M_PI) delta_yaw += 2.0 * M_PI;
+            motion_update (delta_x, delta_y, delta_yaw);
+            last_measurement_odometry_ = odometry_at_scan;
+            last_measurement_stamp_    = scan_stamp;
+        }
+    }
+    if (!has_odometry_at_scan) {
+        RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "No odometry coverage at cloud stamp; skipping this MCL measurement.");
+        return;
+    }
+
     sensor_msgs::PointCloud2ConstIterator<float> iter_x (*msg, "x");
     sensor_msgs::PointCloud2ConstIterator<float> iter_y (*msg, "y");
 
@@ -197,48 +262,33 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
     }
     geometry_msgs::msg::PoseWithCovariance mean_pose = get_mean_pose ();
 
-    if (use_odom_tf_) {
-        tf2::Transform tf_map_to_base, tf_odom_to_base, tf_map_to_odom;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
-        tf2::fromMsg (last_odom_to_base_transform_, tf_odom_to_base);
-
-        tf_map_to_odom = tf_map_to_base * tf_odom_to_base.inverse ();
-
-        geometry_msgs::msg::TransformStamped map_to_odom_msg;
-        map_to_odom_msg.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
-        map_to_odom_msg.header.frame_id = map_frame_id_;
-        map_to_odom_msg.child_frame_id  = odom_frame_id_;
-        map_to_odom_msg.transform       = tf2::toMsg (tf_map_to_odom);
-        tf_broadcaster_->sendTransform (map_to_odom_msg);
-
-        last_map_to_odom_       = map_to_odom_msg;
-        last_map_to_odom_valid_ = true;
-    } else {
-        geometry_msgs::msg::TransformStamped map_to_base_link;
-        map_to_base_link.header.stamp    = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
-        map_to_base_link.header.frame_id = map_frame_id_;
-        map_to_base_link.child_frame_id  = base_frame_id_;
-        tf2::Transform tf_map_to_base;
-        tf2::fromMsg (mean_pose.pose, tf_map_to_base);
-        map_to_base_link.transform = tf2::toMsg (tf_map_to_base);
-        tf_broadcaster_->sendTransform (map_to_base_link);
-    }
-
-    geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.frame_id = map_frame_id_;
-    pose_msg.header.stamp    = this->now ();
-    pose_msg.pose            = mean_pose.pose;
-    pose_publisher_->publish (pose_msg);
+    geometry_msgs::msg::PoseStamped scan_pose_msg;
+    scan_pose_msg.header.frame_id = map_frame_id_;
+    scan_pose_msg.header.stamp    = msg->header.stamp;
+    scan_pose_msg.pose            = mean_pose.pose;
+    pose_at_scan_publisher_->publish (scan_pose_msg);
 
     geometry_msgs::msg::PoseWithCovarianceStamped pose_with_covariance_msg;
     pose_with_covariance_msg.header.frame_id = map_frame_id_;
-    pose_with_covariance_msg.header.stamp    = this->now ();
+    pose_with_covariance_msg.header.stamp    = msg->header.stamp;
     pose_with_covariance_msg.pose            = mean_pose;
-    pose_with_covariance_publisher_->publish (pose_with_covariance_msg);
+    pose_with_covariance_at_scan_publisher_->publish (pose_with_covariance_msg);
+
+    if (has_odometry_at_scan) {
+        std::lock_guard<std::mutex> lock (localization_state_mutex_);
+        const rclcpp::Time          incoming_stamp (msg->header.stamp, this->get_clock ()->get_clock_type ());
+        const rclcpp::Time          previous_stamp (latest_measurement_pose_stamp_, this->get_clock ()->get_clock_type ());
+        if (!has_localization_measurement_ || incoming_stamp >= previous_stamp) {
+            latest_measurement_pose_          = mean_pose;
+            latest_measurement_pose_odometry_ = odometry_at_scan;
+            latest_measurement_pose_stamp_    = msg->header.stamp;
+            has_localization_measurement_     = true;
+        }
+    }
 
     geometry_msgs::msg::Pose pose_for_traj;
-    pose_for_traj.position    = pose_msg.pose.position;
-    pose_for_traj.orientation = pose_msg.pose.orientation;
+    pose_for_traj.position    = scan_pose_msg.pose.position;
+    pose_for_traj.orientation = scan_pose_msg.pose.orientation;
 
     trajectory_msg_.poses.push_back (pose_for_traj);
 
@@ -247,66 +297,200 @@ void mcl::pointcloud2_callback (const sensor_msgs::msg::PointCloud2::SharedPtr m
         trajectory_msg_.poses.erase (trajectory_msg_.poses.begin (), trajectory_msg_.poses.begin () + static_cast<std::ptrdiff_t> (remove_count));
     }
 
-    trajectory_msg_.header.stamp    = this->now ();
+    trajectory_msg_.header.stamp    = msg->header.stamp;
     trajectory_msg_.header.frame_id = map_frame_id_;
     trajectory_publisher_->publish (trajectory_msg_);
 }
 
 void mcl::odometry_callback (const nav_msgs::msg::Odometry::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock (odometry_history_mutex_);
+    const rclcpp::Time          incoming_stamp (msg->header.stamp, this->get_clock ()->get_clock_type ());
+    auto                        insert_position = std::upper_bound (
+        odometry_history_.begin (), odometry_history_.end (), incoming_stamp, [this] (const rclcpp::Time &stamp, const nav_msgs::msg::Odometry &sample) { return stamp < rclcpp::Time (sample.header.stamp, this->get_clock ()->get_clock_type ()); });
+    odometry_history_.insert (insert_position, *msg);
+    while (odometry_history_.size () > 4096) odometry_history_.pop_front ();
     latest_odometry_ = *msg;
+}
+
+void mcl::current_pose_timer_callback () {
+    nav_msgs::msg::Odometry current_odometry;
+    {
+        std::lock_guard<std::mutex> lock (odometry_history_mutex_);
+        if (odometry_history_.empty ()) return;
+        current_odometry = odometry_history_.back ();
+    }
+
+    geometry_msgs::msg::PoseWithCovariance scan_pose;
+    nav_msgs::msg::Odometry                scan_odometry;
+    builtin_interfaces::msg::Time          scan_stamp;
+    {
+        std::lock_guard<std::mutex> lock (localization_state_mutex_);
+        if (!has_localization_measurement_) return;
+        scan_pose     = latest_measurement_pose_;
+        scan_odometry = latest_measurement_pose_odometry_;
+        scan_stamp    = latest_measurement_pose_stamp_;
+    }
+
+    const rclcpp::Time measurement_time (scan_stamp, this->get_clock ()->get_clock_type ());
+    const rclcpp::Time odometry_time (current_odometry.header.stamp, this->get_clock ()->get_clock_type ());
+    if (odometry_time < measurement_time) return;
+    {
+        std::lock_guard<std::mutex> lock (localization_state_mutex_);
+        if (has_current_pose_output_stamp_ && rclcpp::Time (last_current_pose_output_stamp_, this->get_clock ()->get_clock_type ()) >= odometry_time) return;
+        last_current_pose_output_stamp_ = current_odometry.header.stamp;
+        has_current_pose_output_stamp_  = true;
+    }
+
+    tf2::Transform tf_map_to_base_at_scan;
+    tf2::Transform tf_odom_to_base_at_scan;
+    tf2::Transform tf_odom_to_base_now;
+    tf2::fromMsg (scan_pose.pose, tf_map_to_base_at_scan);
+    tf2::fromMsg (scan_odometry.pose.pose, tf_odom_to_base_at_scan);
+    tf2::fromMsg (current_odometry.pose.pose, tf_odom_to_base_now);
+
+    const tf2::Transform                   tf_map_to_odom     = tf_map_to_base_at_scan * tf_odom_to_base_at_scan.inverse ();
+    const tf2::Transform                   tf_map_to_base_now = tf_map_to_odom * tf_odom_to_base_now;
+    geometry_msgs::msg::PoseWithCovariance current_pose;
+    current_pose.pose.position.x  = tf_map_to_base_now.getOrigin ().x ();
+    current_pose.pose.position.y  = tf_map_to_base_now.getOrigin ().y ();
+    current_pose.pose.position.z  = tf_map_to_base_now.getOrigin ().z ();
+    current_pose.pose.orientation = tf2::toMsg (tf_map_to_base_now.getRotation ());
+    current_pose.covariance       = scan_pose.covariance;
+
+    // Propagate the scan-time x/y/yaw covariance through the odometry motion.
+    // Odometry currently publishes no covariance, so this accounts for the
+    // coupling from scan-time yaw uncertainty without inventing odometry noise.
+    const tf2::Transform tf_base_at_scan_to_base_now = tf_odom_to_base_at_scan.inverse () * tf_odom_to_base_now;
+    const double         dx                          = tf_base_at_scan_to_base_now.getOrigin ().x ();
+    const double         dy                          = tf_base_at_scan_to_base_now.getOrigin ().y ();
+    const double         yaw                         = tf2::getYaw (scan_pose.pose.orientation);
+    const double         jacobian[3][3]              = {
+        {1.0, 0.0, -std::sin (yaw) * dx - std::cos (yaw) * dy},
+        {0.0, 1.0,  std::cos (yaw) * dx - std::sin (yaw) * dy},
+        {0.0, 0.0,                                        1.0}
+    };
+    constexpr int covariance_indices[3] = {0, 1, 5};
+    double        scan_covariance[3][3]{};
+    double        propagated_covariance[3][3]{};
+    for (int row = 0; row < 3; ++row) {
+        for (int column = 0; column < 3; ++column) {
+            const size_t covariance_index = static_cast<size_t> (6 * covariance_indices[row] + covariance_indices[column]);
+            scan_covariance[row][column]  = scan_pose.covariance[covariance_index];
+        }
+    }
+    for (int row = 0; row < 3; ++row) {
+        for (int column = 0; column < 3; ++column) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    propagated_covariance[row][column] += jacobian[row][i] * scan_covariance[i][j] * jacobian[column][j];
+                }
+            }
+            const size_t covariance_index             = static_cast<size_t> (6 * covariance_indices[row] + covariance_indices[column]);
+            current_pose.covariance[covariance_index] = propagated_covariance[row][column];
+        }
+    }
+
+    geometry_msgs::msg::PoseStamped current_pose_msg;
+    current_pose_msg.header.frame_id = map_frame_id_;
+    current_pose_msg.header.stamp    = current_odometry.header.stamp;
+    current_pose_msg.pose            = current_pose.pose;
+    pose_publisher_->publish (current_pose_msg);
+
+    geometry_msgs::msg::PoseWithCovarianceStamped current_pose_with_covariance_msg;
+    current_pose_with_covariance_msg.header = current_pose_msg.header;
+    current_pose_with_covariance_msg.pose   = current_pose;
+    pose_with_covariance_publisher_->publish (current_pose_with_covariance_msg);
+
+    geometry_msgs::msg::TransformStamped transform_msg;
+    transform_msg.header          = current_pose_msg.header;
+    transform_msg.header.frame_id = map_frame_id_;
+    if (use_odom_tf_) {
+        transform_msg.child_frame_id = odom_frame_id_;
+        transform_msg.transform      = tf2::toMsg (tf_map_to_odom);
+    } else {
+        transform_msg.child_frame_id = base_frame_id_;
+        transform_msg.transform      = tf2::toMsg (tf_map_to_base_now);
+    }
+    tf_broadcaster_->sendTransform (transform_msg);
+}
+
+bool mcl::odometry_at_stamp (const builtin_interfaces::msg::Time &stamp, nav_msgs::msg::Odometry &result) {
+    std::lock_guard<std::mutex> lock (odometry_history_mutex_);
+    if (odometry_history_.empty ()) return false;
+
+    const rclcpp::Time target (stamp, this->get_clock ()->get_clock_type ());
+    auto               after = std::lower_bound (
+        odometry_history_.begin (), odometry_history_.end (), target, [this] (const nav_msgs::msg::Odometry &sample, const rclcpp::Time &time) { return rclcpp::Time (sample.header.stamp, this->get_clock ()->get_clock_type ()) < time; });
+    if (after == odometry_history_.begin ()) {
+        if (rclcpp::Time (after->header.stamp, this->get_clock ()->get_clock_type ()) > target) {
+            return false;
+        }
+        result = *after;
+        return true;
+    }
+    if (after == odometry_history_.end ()) {
+        result = odometry_history_.back ();
+        const rclcpp::Time latest_time (result.header.stamp, this->get_clock ()->get_clock_type ());
+        const double       extrapolation_sec = (target - latest_time).seconds ();
+        if (extrapolation_sec <= 0.0) return true;
+        if (extrapolation_sec > max_odom_extrapolation_sec_) return false;
+
+        const auto  &twist     = result.twist.twist;
+        const double vx        = twist.linear.x;
+        const double vy        = twist.linear.y;
+        const double wz        = twist.angular.z;
+        const double delta_yaw = wz * extrapolation_sec;
+        double       delta_x   = vx * extrapolation_sec;
+        double       delta_y   = vy * extrapolation_sec;
+        if (std::abs (wz) > 1e-8) {
+            const double sine         = std::sin (delta_yaw);
+            const double cosine_delta = 1.0 - std::cos (delta_yaw);
+            delta_x                   = (sine * vx - cosine_delta * vy) / wz;
+            delta_y                   = (cosine_delta * vx + sine * vy) / wz;
+        }
+        const auto  &pose = result.pose.pose;
+        const double yaw  = tf2::getYaw (pose.orientation);
+        result.pose.pose.position.x += std::cos (yaw) * delta_x - std::sin (yaw) * delta_y;
+        result.pose.pose.position.y += std::sin (yaw) * delta_x + std::cos (yaw) * delta_y;
+        tf2::Quaternion orientation;
+        orientation.setRPY (0.0, 0.0, yaw + delta_yaw);
+        result.pose.pose.orientation = tf2::toMsg (orientation);
+        result.header.stamp          = stamp;
+        return true;
+    }
+
+    const auto         before = std::prev (after);
+    const rclcpp::Time t0 (before->header.stamp, this->get_clock ()->get_clock_type ());
+    const rclcpp::Time t1 (after->header.stamp, this->get_clock ()->get_clock_type ());
+    if (t1 <= t0) {
+        result = *after;
+        return true;
+    }
+
+    const double fraction  = std::clamp ((target - t0).seconds () / (t1 - t0).seconds (), 0.0, 1.0);
+    const auto  &p0        = before->pose.pose;
+    const auto  &p1        = after->pose.pose;
+    const double yaw0      = tf2::getYaw (p0.orientation);
+    const double yaw1      = tf2::getYaw (p1.orientation);
+    double       delta_yaw = yaw1 - yaw0;
+    while (delta_yaw > M_PI) delta_yaw -= 2.0 * M_PI;
+    while (delta_yaw < -M_PI) delta_yaw += 2.0 * M_PI;
+
+    result                      = *before;
+    result.header.stamp         = stamp;
+    result.pose.pose.position.x = p0.position.x + fraction * (p1.position.x - p0.position.x);
+    result.pose.pose.position.y = p0.position.y + fraction * (p1.position.y - p0.position.y);
+    result.pose.pose.position.z = p0.position.z + fraction * (p1.position.z - p0.position.z);
+    tf2::Quaternion orientation;
+    orientation.setRPY (0.0, 0.0, yaw0 + fraction * delta_yaw);
+    result.pose.pose.orientation = tf2::toMsg (orientation);
+    return true;
 }
 
 void mcl::timer_callback () {
     if (likelihood_field_.empty ()) {
         RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Likelihood field is not ready yet.");
         return;
-    }
-
-    geometry_msgs::msg::TransformStamped odom_to_base_link;
-
-    double delta_x, delta_y, delta_yaw;
-
-    if (use_odom_tf_) {
-        try {
-            odom_to_base_link = tf_buffer_->lookupTransform (odom_frame_id_, base_frame_id_, tf2::TimePointZero);
-        } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN_THROTTLE (this->get_logger (), *this->get_clock (), 1000, "Could not get transform from %s to %s: %s", odom_frame_id_.c_str (), base_frame_id_.c_str (), ex.what ());
-            return;
-        }
-        double delta_x_in_map = odom_to_base_link.transform.translation.x - last_odom_to_base_transform_.translation.x;
-        double delta_y_in_map = odom_to_base_link.transform.translation.y - last_odom_to_base_transform_.translation.y;
-
-        double odom_to_base_link_yaw = tf2::getYaw (odom_to_base_link.transform.rotation);
-        double last_odom_yaw         = tf2::getYaw (last_odom_to_base_transform_.rotation);
-
-        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
-        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
-        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
-
-        last_odom_to_base_transform_ = odom_to_base_link.transform;
-    } else {
-        double delta_x_in_map = latest_odometry_.pose.pose.position.x - last_odometry_.pose.pose.position.x;
-        double delta_y_in_map = latest_odometry_.pose.pose.position.y - last_odometry_.pose.pose.position.y;
-
-        double odom_to_base_link_yaw = tf2::getYaw (latest_odometry_.pose.pose.orientation);
-        double last_odom_yaw         = tf2::getYaw (last_odometry_.pose.pose.orientation);
-
-        delta_x   = +cos (last_odom_yaw) * delta_x_in_map + sin (last_odom_yaw) * delta_y_in_map;
-        delta_y   = -sin (last_odom_yaw) * delta_x_in_map + cos (last_odom_yaw) * delta_y_in_map;
-        delta_yaw = odom_to_base_link_yaw - last_odom_yaw;
-
-        last_odometry_ = latest_odometry_;
-    }
-
-    while (delta_yaw > +M_PI) delta_yaw -= 2 * M_PI;
-    while (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
-
-    motion_update (delta_x, delta_y, delta_yaw);
-
-    if (use_odom_tf_ && last_map_to_odom_valid_) {
-        geometry_msgs::msg::TransformStamped map_to_odom_msg = last_map_to_odom_;
-        map_to_odom_msg.header.stamp                         = this->now () + rclcpp::Duration::from_seconds (transform_tolerance_);
-        tf_broadcaster_->sendTransform (map_to_odom_msg);
     }
 
     geometry_msgs::msg::PoseArray particles_msg;
@@ -328,6 +512,10 @@ void mcl::timer_callback () {
 void mcl::initial_pose_with_covariance_callback (const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
     trajectory_msg_.poses.clear ();
     initialize_particles (msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw (msg->pose.pose.orientation));
+    has_last_measurement_odometry_ = false;
+    std::lock_guard<std::mutex> lock (localization_state_mutex_);
+    has_localization_measurement_  = false;
+    has_current_pose_output_stamp_ = false;
 }
 
 void mcl::initialize_particles (double x, double y, double yaw) {
